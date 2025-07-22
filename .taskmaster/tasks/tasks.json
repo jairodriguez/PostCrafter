@@ -1,0 +1,1047 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Set up WordPress mu-plugin for Yoast meta exposure",
+        "description": "Create a WordPress mu-plugin to expose Yoast SEO meta fields (meta title, meta description, focus keywords) via REST API for write access",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [],
+        "details": "Create a mu-plugin that hooks into WordPress REST API to expose Yoast SEO fields. This is critical for SEO optimization and must be done first as other components depend on it. The plugin should expose meta_title, meta_description, and focus_keywords fields for the posts endpoint.",
+        "testStrategy": "Test by making REST API calls to verify Yoast fields are exposed and writable",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create mu-plugin directory structure",
+            "description": "Set up the proper directory structure for the WordPress mu-plugin",
+            "status": "done",
+            "details": "Create the mu-plugin directory in wp-content/mu-plugins/ and set up the main plugin file with proper WordPress headers and initialization hooks.\n<info added on 2025-07-22T02:31:57.649Z>\nCreated the mu-plugin directory structure with a comprehensive organization:\n\n- Created the main plugin directory: `wp-content/mu-plugins/postcrafter-yoast-integration/`\n- Created the main plugin file: `postcrafter-yoast-integration.php` with proper WordPress plugin header\n- Created `includes/` directory for supporting classes\n- Created three supporting class files:\n  - `class-yoast-field-handler.php` - Handles Yoast field operations\n  - `class-rest-api-handler.php` - Manages REST API integration\n  - `class-validation-handler.php` - Handles input validation and sanitization\n- Created comprehensive `README.md` with installation and usage instructions\n\nThe directory structure follows WordPress best practices with a class-based architecture for maintainability. The plugin is now ready for implementing the REST API field registration in the next subtask.\n</info added on 2025-07-22T02:31:57.649Z>",
+            "testStrategy": "Verify plugin loads correctly and appears in WordPress admin"
+          },
+          {
+            "id": 2,
+            "title": "Implement REST API field registration",
+            "description": "Register custom fields for the posts endpoint in WordPress REST API",
+            "status": "pending",
+            "details": "Use register_rest_field() to expose Yoast meta fields (meta_title, meta_description, focus_keywords) for the posts endpoint. Hook into rest_api_init action.",
+            "testStrategy": "Test REST API endpoint to verify fields are exposed"
+          },
+          {
+            "id": 3,
+            "title": "Add field getter and setter functions",
+            "description": "Implement functions to get and set Yoast meta field values",
+            "status": "pending",
+            "details": "Create getter function to retrieve Yoast meta values from post meta. Create setter function to save Yoast meta values using update_post_meta(). Handle both single and multiple values.",
+            "testStrategy": "Test reading and writing Yoast meta fields via REST API"
+          },
+          {
+            "id": 4,
+            "title": "Handle Yoast plugin compatibility",
+            "description": "Ensure compatibility with different Yoast SEO plugin versions",
+            "status": "pending",
+            "details": "Add checks for Yoast plugin activation and version compatibility. Handle different meta key formats used by various Yoast versions. Add fallback handling for when Yoast is not active.",
+            "testStrategy": "Test with different Yoast versions and without Yoast active"
+          },
+          {
+            "id": 5,
+            "title": "Add input validation and sanitization",
+            "description": "Implement proper validation and sanitization for Yoast meta fields",
+            "status": "pending",
+            "details": "Add validation for meta title length, meta description length, and focus keywords format. Sanitize input data to prevent XSS and other security issues. Add proper error handling for invalid data.",
+            "testStrategy": "Test with various input types including malicious content"
+          },
+          {
+            "id": 6,
+            "title": "Create comprehensive testing suite",
+            "description": "Develop tests to verify mu-plugin functionality",
+            "status": "pending",
+            "details": "Create unit tests for field registration, getter/setter functions, and validation. Test REST API endpoints with various scenarios. Verify SEO meta is properly saved and retrieved.",
+            "testStrategy": "Run full test suite and verify all functionality works correctly"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Create Vercel serverless API structure",
+        "description": "Set up the Vercel project structure with TypeScript for the serverless function that will handle GPT-to-WordPress communication",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [],
+        "details": "Initialize a Vercel project with TypeScript, Node 18+, and the necessary dependencies. Set up the basic API structure with authentication middleware and environment variable configuration for WordPress credentials and GPT API key.",
+        "testStrategy": "Deploy to Vercel and verify the endpoint is accessible with proper authentication",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize Vercel project with TypeScript",
+            "description": "Set up the basic Vercel project structure with TypeScript configuration",
+            "status": "pending",
+            "details": "Create a new Vercel project with TypeScript support. Set up package.json with necessary dependencies (Node 18+), TypeScript configuration, and Vercel configuration files.",
+            "testStrategy": "Verify project builds and deploys to Vercel successfully"
+          },
+          {
+            "id": 2,
+            "title": "Set up API route structure",
+            "description": "Create the main API endpoint structure for handling post publishing requests",
+            "status": "pending",
+            "details": "Create the main API route file (api/publish.ts) with proper TypeScript types, request/response interfaces, and basic error handling structure.",
+            "testStrategy": "Test API endpoint responds correctly to basic requests"
+          },
+          {
+            "id": 3,
+            "title": "Configure environment variables",
+            "description": "Set up environment variable configuration for WordPress and API credentials",
+            "status": "pending",
+            "details": "Define environment variables for WordPress URL, username, app password, and GPT API key. Set up proper TypeScript types for environment variables and validation.",
+            "testStrategy": "Verify environment variables are properly loaded and validated"
+          },
+          {
+            "id": 4,
+            "title": "Add authentication middleware",
+            "description": "Implement basic authentication middleware for API key validation",
+            "status": "pending",
+            "details": "Create middleware to validate API keys from request headers. Implement proper error responses for invalid or missing authentication.",
+            "testStrategy": "Test authentication with valid and invalid API keys"
+          },
+          {
+            "id": 5,
+            "title": "Set up CORS and security headers",
+            "description": "Configure CORS and security headers for the API endpoint",
+            "status": "pending",
+            "details": "Configure CORS to allow requests from ChatGPT domains. Set up security headers to prevent common vulnerabilities. Implement rate limiting basics.",
+            "testStrategy": "Test CORS configuration and verify security headers are present"
+          },
+          {
+            "id": 6,
+            "title": "Create development and deployment scripts",
+            "description": "Set up scripts for local development and Vercel deployment",
+            "status": "pending",
+            "details": "Create npm scripts for local development, testing, and deployment. Set up Vercel CLI configuration and deployment workflows.",
+            "testStrategy": "Test local development setup and successful deployment to Vercel"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Implement WordPress REST API integration",
+        "description": "Build the core functionality to create posts via WordPress REST API with proper authentication and error handling",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "details": "Implement the main post creation logic using WordPress REST API. Handle authentication via App Passwords, create posts with title, content, excerpt, categories, tags, and Yoast meta fields. Include proper error handling and validation.",
+        "testStrategy": "Test post creation end-to-end with various content types and verify all fields are properly saved",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set up WordPress API client utilities",
+            "description": "Create utility functions for WordPress REST API communication",
+            "status": "pending",
+            "details": "Create helper functions for making authenticated requests to WordPress REST API. Handle authentication headers, request formatting, and basic error handling for API calls.",
+            "testStrategy": "Test API client utilities with WordPress test site"
+          },
+          {
+            "id": 2,
+            "title": "Implement post creation endpoint",
+            "description": "Create the main function to create posts via WordPress REST API",
+            "status": "pending",
+            "details": "Implement the core post creation logic using WordPress REST API /wp/v2/posts endpoint. Handle title, content, excerpt, status, and basic post fields. Include proper error handling and response validation.",
+            "testStrategy": "Test post creation with various content types and verify posts are created correctly"
+          },
+          {
+            "id": 3,
+            "title": "Add Yoast meta field integration",
+            "description": "Integrate Yoast SEO meta fields with post creation",
+            "status": "pending",
+            "details": "Extend post creation to include Yoast meta fields (meta_title, meta_description, focus_keywords) using the custom fields exposed by the mu-plugin. Handle both single and multiple focus keywords.",
+            "testStrategy": "Test post creation with Yoast meta fields and verify they're saved correctly"
+          },
+          {
+            "id": 4,
+            "title": "Implement category and tag handling",
+            "description": "Add support for creating and assigning categories and tags",
+            "status": "pending",
+            "details": "Implement logic to create new categories/tags if they don't exist, or assign existing ones to posts. Handle category hierarchies and tag slugs. Use WordPress REST API endpoints for terms.",
+            "testStrategy": "Test category and tag creation/assignment with various scenarios"
+          },
+          {
+            "id": 5,
+            "title": "Add content validation and sanitization",
+            "description": "Implement comprehensive content validation for WordPress posts",
+            "status": "pending",
+            "details": "Add validation for post title length, content formatting, excerpt length, and other WordPress-specific requirements. Sanitize HTML content and handle special characters properly.",
+            "testStrategy": "Test with various content types including HTML, special characters, and edge cases"
+          },
+          {
+            "id": 6,
+            "title": "Implement comprehensive error handling",
+            "description": "Add robust error handling for WordPress API interactions",
+            "status": "pending",
+            "details": "Handle WordPress API errors gracefully, including authentication failures, validation errors, and server errors. Provide meaningful error messages and implement retry logic for transient failures.",
+            "testStrategy": "Test various error scenarios and verify proper error handling and logging"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Add media upload functionality",
+        "description": "Implement image upload support for featured images and media attachments with alt text handling",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "details": "Add functionality to upload images from URLs or base64 data to WordPress media library. Handle featured image assignment, alt text setting, and media attachment to posts. Support both URL-based and base64 image uploads.",
+        "testStrategy": "Test image uploads from various sources and verify they're properly attached to posts with alt text",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement URL-based image download",
+            "description": "Create functionality to download and upload images from URLs",
+            "status": "pending",
+            "details": "Implement image download from URLs, validate image formats, and upload to WordPress media library using REST API. Handle various image formats (JPEG, PNG, WebP) and size limits.",
+            "testStrategy": "Test downloading and uploading images from various URL sources"
+          },
+          {
+            "id": 2,
+            "title": "Add base64 image processing",
+            "description": "Implement base64 image decoding and upload functionality",
+            "status": "pending",
+            "details": "Create functionality to decode base64 image data, validate format, and upload to WordPress media library. Handle different base64 encodings and image formats.",
+            "testStrategy": "Test base64 image processing with various formats and sizes"
+          },
+          {
+            "id": 3,
+            "title": "Implement featured image assignment",
+            "description": "Add functionality to set featured images for posts",
+            "status": "pending",
+            "details": "Implement logic to assign uploaded images as featured images for posts. Use WordPress REST API to set the featured_media field on posts.",
+            "testStrategy": "Test featured image assignment and verify it appears correctly on posts"
+          },
+          {
+            "id": 4,
+            "title": "Add alt text and metadata handling",
+            "description": "Implement alt text and image metadata management",
+            "status": "pending",
+            "details": "Add support for setting alt text, title, caption, and description for uploaded images. Update image metadata using WordPress REST API media endpoints.",
+            "testStrategy": "Test alt text and metadata setting for uploaded images"
+          },
+          {
+            "id": 5,
+            "title": "Implement image optimization and validation",
+            "description": "Add image optimization and format validation",
+            "status": "pending",
+            "details": "Implement image format validation, size optimization, and quality checks. Handle various image formats and ensure compatibility with WordPress media library.",
+            "testStrategy": "Test with various image formats and sizes to ensure proper handling"
+          },
+          {
+            "id": 6,
+            "title": "Add error handling for media uploads",
+            "description": "Implement comprehensive error handling for media operations",
+            "status": "pending",
+            "details": "Handle media upload errors gracefully, including network failures, invalid formats, size limits, and WordPress API errors. Provide meaningful error messages and fallback options.",
+            "testStrategy": "Test various error scenarios including network failures and invalid images"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Create GPT Action OpenAPI specification",
+        "description": "Define the OpenAPI specification for the GPT Action that will be used in ChatGPT to trigger post publishing",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "details": "Create a comprehensive OpenAPI specification that defines the input schema for post data (title, content, categories, tags, images, Yoast fields) and the expected response format. This will be used to configure the GPT Action in ChatGPT.",
+        "testStrategy": "Validate the OpenAPI spec and test GPT Action integration in ChatGPT",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define API endpoint specification",
+            "description": "Create the main API endpoint definition in OpenAPI format",
+            "status": "pending",
+            "details": "Define the main POST endpoint for publishing posts. Include proper HTTP methods, URL structure, and basic request/response format. Set up proper OpenAPI version and metadata.",
+            "testStrategy": "Validate OpenAPI spec syntax and structure"
+          },
+          {
+            "id": 2,
+            "title": "Design post data schema",
+            "description": "Create comprehensive schema for post data input",
+            "status": "pending",
+            "details": "Define detailed schema for post data including title, content, excerpt, categories, tags, status, and Yoast meta fields. Include proper validation rules, required fields, and data types.",
+            "testStrategy": "Test schema validation with various post data examples"
+          },
+          {
+            "id": 3,
+            "title": "Define image data schema",
+            "description": "Create schema for image upload data",
+            "status": "pending",
+            "details": "Define schema for image data including URL-based images, base64 images, alt text, and featured image designation. Handle both single images and image arrays.",
+            "testStrategy": "Test image schema validation with various image data formats"
+          },
+          {
+            "id": 4,
+            "title": "Create response schema",
+            "description": "Define the API response format and structure",
+            "status": "pending",
+            "details": "Define response schema including success responses with post URL, post ID, and status information. Include error response formats with proper error codes and messages.",
+            "testStrategy": "Test response schema with various success and error scenarios"
+          },
+          {
+            "id": 5,
+            "title": "Add authentication specification",
+            "description": "Define authentication requirements in OpenAPI spec",
+            "status": "pending",
+            "details": "Add security scheme definition for API key authentication. Include proper security requirements and header specifications for the GPT Action integration.",
+            "testStrategy": "Validate authentication specification and test with ChatGPT"
+          },
+          {
+            "id": 6,
+            "title": "Create GPT Action configuration",
+            "description": "Set up GPT Action configuration for ChatGPT integration",
+            "status": "pending",
+            "details": "Create the complete GPT Action configuration including action name, description, and integration instructions. Test the action in ChatGPT to ensure proper functionality.",
+            "testStrategy": "Test GPT Action in ChatGPT and verify it can trigger post publishing"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Implement secure authentication system",
+        "description": "Set up secure API key authentication between GPT and the Vercel endpoint to prevent unauthorized access",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "details": "Implement secure API key validation middleware. Store API keys securely in Vercel environment variables. Add rate limiting and request validation to prevent abuse and ensure only authorized GPT instances can publish posts.",
+        "testStrategy": "Test authentication with valid and invalid API keys, verify rate limiting works correctly",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement API key validation middleware",
+            "description": "Create middleware to validate API keys from request headers",
+            "status": "pending",
+            "details": "Create middleware function to extract and validate API keys from request headers. Compare against stored API keys in environment variables. Return appropriate error responses for invalid or missing keys.",
+            "testStrategy": "Test with valid and invalid API keys to verify proper validation"
+          },
+          {
+            "id": 2,
+            "title": "Set up secure environment variable handling",
+            "description": "Configure secure storage and access to API keys in Vercel",
+            "status": "pending",
+            "details": "Set up environment variables in Vercel for API key storage. Implement secure access patterns and validation. Ensure API keys are never logged or exposed in error messages.",
+            "testStrategy": "Verify API keys are properly stored and not exposed in logs or responses"
+          },
+          {
+            "id": 3,
+            "title": "Implement rate limiting",
+            "description": "Add rate limiting to prevent API abuse",
+            "status": "pending",
+            "details": "Implement rate limiting based on API key and IP address. Set reasonable limits for requests per minute/hour. Use Vercel's edge functions or external rate limiting service.",
+            "testStrategy": "Test rate limiting by making multiple requests and verifying limits are enforced"
+          },
+          {
+            "id": 4,
+            "title": "Add request validation and sanitization",
+            "description": "Implement comprehensive request validation",
+            "status": "pending",
+            "details": "Add validation for request headers, body format, and content types. Sanitize input data to prevent injection attacks. Validate request size limits and content structure.",
+            "testStrategy": "Test with various request formats including malicious content"
+          },
+          {
+            "id": 5,
+            "title": "Implement security headers and CORS",
+            "description": "Add security headers and proper CORS configuration",
+            "status": "pending",
+            "details": "Set up security headers including Content-Security-Policy, X-Frame-Options, and X-Content-Type-Options. Configure CORS to allow only necessary origins and methods.",
+            "testStrategy": "Verify security headers are present and CORS is properly configured"
+          },
+          {
+            "id": 6,
+            "title": "Add request logging and monitoring",
+            "description": "Implement secure logging for authentication events",
+            "status": "pending",
+            "details": "Add logging for authentication attempts, rate limit violations, and security events. Ensure sensitive data is not logged. Set up monitoring for suspicious activity patterns.",
+            "testStrategy": "Test logging functionality and verify sensitive data is not exposed"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Add error handling and logging",
+        "description": "Implement comprehensive error handling, logging, and monitoring for the API to ensure reliability and debugging capability",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          3,
+          6
+        ],
+        "details": "Add structured error handling for all API endpoints. Implement logging for debugging and monitoring. Handle WordPress API errors gracefully and provide meaningful error messages back to GPT. Add request/response logging for troubleshooting.",
+        "testStrategy": "Test various error scenarios and verify proper error messages and logging",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create error handling middleware",
+            "description": "Implement a centralized error handling middleware that catches and processes all errors in a consistent way across the application",
+            "dependencies": [],
+            "details": "Create a middleware function that catches errors thrown in route handlers using Express's error handling middleware pattern. Implement different error classes (ValidationError, AuthenticationError, WordPressAPIError, etc.) to categorize errors. The middleware should format error responses consistently with appropriate HTTP status codes and clear error messages.",
+            "status": "pending",
+            "testStrategy": "Test with various error types to ensure proper error classification and response formatting. Verify HTTP status codes match error types."
+          },
+          {
+            "id": 2,
+            "title": "Implement structured logging system",
+            "description": "Set up a structured logging system that captures important application events with appropriate log levels",
+            "dependencies": [],
+            "details": "Integrate a logging library like Winston or Pino. Configure log levels (error, warn, info, debug) and structured JSON output format. Set up log rotation and retention policies. Create logger utility functions for consistent logging across the application. Configure different outputs based on environment (console for development, file for production).",
+            "status": "pending",
+            "testStrategy": "Verify logs are generated with correct structure and levels for different application events. Test log rotation functionality."
+          },
+          {
+            "id": 3,
+            "title": "Add request/response logging",
+            "description": "Implement middleware to log all incoming requests and outgoing responses for debugging and monitoring purposes",
+            "dependencies": [
+              "7.2"
+            ],
+            "details": "Create middleware that logs request details (method, path, query parameters, headers, body) and response details (status code, response time, size). Use the structured logging system implemented in 7.2. Ensure sensitive information like API keys are redacted from logs. Add correlation IDs to track requests through the system.",
+            "status": "pending",
+            "testStrategy": "Make various API requests and verify request/response details are properly logged with appropriate redaction of sensitive data."
+          },
+          {
+            "id": 4,
+            "title": "Implement WordPress API error handling",
+            "description": "Create specific error handling for WordPress API interactions to gracefully handle and report WordPress-specific errors",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "Implement specific error handling for WordPress API calls that catches HTTP errors, authentication failures, and WordPress-specific error responses. Parse WordPress error messages and translate them into user-friendly messages. Implement retry logic for transient errors. Map WordPress error codes to appropriate HTTP status codes for client responses.",
+            "status": "pending",
+            "testStrategy": "Test with mocked WordPress API failures including rate limiting, authentication errors, and invalid input errors to verify proper handling and messaging."
+          },
+          {
+            "id": 5,
+            "title": "Set up application monitoring",
+            "description": "Implement monitoring to track application health, performance metrics, and error rates",
+            "dependencies": [
+              "7.2",
+              "7.3"
+            ],
+            "details": "Integrate with a monitoring service (like Datadog, New Relic, or a simple health check endpoint). Track key metrics including request rates, error rates, response times, and WordPress API call performance. Set up alerting for critical errors or performance degradation. Create a health check endpoint that verifies connectivity to WordPress API.",
+            "status": "pending",
+            "testStrategy": "Verify metrics are properly reported to the monitoring service. Test alerting by triggering error conditions."
+          },
+          {
+            "id": 6,
+            "title": "Create debugging tools and documentation",
+            "description": "Implement debugging utilities and document troubleshooting procedures for the application",
+            "dependencies": [
+              "7.1",
+              "7.2",
+              "7.3",
+              "7.4",
+              "7.5"
+            ],
+            "details": "Create utility endpoints for debugging (only accessible in development or with admin credentials). Implement verbose logging mode that can be enabled for troubleshooting. Document common error scenarios and their solutions. Create a troubleshooting guide for operators. Implement a way to correlate logs with specific requests using request IDs.",
+            "status": "pending",
+            "testStrategy": "Verify debugging tools provide useful information for common error scenarios. Test that verbose logging provides sufficient detail for troubleshooting."
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Create user documentation and setup guide",
+        "description": "Develop comprehensive documentation for users to set up PostCrafter on their WordPress sites and configure the GPT Action",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          5,
+          6
+        ],
+        "details": "Create step-by-step setup documentation including WordPress configuration (API keys, mu-plugin installation), Vercel deployment instructions, and GPT Action configuration. Include troubleshooting guides and best practices.",
+        "testStrategy": "Have a non-technical user follow the documentation to set up PostCrafter successfully",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create WordPress Plugin Installation Guide",
+            "description": "Develop a step-by-step guide for installing and configuring the PostCrafter WordPress plugin, including API key setup and mu-plugin installation.",
+            "dependencies": [],
+            "details": "Create a document that covers: 1) Prerequisites for WordPress installation, 2) Downloading the PostCrafter plugin, 3) Installing the mu-plugin component, 4) Configuring API keys in WordPress settings, 5) Verifying successful installation with screenshots and examples. Include system requirements and compatibility information.",
+            "status": "pending",
+            "testStrategy": "Have a WordPress administrator follow the guide to install the plugin on a test site and verify functionality."
+          },
+          {
+            "id": 2,
+            "title": "Develop Vercel Deployment Documentation",
+            "description": "Create comprehensive instructions for deploying the PostCrafter serverless API to Vercel, including environment setup and configuration.",
+            "dependencies": [],
+            "details": "Document the process of: 1) Setting up a Vercel account, 2) Cloning the PostCrafter repository, 3) Configuring environment variables (WordPress credentials, API keys), 4) Deploying to Vercel, 5) Testing the deployment. Include troubleshooting for common deployment issues and best practices for environment variable management.",
+            "status": "pending",
+            "testStrategy": "Have a developer follow the guide to deploy a test instance to Vercel and verify the API endpoints are working correctly."
+          },
+          {
+            "id": 3,
+            "title": "Write GPT Action Configuration Guide",
+            "description": "Create documentation explaining how to set up and configure the PostCrafter GPT Action in ChatGPT, including authentication and usage examples.",
+            "dependencies": [
+              "8.2"
+            ],
+            "details": "Document the process of: 1) Accessing the GPT Action configuration in ChatGPT, 2) Setting up the OpenAPI specification, 3) Configuring authentication credentials, 4) Testing the connection, 5) Example prompts and use cases. Include screenshots of the configuration process and explain each field in detail.",
+            "status": "pending",
+            "testStrategy": "Have a user follow the guide to configure the GPT Action and successfully publish a test post from ChatGPT."
+          },
+          {
+            "id": 4,
+            "title": "Develop Troubleshooting and FAQ Guide",
+            "description": "Create a comprehensive troubleshooting guide and FAQ section addressing common issues users might encounter when setting up or using PostCrafter.",
+            "dependencies": [
+              "8.1",
+              "8.2",
+              "8.3"
+            ],
+            "details": "Compile a list of common issues and their solutions, organized by categories: 1) WordPress plugin issues, 2) Vercel deployment problems, 3) GPT Action configuration errors, 4) Authentication failures, 5) Content publishing errors. For each issue, provide clear steps to diagnose and resolve the problem, with screenshots where helpful.",
+            "status": "pending",
+            "testStrategy": "Review the guide with beta users who have encountered issues to ensure solutions are accurate and helpful."
+          },
+          {
+            "id": 5,
+            "title": "Create User Onboarding Materials",
+            "description": "Develop onboarding materials including quickstart guides, video tutorials, and best practices for new PostCrafter users.",
+            "dependencies": [
+              "8.1",
+              "8.2",
+              "8.3"
+            ],
+            "details": "Create: 1) A quickstart guide for first-time users, 2) Script and record 2-3 short video tutorials covering installation, configuration, and basic usage, 3) Best practices document for optimal content creation and publishing workflow, 4) Sample prompts for different content types. Focus on making the onboarding process smooth and intuitive for users with varying technical expertise.",
+            "status": "pending",
+            "testStrategy": "Test the onboarding materials with new users and gather feedback on clarity and completeness."
+          },
+          {
+            "id": 6,
+            "title": "Compile Complete Documentation Package",
+            "description": "Compile all documentation components into a cohesive, well-organized documentation package with consistent formatting and navigation.",
+            "dependencies": [
+              "8.1",
+              "8.2",
+              "8.3",
+              "8.4",
+              "8.5"
+            ],
+            "details": "1) Create a documentation structure with clear navigation, 2) Ensure consistent formatting and style across all documents, 3) Add cross-references between related sections, 4) Create a searchable index, 5) Package documentation for both online viewing (HTML) and downloadable format (PDF), 6) Set up a version control system for future documentation updates. Include a changelog and version information.",
+            "status": "pending",
+            "testStrategy": "Have a non-technical user navigate the complete documentation to find specific information and follow the guides to set up PostCrafter successfully."
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Implement input validation and sanitization",
+        "description": "Add comprehensive input validation to ensure data integrity and prevent security issues",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "details": "Implement validation for all input fields including content sanitization, URL validation for images, and proper escaping of HTML content. Ensure all data is properly validated before being sent to WordPress to prevent security vulnerabilities.",
+        "testStrategy": "Test with various input types including malicious content to ensure proper validation and sanitization",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create input validation utility functions",
+            "description": "Develop reusable utility functions for common validation tasks such as string length checking, type validation, and pattern matching",
+            "dependencies": [],
+            "details": "Create a validation.js utility file with functions for validating different data types: validateString(str, minLength, maxLength), validateEmail(email), validateUrl(url), validateNumber(num, min, max), and isValidJson(str). These functions should return boolean values and optionally error messages. Use regular expressions for pattern matching where appropriate.",
+            "status": "pending",
+            "testStrategy": "Write unit tests for each validation function with valid and invalid inputs"
+          },
+          {
+            "id": 2,
+            "title": "Implement content sanitization for HTML and markdown",
+            "description": "Create sanitization functions to clean user-generated content and prevent XSS attacks",
+            "dependencies": [
+              "9.1"
+            ],
+            "details": "Implement sanitizeHtml(content) and sanitizeMarkdown(content) functions using libraries like DOMPurify or markdown-it with appropriate configuration to strip dangerous HTML tags, attributes, and JavaScript. Configure allowlists for safe HTML elements and attributes. Handle special characters and ensure proper encoding.",
+            "status": "pending",
+            "testStrategy": "Test with malicious input patterns including script tags, event handlers, and encoded JavaScript"
+          },
+          {
+            "id": 3,
+            "title": "Add URL and image validation",
+            "description": "Implement specific validation for URLs and image sources to prevent malicious redirects and ensure proper formatting",
+            "dependencies": [
+              "9.1"
+            ],
+            "details": "Create validateImageUrl(url) function that checks if URLs are properly formatted, use allowlists for accepted domains if applicable, verify file extensions match image types (.jpg, .png, .gif, etc.), and implement size validation if needed. Consider implementing async validation to check if images actually exist.",
+            "status": "pending",
+            "testStrategy": "Test with various URL formats, invalid image URLs, and potentially malicious redirect URLs"
+          },
+          {
+            "id": 4,
+            "title": "Implement input field validation middleware",
+            "description": "Create middleware to validate all incoming request data before processing",
+            "dependencies": [
+              "9.1",
+              "9.2",
+              "9.3"
+            ],
+            "details": "Develop an Express middleware function validateRequestBody(schema) that validates incoming request bodies against predefined schemas. Use a schema validation library like Joi or Yup to define validation rules for each API endpoint. The middleware should reject requests with invalid data and return appropriate error messages.",
+            "status": "pending",
+            "testStrategy": "Test middleware with valid requests and various invalid request scenarios to ensure proper rejection and error messages"
+          },
+          {
+            "id": 5,
+            "title": "Add WordPress-specific data sanitization",
+            "description": "Implement sanitization specific to WordPress API requirements for post content, titles, and metadata",
+            "dependencies": [
+              "9.2",
+              "9.4"
+            ],
+            "details": "Create sanitizeWordPressContent(content) and sanitizeWordPressFields(fields) functions that prepare data specifically for WordPress. Handle WordPress-specific requirements like shortcode validation, proper escaping for post_content, post_title, and meta fields. Ensure compatibility with Gutenberg blocks if used.",
+            "status": "pending",
+            "testStrategy": "Test with WordPress-specific content patterns including shortcodes and verify the sanitized output works correctly in WordPress"
+          },
+          {
+            "id": 6,
+            "title": "Implement comprehensive security testing suite",
+            "description": "Create automated tests to verify all validation and sanitization measures are working correctly",
+            "dependencies": [
+              "9.1",
+              "9.2",
+              "9.3",
+              "9.4",
+              "9.5"
+            ],
+            "details": "Develop a test suite that includes security-focused tests: XSS attack vectors, SQL injection attempts, CSRF scenarios, and other common web vulnerabilities. Include both unit tests for individual functions and integration tests for the complete request flow. Document common attack vectors being tested and mitigation strategies.",
+            "status": "pending",
+            "testStrategy": "Run the security test suite as part of CI/CD pipeline and manually review results. Include penetration testing scenarios and edge cases."
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Add support for categories and tags",
+        "description": "Implement category and tag creation/assignment functionality for better content organization",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [
+          3
+        ],
+        "details": "Add functionality to create new categories and tags if they don't exist, or assign existing ones to posts. Handle category and tag slugs, descriptions, and hierarchical relationships for categories.",
+        "testStrategy": "Test category and tag creation/assignment with various scenarios including new and existing terms",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Category and Tag Data Models",
+            "description": "Define the data structures for categories and tags, including their properties and relationships. Implement validation rules for these models.",
+            "dependencies": [],
+            "details": "Create TypeScript interfaces for Category and Tag models with properties like id, name, slug, description, and parent (for hierarchical categories). Implement validation functions to ensure data integrity. Categories should support hierarchical relationships while tags are flat. Both should have proper slug generation from names.",
+            "status": "pending",
+            "testStrategy": "Unit test the validation functions with valid and invalid data. Test slug generation with special characters and international characters."
+          },
+          {
+            "id": 2,
+            "title": "Implement Category Creation and Hierarchy Management",
+            "description": "Build functionality to create new categories and manage their hierarchical relationships. Handle parent-child relationships and ensure proper slug generation.",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "Implement functions to create new categories via WordPress REST API. Include logic to check if a category exists before creating it. Handle parent-child relationships by allowing categories to be nested under parent categories. Implement proper slug generation and validation. Add support for category descriptions.",
+            "status": "pending",
+            "testStrategy": "Test creating categories with and without parents. Verify proper hierarchy is maintained. Test creating categories with duplicate names and ensure proper slug uniqueness."
+          },
+          {
+            "id": 3,
+            "title": "Implement Tag Creation and Management",
+            "description": "Build functionality to create and manage tags, including checking for existing tags and proper slug handling.",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "Implement functions to create new tags via WordPress REST API. Include logic to check if a tag exists before creating it. Handle tag slug generation and validation. Add support for tag descriptions. Ensure proper error handling when tag creation fails.",
+            "status": "pending",
+            "testStrategy": "Test creating new tags, test creating tags with duplicate names, and verify proper slug generation. Test error handling when API calls fail."
+          },
+          {
+            "id": 4,
+            "title": "Implement Category and Tag Assignment to Posts",
+            "description": "Create functionality to assign existing categories and tags to posts during post creation or update.",
+            "dependencies": [
+              "10.2",
+              "10.3"
+            ],
+            "details": "Extend the post creation/update functionality to include category and tag assignment. Implement functions to search for existing categories and tags by name or ID. Allow multiple categories and tags to be assigned to a post. Handle the case where a category or tag doesn't exist by creating it first.",
+            "status": "pending",
+            "testStrategy": "Test assigning multiple categories and tags to posts. Test assigning non-existent categories/tags and verify they're created. Test assigning hierarchical categories."
+          },
+          {
+            "id": 5,
+            "title": "Integrate with WordPress Taxonomy API",
+            "description": "Ensure proper integration with WordPress taxonomy system for both categories and tags, including term relationships and metadata.",
+            "dependencies": [
+              "10.4"
+            ],
+            "details": "Finalize integration with WordPress taxonomy system by ensuring proper term relationships are established. Implement functions to retrieve categories and tags with their full hierarchy. Add support for category and tag metadata if needed. Ensure proper error handling and validation throughout the taxonomy integration.",
+            "status": "pending",
+            "testStrategy": "End-to-end testing of the complete category and tag functionality. Test retrieving hierarchical categories. Test edge cases like assigning the same category multiple times or creating categories with the same name but different parents."
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Implement draft vs publish functionality",
+        "description": "Add option to save posts as drafts instead of publishing immediately",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [
+          3
+        ],
+        "details": "Add a 'status' field to the API that allows posts to be saved as drafts or published immediately. This gives users more control over their publishing workflow and allows for review before going live.",
+        "testStrategy": "Test both draft and publish modes to ensure posts are saved with correct status",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add status field to database schema and API models",
+            "description": "Extend the database schema and API models to include a 'status' field that can store post status values (draft/published)",
+            "dependencies": [],
+            "details": "Modify the database schema to add a 'status' field to the posts table with possible values 'draft' and 'published'. Update the API request/response models to include this new field. Set 'published' as the default value for backward compatibility. Ensure the field is properly documented in API specifications.",
+            "status": "pending",
+            "testStrategy": "Verify database migrations work correctly. Test API models serialize and deserialize the status field properly."
+          },
+          {
+            "id": 2,
+            "title": "Implement status handling in WordPress API integration",
+            "description": "Update the WordPress API integration to handle the status field when creating or updating posts",
+            "dependencies": [
+              "11.1"
+            ],
+            "details": "Modify the WordPress REST API integration code to map the internal 'status' field to WordPress post status values. WordPress uses 'draft', 'publish', 'pending', etc. Ensure the integration correctly translates between our system's status values and WordPress status values. Update error handling to account for status-related errors from WordPress.",
+            "status": "pending",
+            "testStrategy": "Test creating posts with different status values and verify they appear correctly in WordPress with the expected status."
+          },
+          {
+            "id": 3,
+            "title": "Update UI components for draft/publish functionality",
+            "description": "Modify the user interface to allow users to choose between saving as draft or publishing immediately",
+            "dependencies": [
+              "11.1"
+            ],
+            "details": "Add UI controls (toggle, dropdown, or radio buttons) to the post creation/editing interface that allow users to select whether to save as draft or publish immediately. Update the submission logic to include the selected status when sending data to the API. Add visual indicators to distinguish draft posts from published posts in post listings.",
+            "status": "pending",
+            "testStrategy": "Test the UI controls to ensure they correctly set the status field. Verify visual indicators properly reflect post status."
+          },
+          {
+            "id": 4,
+            "title": "Implement workflow controls for draft management",
+            "description": "Add functionality to list, filter, and transition posts between draft and published states",
+            "dependencies": [
+              "11.2",
+              "11.3"
+            ],
+            "details": "Implement API endpoints and UI components to: 1) List and filter posts by status, 2) Allow changing a post's status from draft to published and vice versa, 3) Add batch operations for managing multiple drafts. Include proper authorization checks to ensure only authorized users can change post status. Update the OpenAPI specification to document these new endpoints.",
+            "status": "pending",
+            "testStrategy": "Test the complete workflow of creating drafts, listing them, and transitioning them to published status. Verify authorization controls work correctly."
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Add RankMath SEO plugin support",
+        "description": "Extend the mu-plugin to support RankMath SEO plugin in addition to Yoast",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [
+          1
+        ],
+        "details": "Extend the existing mu-plugin to also expose RankMath SEO fields via REST API. This will provide compatibility with both major SEO plugins and increase the user base for PostCrafter.",
+        "testStrategy": "Test with both Yoast and RankMath installations to ensure both plugins work correctly",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement RankMath plugin detection",
+            "description": "Create a function to detect if RankMath SEO plugin is active and handle conditional loading of RankMath support",
+            "dependencies": [],
+            "details": "Create a function that checks if RankMath SEO plugin is active using is_plugin_active() or by checking for RankMath class existence. Implement conditional logic to load appropriate SEO plugin support based on which plugin is active (Yoast, RankMath, or both). Add appropriate admin notices if neither plugin is active.",
+            "status": "pending",
+            "testStrategy": "Test with RankMath active, Yoast active, both active, and neither active to verify correct detection and loading behavior."
+          },
+          {
+            "id": 2,
+            "title": "Map RankMath SEO fields to REST API structure",
+            "description": "Identify and map RankMath SEO fields to equivalent REST API fields for consistent data structure",
+            "dependencies": [
+              "12.1"
+            ],
+            "details": "Research and document all relevant RankMath SEO fields that need exposure (title, description, focus keywords, etc.). Create a mapping between RankMath's internal field names and the REST API field names used in the existing Yoast implementation. Ensure consistent field naming conventions between both SEO plugins for API consumers. Document any RankMath-specific fields that have no Yoast equivalent.",
+            "status": "pending",
+            "testStrategy": "Create a test post with RankMath data and verify all fields are correctly identified and mapped."
+          },
+          {
+            "id": 3,
+            "title": "Extend REST API endpoints for RankMath fields",
+            "description": "Modify existing REST API endpoints to include RankMath SEO fields for read/write operations",
+            "dependencies": [
+              "12.2"
+            ],
+            "details": "Extend the register_rest_field() implementations to support RankMath fields based on the mapping created earlier. Implement get_callback functions to retrieve RankMath metadata from posts. Implement update_callback functions to save RankMath metadata to posts. Ensure backward compatibility with existing Yoast implementations. Handle permissions and validation for RankMath fields.",
+            "status": "pending",
+            "testStrategy": "Test REST API GET and POST requests to verify RankMath fields are correctly exposed and can be updated."
+          },
+          {
+            "id": 4,
+            "title": "Implement data conversion between Yoast and RankMath",
+            "description": "Create utility functions to handle data conversion between Yoast and RankMath formats for API consistency",
+            "dependencies": [
+              "12.3"
+            ],
+            "details": "Develop utility functions that normalize data between Yoast and RankMath formats to provide a consistent API experience regardless of which plugin is active. Handle differences in data structure and field naming between the two plugins. Implement fallback mechanisms when certain fields exist in one plugin but not the other. Document any plugin-specific limitations or differences for API consumers.",
+            "status": "pending",
+            "testStrategy": "Test API responses with both plugins to ensure consistent data structure and field naming regardless of the active SEO plugin."
+          },
+          {
+            "id": 5,
+            "title": "Add comprehensive testing and documentation",
+            "description": "Create tests and documentation for the RankMath integration",
+            "dependencies": [
+              "12.4"
+            ],
+            "details": "Update plugin documentation to include information about RankMath support. Create example API requests and responses for RankMath fields. Add inline code documentation for all RankMath-related functions. Implement unit tests for RankMath detection, field mapping, and API endpoints. Test compatibility with different WordPress, RankMath, and Yoast versions. Create a troubleshooting guide for common issues.",
+            "status": "pending",
+            "testStrategy": "Perform end-to-end testing with both Yoast and RankMath in various configurations to ensure complete compatibility and expected behavior."
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Create monitoring and analytics dashboard",
+        "description": "Build a simple dashboard to monitor API usage, successful publishes, and error rates",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [
+          7
+        ],
+        "details": "Create a basic dashboard that shows API usage statistics, successful post publishes, error rates, and recent activity. This will help users monitor their PostCrafter usage and troubleshoot any issues.",
+        "testStrategy": "Verify dashboard displays accurate statistics and real-time data",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement metrics collection service",
+            "description": "Create a service to collect and store API usage metrics, successful publishes, error rates, and user activity data",
+            "dependencies": [],
+            "details": "Develop a TypeScript service that captures metrics from API calls and stores them in a database or file system. Implement functions to track API calls, successful publishes, errors, and user activity. Set up a simple data schema for storing metrics with timestamps, user identifiers, and relevant metadata. Configure the service to run alongside the main API and capture metrics in real-time.",
+            "status": "pending",
+            "testStrategy": "Unit test the metrics collection functions with mock data. Verify metrics are correctly captured and stored for different API events."
+          },
+          {
+            "id": 2,
+            "title": "Create data visualization components",
+            "description": "Develop reusable chart and graph components to visualize the collected metrics data",
+            "dependencies": [
+              "13.1"
+            ],
+            "details": "Using a JavaScript visualization library (like Chart.js, D3.js, or Recharts), create reusable components for line charts, bar graphs, and summary cards. Implement components for displaying API usage over time, success/error rates, and activity logs. Ensure components are responsive and can handle different data formats from the metrics service.",
+            "status": "pending",
+            "testStrategy": "Test components with sample data sets to ensure they render correctly. Verify responsiveness across different screen sizes."
+          },
+          {
+            "id": 3,
+            "title": "Build dashboard UI layout and navigation",
+            "description": "Design and implement the overall dashboard layout, navigation, and responsive UI framework",
+            "dependencies": [],
+            "details": "Create a responsive dashboard layout using CSS Grid or Flexbox. Implement a navigation system for different dashboard sections (Overview, API Usage, Publishes, Errors, Activity). Design a clean, modern UI with appropriate spacing, typography, and color scheme. Include header with title and user info, sidebar for navigation, and main content area for metrics display.",
+            "status": "pending",
+            "testStrategy": "Test the layout across different devices and screen sizes. Verify navigation works correctly and UI elements maintain proper alignment."
+          },
+          {
+            "id": 4,
+            "title": "Implement real-time data updates and filtering",
+            "description": "Add functionality for real-time dashboard updates and user filtering options",
+            "dependencies": [
+              "13.1",
+              "13.2",
+              "13.3"
+            ],
+            "details": "Implement WebSocket or polling mechanism to update dashboard data in real-time. Add date range selectors for historical data viewing. Create filtering options for specific metrics, error types, or publishing platforms. Implement data refresh controls and loading indicators. Add user preferences storage to remember filter settings.",
+            "status": "pending",
+            "testStrategy": "Test real-time updates by triggering API events and verifying dashboard updates. Verify filters correctly modify the displayed data."
+          },
+          {
+            "id": 5,
+            "title": "Create alert system and exportable reports",
+            "description": "Implement alert notifications for critical metrics and exportable dashboard reports",
+            "dependencies": [
+              "13.1",
+              "13.2",
+              "13.4"
+            ],
+            "details": "Add configurable threshold alerts for error rates, API usage limits, and other critical metrics. Implement in-dashboard notifications and optional email alerts. Create functionality to export dashboard data as CSV or PDF reports. Add scheduled report generation and delivery options. Implement a notification center to manage and view all alerts.",
+            "status": "pending",
+            "testStrategy": "Test alert triggering with simulated threshold breaches. Verify exported reports contain accurate data and formatting."
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "End-to-end testing and optimization",
+        "description": "Perform comprehensive testing of the entire workflow from GPT to published WordPress post",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          4,
+          5,
+          7,
+          8
+        ],
+        "details": "Test the complete workflow from ChatGPT to published WordPress post. Test various content types, image scenarios, SEO configurations, and error conditions. Optimize performance and ensure reliability.",
+        "testStrategy": "Execute full workflow tests with various content types and verify all features work correctly",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create comprehensive test plan for end-to-end workflow",
+            "description": "Develop a detailed test plan that covers all aspects of the workflow from ChatGPT to WordPress publishing, including test cases for different content types, edge cases, and error scenarios.",
+            "dependencies": [],
+            "details": "Create a test matrix covering: 1) Different post types (standard, with images, with custom fields), 2) Various SEO configurations through Yoast, 3) Error conditions (network failures, invalid inputs, authentication issues), 4) Performance benchmarks for response times. Document expected outcomes for each test case and create a checklist for verification.",
+            "status": "pending",
+            "testStrategy": "Manual execution of test plan with documentation of results and issues found."
+          },
+          {
+            "id": 2,
+            "title": "Implement automated testing suite for core functionality",
+            "description": "Create automated tests to verify the core functionality of the system, focusing on the integration between GPT, the Vercel endpoint, and WordPress.",
+            "dependencies": [
+              "14.1"
+            ],
+            "details": "Develop Jest tests that mock GPT requests and verify correct handling by the Vercel endpoint. Create integration tests that use a test WordPress instance to verify post creation, image handling, and metadata processing. Include tests for authentication, input validation, and error handling. Set up CI pipeline to run tests automatically.",
+            "status": "pending",
+            "testStrategy": "Automated testing with Jest, including unit tests and integration tests with a test WordPress instance."
+          },
+          {
+            "id": 3,
+            "title": "Perform load and stress testing",
+            "description": "Test the system under various load conditions to identify performance bottlenecks and ensure reliability under stress.",
+            "dependencies": [
+              "14.1"
+            ],
+            "details": "Use tools like k6 or Apache JMeter to simulate concurrent requests at different volumes. Test with gradually increasing load to identify breaking points. Monitor server response times, memory usage, and error rates. Test WordPress API rate limits and implement appropriate throttling if needed. Document performance metrics and optimize based on findings.",
+            "status": "pending",
+            "testStrategy": "Automated load testing with performance metrics collection and analysis."
+          },
+          {
+            "id": 4,
+            "title": "Optimize image processing and handling",
+            "description": "Review and optimize the image processing workflow to ensure efficient handling of different image types, sizes, and quantities.",
+            "dependencies": [
+              "14.2",
+              "14.3"
+            ],
+            "details": "Analyze current image processing implementation for bottlenecks. Implement image compression before upload if not already present. Add caching for processed images. Optimize parallel processing of multiple images. Test with various image formats (JPG, PNG, WebP) and sizes to ensure consistent handling. Implement fallback mechanisms for failed image uploads.",
+            "status": "pending",
+            "testStrategy": "Benchmark image processing times before and after optimization. Test with various image types and quantities."
+          },
+          {
+            "id": 5,
+            "title": "Implement comprehensive error handling and recovery",
+            "description": "Enhance error handling throughout the system to gracefully manage failures and provide clear feedback to users.",
+            "dependencies": [
+              "14.2"
+            ],
+            "details": "Review all API calls and add proper try/catch blocks with specific error messages. Implement retry logic for transient failures (e.g., network issues). Create a centralized error logging system that captures detailed context. Develop user-friendly error messages for ChatGPT to relay to users. Add transaction rollback for partial failures to maintain data consistency.",
+            "status": "pending",
+            "testStrategy": "Simulate various failure scenarios (network errors, API failures, invalid inputs) and verify proper error handling and recovery."
+          },
+          {
+            "id": 6,
+            "title": "Conduct security review and implement performance optimizations",
+            "description": "Perform a comprehensive security review of the entire system and implement final performance optimizations before production deployment.",
+            "dependencies": [
+              "14.4",
+              "14.5"
+            ],
+            "details": "Conduct security audit focusing on authentication, input validation, and data sanitization. Implement rate limiting if not already present. Review and optimize database queries. Add appropriate caching mechanisms for frequently accessed data. Minimize API calls to WordPress. Implement request batching where appropriate. Document security measures and performance optimizations for future reference.",
+            "status": "pending",
+            "testStrategy": "Security testing including penetration testing and vulnerability scanning. Performance benchmarking before and after optimizations."
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Deploy and launch preparation",
+        "description": "Final deployment preparation, security review, and launch readiness",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          14
+        ],
+        "details": "Perform final security review, optimize performance, prepare launch materials, and ensure all components are production-ready. This includes final testing, documentation review, and deployment to production environment.",
+        "testStrategy": "Complete production deployment and verify all systems are working correctly in live environment",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Conduct final security review and vulnerability assessment",
+            "description": "Perform a comprehensive security audit of the entire system, focusing on API authentication, data validation, and potential vulnerabilities. Review all code for security best practices and address any findings.",
+            "dependencies": [],
+            "details": "Run automated security scanning tools on the codebase. Review authentication mechanisms in Task 6 implementation. Verify input validation from Task 9 is properly implemented across all endpoints. Check for exposed secrets or credentials. Document all findings and remediation steps in a security report.",
+            "status": "pending",
+            "testStrategy": "Perform penetration testing with tools like OWASP ZAP. Test API endpoints with malicious payloads to verify proper rejection. Verify rate limiting effectiveness under load."
+          },
+          {
+            "id": 2,
+            "title": "Optimize performance and conduct load testing",
+            "description": "Analyze and optimize the application performance, focusing on API response times, resource utilization, and scalability under load.",
+            "dependencies": [
+              "15.1"
+            ],
+            "details": "Profile API endpoints for response times. Implement caching strategies where appropriate. Optimize database queries if applicable. Configure proper Vercel scaling settings. Run load tests simulating expected traffic patterns and identify bottlenecks. Document performance benchmarks and optimization results.",
+            "status": "pending",
+            "testStrategy": "Use tools like k6 or Artillery for load testing. Monitor response times under various load conditions. Test concurrent request handling capabilities."
+          },
+          {
+            "id": 3,
+            "title": "Prepare and review documentation",
+            "description": "Finalize all technical and user documentation, including API documentation, user guides, and operational procedures.",
+            "dependencies": [
+              "15.1"
+            ],
+            "details": "Create comprehensive API documentation with examples. Develop user guides for content creators using the system. Document operational procedures including monitoring, backup, and disaster recovery. Include troubleshooting guides and FAQs. Review all documentation for accuracy and completeness.",
+            "status": "pending",
+            "testStrategy": "Have team members follow documentation to perform key tasks to verify clarity and completeness. Collect feedback and refine documentation accordingly."
+          },
+          {
+            "id": 4,
+            "title": "Deploy to production environment",
+            "description": "Execute the production deployment process, including configuration of all production environment variables, DNS settings, and monitoring tools.",
+            "dependencies": [
+              "15.1",
+              "15.2"
+            ],
+            "details": "Configure production environment variables in Vercel. Set up proper DNS and domain configuration. Deploy the application using Vercel's production deployment pipeline. Configure monitoring and alerting tools. Verify WordPress connection settings in production. Implement logging for production diagnostics.",
+            "status": "pending",
+            "testStrategy": "Perform smoke tests on all critical paths after deployment. Verify WordPress integration is functioning correctly. Test authentication flows in production environment."
+          },
+          {
+            "id": 5,
+            "title": "Conduct final verification and prepare go-live procedures",
+            "description": "Perform end-to-end testing in the production environment and prepare detailed go-live procedures including rollback plans.",
+            "dependencies": [
+              "15.4"
+            ],
+            "details": "Create a detailed go-live checklist. Develop a communication plan for launch announcement. Prepare rollback procedures in case of critical issues. Conduct final end-to-end testing in production environment. Set up post-launch monitoring schedule. Document escalation procedures for potential issues.",
+            "status": "pending",
+            "testStrategy": "Execute full end-to-end test scenarios in production. Verify all integrations are working correctly. Test rollback procedures to ensure they work as expected."
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "name": "PostCrafter",
+      "description": "AI-generated, SEO-optimized articles published directly from ChatGPT to WordPress",
+      "version": "1.0.0",
+      "created": "2024-12-19T00:00:00.000Z",
+      "lastModified": "2024-12-19T00:00:00.000Z",
+      "updated": "2025-07-22T02:32:00.632Z"
+    }
+  }
+}

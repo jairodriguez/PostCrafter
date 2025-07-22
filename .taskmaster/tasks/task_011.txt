@@ -1,0 +1,37 @@
+# Task ID: 11
+# Title: Implement draft vs publish functionality
+# Status: pending
+# Dependencies: 3
+# Priority: low
+# Description: Add option to save posts as drafts instead of publishing immediately
+# Details:
+Add a 'status' field to the API that allows posts to be saved as drafts or published immediately. This gives users more control over their publishing workflow and allows for review before going live.
+
+# Test Strategy:
+Test both draft and publish modes to ensure posts are saved with correct status
+
+# Subtasks:
+## 1. Add status field to database schema and API models [pending]
+### Dependencies: None
+### Description: Extend the database schema and API models to include a 'status' field that can store post status values (draft/published)
+### Details:
+Modify the database schema to add a 'status' field to the posts table with possible values 'draft' and 'published'. Update the API request/response models to include this new field. Set 'published' as the default value for backward compatibility. Ensure the field is properly documented in API specifications.
+
+## 2. Implement status handling in WordPress API integration [pending]
+### Dependencies: 11.1
+### Description: Update the WordPress API integration to handle the status field when creating or updating posts
+### Details:
+Modify the WordPress REST API integration code to map the internal 'status' field to WordPress post status values. WordPress uses 'draft', 'publish', 'pending', etc. Ensure the integration correctly translates between our system's status values and WordPress status values. Update error handling to account for status-related errors from WordPress.
+
+## 3. Update UI components for draft/publish functionality [pending]
+### Dependencies: 11.1
+### Description: Modify the user interface to allow users to choose between saving as draft or publishing immediately
+### Details:
+Add UI controls (toggle, dropdown, or radio buttons) to the post creation/editing interface that allow users to select whether to save as draft or publish immediately. Update the submission logic to include the selected status when sending data to the API. Add visual indicators to distinguish draft posts from published posts in post listings.
+
+## 4. Implement workflow controls for draft management [pending]
+### Dependencies: 11.2, 11.3
+### Description: Add functionality to list, filter, and transition posts between draft and published states
+### Details:
+Implement API endpoints and UI components to: 1) List and filter posts by status, 2) Allow changing a post's status from draft to published and vice versa, 3) Add batch operations for managing multiple drafts. Include proper authorization checks to ensure only authorized users can change post status. Update the OpenAPI specification to document these new endpoints.
+

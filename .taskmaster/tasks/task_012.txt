@@ -1,0 +1,43 @@
+# Task ID: 12
+# Title: Add RankMath SEO plugin support
+# Status: pending
+# Dependencies: 1
+# Priority: low
+# Description: Extend the mu-plugin to support RankMath SEO plugin in addition to Yoast
+# Details:
+Extend the existing mu-plugin to also expose RankMath SEO fields via REST API. This will provide compatibility with both major SEO plugins and increase the user base for PostCrafter.
+
+# Test Strategy:
+Test with both Yoast and RankMath installations to ensure both plugins work correctly
+
+# Subtasks:
+## 1. Implement RankMath plugin detection [pending]
+### Dependencies: None
+### Description: Create a function to detect if RankMath SEO plugin is active and handle conditional loading of RankMath support
+### Details:
+Create a function that checks if RankMath SEO plugin is active using is_plugin_active() or by checking for RankMath class existence. Implement conditional logic to load appropriate SEO plugin support based on which plugin is active (Yoast, RankMath, or both). Add appropriate admin notices if neither plugin is active.
+
+## 2. Map RankMath SEO fields to REST API structure [pending]
+### Dependencies: 12.1
+### Description: Identify and map RankMath SEO fields to equivalent REST API fields for consistent data structure
+### Details:
+Research and document all relevant RankMath SEO fields that need exposure (title, description, focus keywords, etc.). Create a mapping between RankMath's internal field names and the REST API field names used in the existing Yoast implementation. Ensure consistent field naming conventions between both SEO plugins for API consumers. Document any RankMath-specific fields that have no Yoast equivalent.
+
+## 3. Extend REST API endpoints for RankMath fields [pending]
+### Dependencies: 12.2
+### Description: Modify existing REST API endpoints to include RankMath SEO fields for read/write operations
+### Details:
+Extend the register_rest_field() implementations to support RankMath fields based on the mapping created earlier. Implement get_callback functions to retrieve RankMath metadata from posts. Implement update_callback functions to save RankMath metadata to posts. Ensure backward compatibility with existing Yoast implementations. Handle permissions and validation for RankMath fields.
+
+## 4. Implement data conversion between Yoast and RankMath [pending]
+### Dependencies: 12.3
+### Description: Create utility functions to handle data conversion between Yoast and RankMath formats for API consistency
+### Details:
+Develop utility functions that normalize data between Yoast and RankMath formats to provide a consistent API experience regardless of which plugin is active. Handle differences in data structure and field naming between the two plugins. Implement fallback mechanisms when certain fields exist in one plugin but not the other. Document any plugin-specific limitations or differences for API consumers.
+
+## 5. Add comprehensive testing and documentation [pending]
+### Dependencies: 12.4
+### Description: Create tests and documentation for the RankMath integration
+### Details:
+Update plugin documentation to include information about RankMath support. Create example API requests and responses for RankMath fields. Add inline code documentation for all RankMath-related functions. Implement unit tests for RankMath detection, field mapping, and API endpoints. Test compatibility with different WordPress, RankMath, and Yoast versions. Create a troubleshooting guide for common issues.
+

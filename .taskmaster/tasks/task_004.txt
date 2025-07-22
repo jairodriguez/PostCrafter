@@ -1,0 +1,49 @@
+# Task ID: 4
+# Title: Add media upload functionality
+# Status: pending
+# Dependencies: 3
+# Priority: medium
+# Description: Implement image upload support for featured images and media attachments with alt text handling
+# Details:
+Add functionality to upload images from URLs or base64 data to WordPress media library. Handle featured image assignment, alt text setting, and media attachment to posts. Support both URL-based and base64 image uploads.
+
+# Test Strategy:
+Test image uploads from various sources and verify they're properly attached to posts with alt text
+
+# Subtasks:
+## 1. Implement URL-based image download [pending]
+### Dependencies: None
+### Description: Create functionality to download and upload images from URLs
+### Details:
+Implement image download from URLs, validate image formats, and upload to WordPress media library using REST API. Handle various image formats (JPEG, PNG, WebP) and size limits.
+
+## 2. Add base64 image processing [pending]
+### Dependencies: None
+### Description: Implement base64 image decoding and upload functionality
+### Details:
+Create functionality to decode base64 image data, validate format, and upload to WordPress media library. Handle different base64 encodings and image formats.
+
+## 3. Implement featured image assignment [pending]
+### Dependencies: None
+### Description: Add functionality to set featured images for posts
+### Details:
+Implement logic to assign uploaded images as featured images for posts. Use WordPress REST API to set the featured_media field on posts.
+
+## 4. Add alt text and metadata handling [pending]
+### Dependencies: None
+### Description: Implement alt text and image metadata management
+### Details:
+Add support for setting alt text, title, caption, and description for uploaded images. Update image metadata using WordPress REST API media endpoints.
+
+## 5. Implement image optimization and validation [pending]
+### Dependencies: None
+### Description: Add image optimization and format validation
+### Details:
+Implement image format validation, size optimization, and quality checks. Handle various image formats and ensure compatibility with WordPress media library.
+
+## 6. Add error handling for media uploads [pending]
+### Dependencies: None
+### Description: Implement comprehensive error handling for media operations
+### Details:
+Handle media upload errors gracefully, including network failures, invalid formats, size limits, and WordPress API errors. Provide meaningful error messages and fallback options.
+

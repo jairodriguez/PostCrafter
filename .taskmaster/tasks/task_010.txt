@@ -1,0 +1,43 @@
+# Task ID: 10
+# Title: Add support for categories and tags
+# Status: pending
+# Dependencies: 3
+# Priority: low
+# Description: Implement category and tag creation/assignment functionality for better content organization
+# Details:
+Add functionality to create new categories and tags if they don't exist, or assign existing ones to posts. Handle category and tag slugs, descriptions, and hierarchical relationships for categories.
+
+# Test Strategy:
+Test category and tag creation/assignment with various scenarios including new and existing terms
+
+# Subtasks:
+## 1. Create Category and Tag Data Models [pending]
+### Dependencies: None
+### Description: Define the data structures for categories and tags, including their properties and relationships. Implement validation rules for these models.
+### Details:
+Create TypeScript interfaces for Category and Tag models with properties like id, name, slug, description, and parent (for hierarchical categories). Implement validation functions to ensure data integrity. Categories should support hierarchical relationships while tags are flat. Both should have proper slug generation from names.
+
+## 2. Implement Category Creation and Hierarchy Management [pending]
+### Dependencies: 10.1
+### Description: Build functionality to create new categories and manage their hierarchical relationships. Handle parent-child relationships and ensure proper slug generation.
+### Details:
+Implement functions to create new categories via WordPress REST API. Include logic to check if a category exists before creating it. Handle parent-child relationships by allowing categories to be nested under parent categories. Implement proper slug generation and validation. Add support for category descriptions.
+
+## 3. Implement Tag Creation and Management [pending]
+### Dependencies: 10.1
+### Description: Build functionality to create and manage tags, including checking for existing tags and proper slug handling.
+### Details:
+Implement functions to create new tags via WordPress REST API. Include logic to check if a tag exists before creating it. Handle tag slug generation and validation. Add support for tag descriptions. Ensure proper error handling when tag creation fails.
+
+## 4. Implement Category and Tag Assignment to Posts [pending]
+### Dependencies: 10.2, 10.3
+### Description: Create functionality to assign existing categories and tags to posts during post creation or update.
+### Details:
+Extend the post creation/update functionality to include category and tag assignment. Implement functions to search for existing categories and tags by name or ID. Allow multiple categories and tags to be assigned to a post. Handle the case where a category or tag doesn't exist by creating it first.
+
+## 5. Integrate with WordPress Taxonomy API [pending]
+### Dependencies: 10.4
+### Description: Ensure proper integration with WordPress taxonomy system for both categories and tags, including term relationships and metadata.
+### Details:
+Finalize integration with WordPress taxonomy system by ensuring proper term relationships are established. Implement functions to retrieve categories and tags with their full hierarchy. Add support for category and tag metadata if needed. Ensure proper error handling and validation throughout the taxonomy integration.
+

@@ -1,0 +1,49 @@
+# Task ID: 5
+# Title: Create GPT Action OpenAPI specification
+# Status: pending
+# Dependencies: 3
+# Priority: medium
+# Description: Define the OpenAPI specification for the GPT Action that will be used in ChatGPT to trigger post publishing
+# Details:
+Create a comprehensive OpenAPI specification that defines the input schema for post data (title, content, categories, tags, images, Yoast fields) and the expected response format. This will be used to configure the GPT Action in ChatGPT.
+
+# Test Strategy:
+Validate the OpenAPI spec and test GPT Action integration in ChatGPT
+
+# Subtasks:
+## 1. Define API endpoint specification [pending]
+### Dependencies: None
+### Description: Create the main API endpoint definition in OpenAPI format
+### Details:
+Define the main POST endpoint for publishing posts. Include proper HTTP methods, URL structure, and basic request/response format. Set up proper OpenAPI version and metadata.
+
+## 2. Design post data schema [pending]
+### Dependencies: None
+### Description: Create comprehensive schema for post data input
+### Details:
+Define detailed schema for post data including title, content, excerpt, categories, tags, status, and Yoast meta fields. Include proper validation rules, required fields, and data types.
+
+## 3. Define image data schema [pending]
+### Dependencies: None
+### Description: Create schema for image upload data
+### Details:
+Define schema for image data including URL-based images, base64 images, alt text, and featured image designation. Handle both single images and image arrays.
+
+## 4. Create response schema [pending]
+### Dependencies: None
+### Description: Define the API response format and structure
+### Details:
+Define response schema including success responses with post URL, post ID, and status information. Include error response formats with proper error codes and messages.
+
+## 5. Add authentication specification [pending]
+### Dependencies: None
+### Description: Define authentication requirements in OpenAPI spec
+### Details:
+Add security scheme definition for API key authentication. Include proper security requirements and header specifications for the GPT Action integration.
+
+## 6. Create GPT Action configuration [pending]
+### Dependencies: None
+### Description: Set up GPT Action configuration for ChatGPT integration
+### Details:
+Create the complete GPT Action configuration including action name, description, and integration instructions. Test the action in ChatGPT to ensure proper functionality.
+

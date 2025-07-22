@@ -1,0 +1,49 @@
+# Task ID: 1
+# Title: Set up WordPress mu-plugin for Yoast meta exposure
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Create a WordPress mu-plugin to expose Yoast SEO meta fields (meta title, meta description, focus keywords) via REST API for write access
+# Details:
+Create a mu-plugin that hooks into WordPress REST API to expose Yoast SEO fields. This is critical for SEO optimization and must be done first as other components depend on it. The plugin should expose meta_title, meta_description, and focus_keywords fields for the posts endpoint.
+
+# Test Strategy:
+Test by making REST API calls to verify Yoast fields are exposed and writable
+
+# Subtasks:
+## 1. Create mu-plugin directory structure [pending]
+### Dependencies: None
+### Description: Set up the proper directory structure for the WordPress mu-plugin
+### Details:
+Create the mu-plugin directory in wp-content/mu-plugins/ and set up the main plugin file with proper WordPress headers and initialization hooks.
+
+## 2. Implement REST API field registration [pending]
+### Dependencies: None
+### Description: Register custom fields for the posts endpoint in WordPress REST API
+### Details:
+Use register_rest_field() to expose Yoast meta fields (meta_title, meta_description, focus_keywords) for the posts endpoint. Hook into rest_api_init action.
+
+## 3. Add field getter and setter functions [pending]
+### Dependencies: None
+### Description: Implement functions to get and set Yoast meta field values
+### Details:
+Create getter function to retrieve Yoast meta values from post meta. Create setter function to save Yoast meta values using update_post_meta(). Handle both single and multiple values.
+
+## 4. Handle Yoast plugin compatibility [pending]
+### Dependencies: None
+### Description: Ensure compatibility with different Yoast SEO plugin versions
+### Details:
+Add checks for Yoast plugin activation and version compatibility. Handle different meta key formats used by various Yoast versions. Add fallback handling for when Yoast is not active.
+
+## 5. Add input validation and sanitization [pending]
+### Dependencies: None
+### Description: Implement proper validation and sanitization for Yoast meta fields
+### Details:
+Add validation for meta title length, meta description length, and focus keywords format. Sanitize input data to prevent XSS and other security issues. Add proper error handling for invalid data.
+
+## 6. Create comprehensive testing suite [pending]
+### Dependencies: None
+### Description: Develop tests to verify mu-plugin functionality
+### Details:
+Create unit tests for field registration, getter/setter functions, and validation. Test REST API endpoints with various scenarios. Verify SEO meta is properly saved and retrieved.
+

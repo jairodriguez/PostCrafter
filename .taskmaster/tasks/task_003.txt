@@ -1,0 +1,49 @@
+# Task ID: 3
+# Title: Implement WordPress REST API integration
+# Status: pending
+# Dependencies: 1, 2
+# Priority: high
+# Description: Build the core functionality to create posts via WordPress REST API with proper authentication and error handling
+# Details:
+Implement the main post creation logic using WordPress REST API. Handle authentication via App Passwords, create posts with title, content, excerpt, categories, tags, and Yoast meta fields. Include proper error handling and validation.
+
+# Test Strategy:
+Test post creation end-to-end with various content types and verify all fields are properly saved
+
+# Subtasks:
+## 1. Set up WordPress API client utilities [pending]
+### Dependencies: None
+### Description: Create utility functions for WordPress REST API communication
+### Details:
+Create helper functions for making authenticated requests to WordPress REST API. Handle authentication headers, request formatting, and basic error handling for API calls.
+
+## 2. Implement post creation endpoint [pending]
+### Dependencies: None
+### Description: Create the main function to create posts via WordPress REST API
+### Details:
+Implement the core post creation logic using WordPress REST API /wp/v2/posts endpoint. Handle title, content, excerpt, status, and basic post fields. Include proper error handling and response validation.
+
+## 3. Add Yoast meta field integration [pending]
+### Dependencies: None
+### Description: Integrate Yoast SEO meta fields with post creation
+### Details:
+Extend post creation to include Yoast meta fields (meta_title, meta_description, focus_keywords) using the custom fields exposed by the mu-plugin. Handle both single and multiple focus keywords.
+
+## 4. Implement category and tag handling [pending]
+### Dependencies: None
+### Description: Add support for creating and assigning categories and tags
+### Details:
+Implement logic to create new categories/tags if they don't exist, or assign existing ones to posts. Handle category hierarchies and tag slugs. Use WordPress REST API endpoints for terms.
+
+## 5. Add content validation and sanitization [pending]
+### Dependencies: None
+### Description: Implement comprehensive content validation for WordPress posts
+### Details:
+Add validation for post title length, content formatting, excerpt length, and other WordPress-specific requirements. Sanitize HTML content and handle special characters properly.
+
+## 6. Implement comprehensive error handling [pending]
+### Dependencies: None
+### Description: Add robust error handling for WordPress API interactions
+### Details:
+Handle WordPress API errors gracefully, including authentication failures, validation errors, and server errors. Provide meaningful error messages and implement retry logic for transient failures.
+
