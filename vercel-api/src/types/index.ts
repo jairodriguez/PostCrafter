@@ -6,6 +6,13 @@ export interface EnvVars {
   GPT_API_KEY: string;
   JWT_SECRET: string;
   NODE_ENV: 'development' | 'production' | 'test';
+  API_RATE_LIMIT_WINDOW_MS: number;
+  API_RATE_LIMIT_MAX_REQUESTS: number;
+  WORDPRESS_TIMEOUT_MS: number;
+  LOG_LEVEL: 'error' | 'warn' | 'info' | 'debug';
+  CORS_ORIGINS: string[];
+  MAX_IMAGE_SIZE_MB: number;
+  ENABLE_DEBUG_LOGGING: boolean;
 }
 
 // WordPress post data interface

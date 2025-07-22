@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getEnvVars } from '@/utils/env';
+import { getEnvVars, validateEnvironment, checkProductionReadiness } from '@/utils/env';
+import { getWordPressConfig, getRateLimitConfig, getCorsConfig, getLoggingConfig } from '@/utils/env';
 
 export default async function handler(
   req: VercelRequest,
@@ -20,7 +21,14 @@ export default async function handler(
 
   try {
     // Validate environment variables
-    const envVars = getEnvVars();
+    const envValidation = validateEnvironment();
+    const productionCheck = checkProductionReadiness();
+    
+    // Get configuration objects
+    const wordpressConfig = getWordPressConfig();
+    const rateLimitConfig = getRateLimitConfig();
+    const corsConfig = getCorsConfig();
+    const loggingConfig = getLoggingConfig();
 
     // Basic health check response
     res.status(200).json({
@@ -28,21 +36,43 @@ export default async function handler(
       data: {
         status: 'healthy',
         timestamp: new Date().toISOString(),
-        environment: envVars.NODE_ENV,
+        environment: {
+          nodeEnv: wordpressConfig.url ? 'configured' : 'not configured',
+          productionReady: productionCheck.ready,
+          issues: productionCheck.issues,
+        },
         version: '1.0.0',
         services: {
           wordpress: {
-            url: envVars.WORDPRESS_URL,
-            configured: true,
+            url: wordpressConfig.url ? 'configured' : 'not configured',
+            timeout: wordpressConfig.timeout,
           },
-          gpt: {
-            configured: !!envVars.GPT_API_KEY,
+          rateLimiting: {
+            windowMs: rateLimitConfig.windowMs,
+            maxRequests: rateLimitConfig.maxRequests,
           },
+          cors: {
+            origins: corsConfig.origins,
+            methods: corsConfig.methods,
+          },
+          logging: {
+            level: loggingConfig.level,
+            debugEnabled: loggingConfig.enableDebug,
+          },
+        },
+        validation: {
+          valid: envValidation.valid,
+          errors: envValidation.errors,
+          warnings: envValidation.warnings,
+          missing: envValidation.missing,
+          invalid: envValidation.invalid,
+          suggestions: envValidation.suggestions,
         },
       },
     });
   } catch (error) {
-    console.error('Health check failed:', error);
+    console.error('Health check error:', error);
+    
     res.status(500).json({
       success: false,
       error: {

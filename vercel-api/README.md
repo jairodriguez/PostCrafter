@@ -34,107 +34,106 @@ A serverless API built with TypeScript and Vercel for handling GPT-to-WordPress 
    ```
 
 3. **Set up environment variables**:
-   Create a `.env.local` file in the project root:
-   ```env
-   WORDPRESS_URL=https://your-wordpress-site.com
-   WORDPRESS_USERNAME=your-username
-   WORDPRESS_APP_PASSWORD=your-app-password
-   GPT_API_KEY=your-gpt-api-key
-   JWT_SECRET=your-32-character-jwt-secret
-   NODE_ENV=development
-   ```
-
-4. **Install Vercel CLI** (if not already installed):
    ```bash
-   npm install -g vercel
+   cp env.template .env.local
+   # Edit .env.local with your actual values
    ```
 
-## 🚀 Development
-
-### Local Development
-
-1. **Start development server**:
+4. **Run development server**:
    ```bash
    npm run dev
    ```
 
-2. **Run tests**:
-   ```bash
-   npm test
-   ```
+## 🔧 Environment Variables
 
-3. **Lint code**:
-   ```bash
-   npm run lint
-   ```
+The API requires several environment variables to function properly. Copy `env.template` to `.env.local` and fill in your values.
 
-4. **Type checking**:
-   ```bash
-   npm run type-check
-   ```
+### Required Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `WORDPRESS_URL` | Your WordPress site URL (must include protocol) | `https://your-wordpress-site.com` |
+| `WORDPRESS_USERNAME` | WordPress username for API authentication | `admin` |
+| `WORDPRESS_APP_PASSWORD` | WordPress application password (not regular password) | `abcd 1234 efgh 5678` |
+| `GPT_API_KEY` | OpenAI GPT API key for authentication | `sk-1234567890abcdef1234567890abcdef` |
+| `JWT_SECRET` | Secret key for JWT token generation (32+ characters) | `your-super-secret-jwt-key-that-is-very-long-and-secure` |
+
+### Optional Variables
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `NODE_ENV` | Application environment | `development` | `production` |
+| `API_RATE_LIMIT_WINDOW_MS` | Rate limiting window in milliseconds | `60000` | `120000` |
+| `API_RATE_LIMIT_MAX_REQUESTS` | Maximum requests per rate limit window | `100` | `50` |
+| `WORDPRESS_TIMEOUT_MS` | WordPress API request timeout in milliseconds | `30000` | `60000` |
+| `LOG_LEVEL` | Application logging level | `info` | `debug` |
+| `CORS_ORIGINS` | Allowed CORS origins (comma-separated or * for all) | `*` | `https://chat.openai.com,https://your-domain.com` |
+| `MAX_IMAGE_SIZE_MB` | Maximum image file size in megabytes | `10` | `20` |
+| `ENABLE_DEBUG_LOGGING` | Enable detailed debug logging | `false` | `true` |
+
+### Environment Validation
+
+The API includes comprehensive environment variable validation:
+
+```bash
+# Check environment configuration
+npm run type-check
+
+# Run tests to validate environment
+npm test
+```
+
+### Production Configuration
+
+For production deployment, ensure:
+
+1. **Set `NODE_ENV=production`**
+2. **Use a strong JWT_SECRET** (at least 64 characters)
+3. **Restrict CORS origins** to specific domains
+4. **Set appropriate log levels** (avoid debug in production)
+5. **Configure rate limiting** based on expected traffic
+
+## 🚀 Development
 
 ### Available Scripts
 
 - `npm run dev` - Start development server
-- `npm run build` - Build TypeScript code
+- `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run deploy` - Deploy to Vercel
 - `npm test` - Run tests
 - `npm run test:watch` - Run tests in watch mode
-- `npm run lint` - Lint code
-- `npm run lint:fix` - Fix linting issues
-- `npm run type-check` - Type checking
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix ESLint issues
+- `npm run type-check` - Run TypeScript type checking
 - `npm run clean` - Clean build artifacts
 
-## 📁 Project Structure
+### Project Structure
 
 ```
 vercel-api/
-├── api/                    # Vercel API routes
+├── api/                    # Vercel serverless functions
 │   ├── health.ts          # Health check endpoint
 │   └── publish.ts         # Main publish endpoint
-├── src/                   # Source code
+├── src/
 │   ├── types/             # TypeScript type definitions
-│   │   └── index.ts       # Main type definitions
-│   ├── utils/             # Utility functions
-│   │   └── env.ts         # Environment configuration
-│   ├── middleware/        # Express middleware
-│   ├── services/          # Business logic services
-│   └── controllers/       # Request handlers
-├── __tests__/             # Test files
-├── package.json           # Dependencies and scripts
-├── tsconfig.json          # TypeScript configuration
-├── vercel.json            # Vercel configuration
-├── .eslintrc.js           # ESLint configuration
-├── .prettierrc            # Prettier configuration
-└── README.md              # This file
+│   │   └── index.ts
+│   └── utils/             # Utility functions
+│       ├── env.ts         # Environment variable handling
+│       ├── env-validator.ts # Environment validation
+│       └── __tests__/     # Test files
+├── package.json
+├── tsconfig.json
+├── vercel.json
+├── .eslintrc.js
+├── .prettierrc
+├── env.template           # Environment variables template
+└── README.md
 ```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-| Variable | Description | Required | Example |
-|----------|-------------|----------|---------|
-| `WORDPRESS_URL` | Your WordPress site URL | Yes | `https://example.com` |
-| `WORDPRESS_USERNAME` | WordPress username | Yes | `admin` |
-| `WORDPRESS_APP_PASSWORD` | WordPress application password | Yes | `abcd 1234 efgh 5678` |
-| `GPT_API_KEY` | OpenAI GPT API key | Yes | `sk-...` |
-| `JWT_SECRET` | JWT secret (32+ chars) | Yes | `your-secret-key-here` |
-| `NODE_ENV` | Environment mode | No | `development` |
-
-### Vercel Configuration
-
-The `vercel.json` file configures:
-- Build settings for TypeScript
-- Route handling
-- Function timeouts
-- Security headers
-- CORS settings
 
 ## 🧪 Testing
 
-### Running Tests
+The project includes comprehensive tests for environment variable validation:
 
 ```bash
 # Run all tests
@@ -143,166 +142,166 @@ npm test
 # Run tests in watch mode
 npm run test:watch
 
-# Run tests with coverage
-npm test -- --coverage
+# Run specific test file
+npm test -- env.test.ts
 ```
 
-### Test Structure
+### Test Coverage
 
-- **Unit Tests**: Test individual functions and utilities
-- **Integration Tests**: Test API endpoints and WordPress integration
-- **E2E Tests**: Test complete workflows
+- Environment variable validation
+- Configuration object generation
+- Production readiness checks
+- Error handling scenarios
 
-## 🚀 Deployment
+## 🔒 Security
 
-### Deploy to Vercel
+### Environment Variable Security
 
-1. **Login to Vercel**:
-   ```bash
-   vercel login
-   ```
+- **Never commit `.env.local`** to version control
+- **Use strong secrets** for JWT_SECRET and API keys
+- **Validate all inputs** before processing
+- **Use HTTPS** for all external communications
+- **Implement rate limiting** to prevent abuse
 
-2. **Deploy**:
-   ```bash
-   npm run deploy
-   ```
+### Production Security Checklist
 
-3. **Set environment variables in Vercel dashboard**:
-   - Go to your project in Vercel dashboard
-   - Navigate to Settings > Environment Variables
-   - Add all required environment variables
+- [ ] All required environment variables are set
+- [ ] JWT_SECRET is at least 64 characters long
+- [ ] CORS origins are restricted to specific domains
+- [ ] Debug logging is disabled
+- [ ] Rate limiting is configured appropriately
+- [ ] WordPress credentials are secure
+- [ ] API keys are properly secured
 
-### Environment Setup
+## 📊 Monitoring
 
-1. **Development**: Uses `.env.local` file
-2. **Production**: Set environment variables in Vercel dashboard
-3. **Preview**: Uses Vercel preview environment variables
+### Health Check Endpoint
 
-## 📡 API Endpoints
+The API provides a comprehensive health check endpoint at `/api/health` that includes:
 
-### Health Check
+- Environment validation status
+- Production readiness check
+- Configuration overview
+- Service status information
 
-```http
-GET /api/health
-```
+### Example Health Check Response
 
-**Response**:
 ```json
 {
   "success": true,
   "data": {
     "status": "healthy",
     "timestamp": "2024-01-01T00:00:00.000Z",
-    "environment": "production",
+    "environment": {
+      "nodeEnv": "configured",
+      "productionReady": true,
+      "issues": []
+    },
     "version": "1.0.0",
     "services": {
       "wordpress": {
-        "url": "https://example.com",
-        "configured": true
+        "url": "configured",
+        "timeout": 30000
       },
-      "gpt": {
-        "configured": true
+      "rateLimiting": {
+        "windowMs": 60000,
+        "maxRequests": 100
+      },
+      "cors": {
+        "origins": ["*"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+      },
+      "logging": {
+        "level": "info",
+        "debugEnabled": false
       }
-    }
-  }
-}
-```
-
-### Publish Post
-
-```http
-POST /api/publish
-Content-Type: application/json
-Authorization: Bearer <api-key>
-
-{
-  "post": {
-    "title": "Post Title",
-    "content": "Post content...",
-    "excerpt": "Post excerpt",
-    "status": "publish",
-    "categories": ["Technology"],
-    "tags": ["api", "test"],
-    "yoast_meta": {
-      "meta_title": "SEO Title",
-      "meta_description": "SEO description",
-      "focus_keywords": "keyword1, keyword2"
     },
-    "images": [
-      {
-        "url": "https://example.com/image.jpg",
-        "alt_text": "Image description",
-        "featured": true
-      }
-    ]
-  }
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "data": {
-    "post_id": 123,
-    "post_url": "https://example.com/post-123",
-    "featured_image_id": 456,
-    "yoast_meta": {
-      "meta_title": "SEO Title",
-      "meta_description": "SEO description",
-      "focus_keywords": "keyword1, keyword2"
+    "validation": {
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "missing": [],
+      "invalid": [],
+      "suggestions": []
     }
   }
 }
 ```
 
-## 🔒 Security
+## 🚀 Deployment
 
-### Authentication
+### Vercel Deployment
 
-- API key authentication for all endpoints
-- JWT token validation
-- Rate limiting to prevent abuse
+1. **Install Vercel CLI**:
+   ```bash
+   npm i -g vercel
+   ```
 
-### Input Validation
+2. **Login to Vercel**:
+   ```bash
+   vercel login
+   ```
 
-- Request body validation using Zod
-- Sanitization of all inputs
-- XSS and injection prevention
+3. **Set environment variables in Vercel**:
+   ```bash
+   vercel env add WORDPRESS_URL
+   vercel env add WORDPRESS_USERNAME
+   vercel env add WORDPRESS_APP_PASSWORD
+   vercel env add GPT_API_KEY
+   vercel env add JWT_SECRET
+   ```
 
-### Security Headers
+4. **Deploy**:
+   ```bash
+   vercel --prod
+   ```
 
-- Content Security Policy
-- X-Frame-Options
-- X-XSS-Protection
-- Referrer Policy
-- Permissions Policy
+### Environment Variables in Vercel
 
-## 🐛 Troubleshooting
+Set the following environment variables in your Vercel project settings:
+
+1. Go to your Vercel project dashboard
+2. Navigate to Settings → Environment Variables
+3. Add each required variable with appropriate values
+4. Ensure variables are set for Production, Preview, and Development environments
+
+## 🔧 Troubleshooting
 
 ### Common Issues
 
-1. **Environment Variables Missing**:
-   - Ensure all required environment variables are set
-   - Check Vercel dashboard for production environment variables
+1. **Environment Variables Not Loading**
+   - Ensure `.env.local` exists in project root
+   - Check variable names match exactly
+   - Verify no extra spaces or quotes
 
-2. **WordPress API Errors**:
-   - Verify WordPress REST API is enabled
-   - Check application password permissions
-   - Ensure WordPress URL is correct
+2. **WordPress Authentication Failures**
+   - Verify WordPress URL is correct and accessible
+   - Ensure application password is used (not regular password)
+   - Check WordPress REST API is enabled
 
-3. **TypeScript Errors**:
-   - Run `npm run type-check` to identify issues
-   - Ensure all types are properly defined
+3. **CORS Issues**
+   - Verify CORS_ORIGINS includes your domain
+   - Check if using wildcard (*) in production
+   - Ensure proper protocol (http/https)
 
-4. **Deployment Issues**:
-   - Check Vercel build logs
-   - Verify TypeScript compilation
-   - Ensure all dependencies are installed
+4. **Rate Limiting**
+   - Adjust API_RATE_LIMIT_MAX_REQUESTS if hitting limits
+   - Increase API_RATE_LIMIT_WINDOW_MS for longer windows
+   - Monitor usage patterns
 
 ### Debug Mode
 
-Enable debug logging by setting `NODE_ENV=development` in your environment variables.
+Enable debug logging for troubleshooting:
+
+```bash
+# Set in .env.local
+ENABLE_DEBUG_LOGGING=true
+LOG_LEVEL=debug
+```
+
+## 📝 License
+
+MIT License - see LICENSE file for details.
 
 ## 🤝 Contributing
 
@@ -310,17 +309,15 @@ Enable debug logging by setting `NODE_ENV=development` in your environment varia
 2. Create a feature branch
 3. Make your changes
 4. Add tests for new functionality
-5. Run linting and tests
+5. Ensure all tests pass
 6. Submit a pull request
 
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
+## 📞 Support
 
 For support and questions:
-- Check the troubleshooting section
-- Review the API documentation
-- Open an issue on GitHub
-- Contact the development team 
+
+1. Check the troubleshooting section
+2. Review environment variable configuration
+3. Run the health check endpoint
+4. Check Vercel deployment logs
+5. Open an issue with detailed error information 
