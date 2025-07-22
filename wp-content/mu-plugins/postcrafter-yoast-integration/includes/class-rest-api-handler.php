@@ -136,17 +136,20 @@ class PostCrafter_REST_API_Handler {
             ));
         }
         
-        // Update fields
+        // Update fields using the field handler
+        $yoast_handler = new PostCrafter_Yoast_Field_Handler();
+        $update_results = array();
+        
         if ($meta_title !== null) {
-            update_post_meta($post_id, '_yoast_wpseo_title', $meta_title);
+            $update_results['meta_title'] = $yoast_handler->set_yoast_meta_title($post_id, $meta_title);
         }
         
         if ($meta_description !== null) {
-            update_post_meta($post_id, '_yoast_wpseo_metadesc', $meta_description);
+            $update_results['meta_description'] = $yoast_handler->set_yoast_meta_description($post_id, $meta_description);
         }
         
         if ($focus_keywords !== null) {
-            update_post_meta($post_id, '_yoast_wpseo_focuskw', $focus_keywords);
+            $update_results['focus_keywords'] = $yoast_handler->set_yoast_focus_keywords($post_id, $focus_keywords);
         }
         
         // Return updated fields

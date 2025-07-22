@@ -32,17 +32,78 @@ class PostCrafter_Yoast_Field_Handler {
      * Get all Yoast fields for a post
      */
     public function get_yoast_fields($post_id) {
+        // Validate post ID
+        if (!$post_id || !is_numeric($post_id)) {
+            return false;
+        }
+        
+        // Check if post exists
+        $post = get_post($post_id);
+        if (!$post) {
+            return false;
+        }
+        
         $fields = array(
-            'meta_title' => get_post_meta($post_id, '_yoast_wpseo_title', true),
-            'meta_description' => get_post_meta($post_id, '_yoast_wpseo_metadesc', true),
-            'focus_keywords' => get_post_meta($post_id, '_yoast_wpseo_focuskw', true),
-            'meta_robots_noindex' => get_post_meta($post_id, '_yoast_wpseo_meta-robots-noindex', true),
-            'meta_robots_nofollow' => get_post_meta($post_id, '_yoast_wpseo_meta-robots-nofollow', true),
-            'canonical' => get_post_meta($post_id, '_yoast_wpseo_canonical', true),
-            'primary_category' => get_post_meta($post_id, '_yoast_wpseo_primary_category', true)
+            'meta_title' => $this->get_yoast_meta_title($post_id),
+            'meta_description' => $this->get_yoast_meta_description($post_id),
+            'focus_keywords' => $this->get_yoast_focus_keywords($post_id),
+            'meta_robots_noindex' => $this->get_yoast_meta_robots_noindex($post_id),
+            'meta_robots_nofollow' => $this->get_yoast_meta_robots_nofollow($post_id),
+            'canonical' => $this->get_yoast_canonical($post_id),
+            'primary_category' => $this->get_yoast_primary_category($post_id),
+            'seo_score' => $this->get_yoast_seo_score($post_id)
         );
         
         return $fields;
+    }
+    
+    /**
+     * Get Yoast meta title
+     */
+    public function get_yoast_meta_title($post_id) {
+        return get_post_meta($post_id, '_yoast_wpseo_title', true);
+    }
+    
+    /**
+     * Get Yoast meta description
+     */
+    public function get_yoast_meta_description($post_id) {
+        return get_post_meta($post_id, '_yoast_wpseo_metadesc', true);
+    }
+    
+    /**
+     * Get Yoast focus keywords
+     */
+    public function get_yoast_focus_keywords($post_id) {
+        return get_post_meta($post_id, '_yoast_wpseo_focuskw', true);
+    }
+    
+    /**
+     * Get Yoast meta robots noindex
+     */
+    public function get_yoast_meta_robots_noindex($post_id) {
+        return get_post_meta($post_id, '_yoast_wpseo_meta-robots-noindex', true);
+    }
+    
+    /**
+     * Get Yoast meta robots nofollow
+     */
+    public function get_yoast_meta_robots_nofollow($post_id) {
+        return get_post_meta($post_id, '_yoast_wpseo_meta-robots-nofollow', true);
+    }
+    
+    /**
+     * Get Yoast canonical URL
+     */
+    public function get_yoast_canonical($post_id) {
+        return get_post_meta($post_id, '_yoast_wpseo_canonical', true);
+    }
+    
+    /**
+     * Get Yoast primary category
+     */
+    public function get_yoast_primary_category($post_id) {
+        return get_post_meta($post_id, '_yoast_wpseo_primary_category', true);
     }
     
     /**
@@ -66,16 +127,190 @@ class PostCrafter_Yoast_Field_Handler {
         
         // Save Yoast fields if they exist in the request
         if (isset($_POST['yoast_meta_title'])) {
-            update_post_meta($post_id, '_yoast_wpseo_title', sanitize_text_field($_POST['yoast_meta_title']));
+            $this->set_yoast_meta_title($post_id, $_POST['yoast_meta_title']);
         }
         
         if (isset($_POST['yoast_meta_description'])) {
-            update_post_meta($post_id, '_yoast_wpseo_metadesc', sanitize_textarea_field($_POST['yoast_meta_description']));
+            $this->set_yoast_meta_description($post_id, $_POST['yoast_meta_description']);
         }
         
         if (isset($_POST['yoast_focus_keywords'])) {
-            update_post_meta($post_id, '_yoast_wpseo_focuskw', sanitize_text_field($_POST['yoast_focus_keywords']));
+            $this->set_yoast_focus_keywords($post_id, $_POST['yoast_focus_keywords']);
         }
+    }
+    
+    /**
+     * Set Yoast meta title
+     */
+    public function set_yoast_meta_title($post_id, $value) {
+        if (!$post_id || !is_numeric($post_id)) {
+            return false;
+        }
+        
+        $sanitized_value = sanitize_text_field($value);
+        $result = update_post_meta($post_id, '_yoast_wpseo_title', $sanitized_value);
+        
+        // Clear Yoast cache if available
+        $this->clear_yoast_cache($post_id);
+        
+        return $result;
+    }
+    
+    /**
+     * Set Yoast meta description
+     */
+    public function set_yoast_meta_description($post_id, $value) {
+        if (!$post_id || !is_numeric($post_id)) {
+            return false;
+        }
+        
+        $sanitized_value = sanitize_textarea_field($value);
+        $result = update_post_meta($post_id, '_yoast_wpseo_metadesc', $sanitized_value);
+        
+        // Clear Yoast cache if available
+        $this->clear_yoast_cache($post_id);
+        
+        return $result;
+    }
+    
+    /**
+     * Set Yoast focus keywords
+     */
+    public function set_yoast_focus_keywords($post_id, $value) {
+        if (!$post_id || !is_numeric($post_id)) {
+            return false;
+        }
+        
+        $sanitized_value = sanitize_text_field($value);
+        $result = update_post_meta($post_id, '_yoast_wpseo_focuskw', $sanitized_value);
+        
+        // Clear Yoast cache if available
+        $this->clear_yoast_cache($post_id);
+        
+        return $result;
+    }
+    
+    /**
+     * Set Yoast meta robots noindex
+     */
+    public function set_yoast_meta_robots_noindex($post_id, $value) {
+        if (!$post_id || !is_numeric($post_id)) {
+            return false;
+        }
+        
+        $sanitized_value = sanitize_text_field($value);
+        $result = update_post_meta($post_id, '_yoast_wpseo_meta-robots-noindex', $sanitized_value);
+        
+        // Clear Yoast cache if available
+        $this->clear_yoast_cache($post_id);
+        
+        return $result;
+    }
+    
+    /**
+     * Set Yoast meta robots nofollow
+     */
+    public function set_yoast_meta_robots_nofollow($post_id, $value) {
+        if (!$post_id || !is_numeric($post_id)) {
+            return false;
+        }
+        
+        $sanitized_value = sanitize_text_field($value);
+        $result = update_post_meta($post_id, '_yoast_wpseo_meta-robots-nofollow', $sanitized_value);
+        
+        // Clear Yoast cache if available
+        $this->clear_yoast_cache($post_id);
+        
+        return $result;
+    }
+    
+    /**
+     * Set Yoast canonical URL
+     */
+    public function set_yoast_canonical($post_id, $value) {
+        if (!$post_id || !is_numeric($post_id)) {
+            return false;
+        }
+        
+        $sanitized_value = esc_url_raw($value);
+        $result = update_post_meta($post_id, '_yoast_wpseo_canonical', $sanitized_value);
+        
+        // Clear Yoast cache if available
+        $this->clear_yoast_cache($post_id);
+        
+        return $result;
+    }
+    
+    /**
+     * Set Yoast primary category
+     */
+    public function set_yoast_primary_category($post_id, $value) {
+        if (!$post_id || !is_numeric($post_id)) {
+            return false;
+        }
+        
+        $sanitized_value = intval($value);
+        $result = update_post_meta($post_id, '_yoast_wpseo_primary_category', $sanitized_value);
+        
+        // Clear Yoast cache if available
+        $this->clear_yoast_cache($post_id);
+        
+        return $result;
+    }
+    
+    /**
+     * Set multiple Yoast fields at once
+     */
+    public function set_yoast_fields($post_id, $fields) {
+        if (!$post_id || !is_numeric($post_id)) {
+            return false;
+        }
+        
+        $results = array();
+        
+        // Set each field individually
+        if (isset($fields['meta_title'])) {
+            $results['meta_title'] = $this->set_yoast_meta_title($post_id, $fields['meta_title']);
+        }
+        
+        if (isset($fields['meta_description'])) {
+            $results['meta_description'] = $this->set_yoast_meta_description($post_id, $fields['meta_description']);
+        }
+        
+        if (isset($fields['focus_keywords'])) {
+            $results['focus_keywords'] = $this->set_yoast_focus_keywords($post_id, $fields['focus_keywords']);
+        }
+        
+        if (isset($fields['meta_robots_noindex'])) {
+            $results['meta_robots_noindex'] = $this->set_yoast_meta_robots_noindex($post_id, $fields['meta_robots_noindex']);
+        }
+        
+        if (isset($fields['meta_robots_nofollow'])) {
+            $results['meta_robots_nofollow'] = $this->set_yoast_meta_robots_nofollow($post_id, $fields['meta_robots_nofollow']);
+        }
+        
+        if (isset($fields['canonical'])) {
+            $results['canonical'] = $this->set_yoast_canonical($post_id, $fields['canonical']);
+        }
+        
+        if (isset($fields['primary_category'])) {
+            $results['primary_category'] = $this->set_yoast_primary_category($post_id, $fields['primary_category']);
+        }
+        
+        return $results;
+    }
+    
+    /**
+     * Clear Yoast cache for a post
+     */
+    private function clear_yoast_cache($post_id) {
+        // Clear Yoast's internal cache if available
+        if (class_exists('WPSEO_Utils')) {
+            wp_cache_delete($post_id, 'post_meta');
+        }
+        
+        // Clear any transients related to this post
+        delete_transient('yoast_seo_score_' . $post_id);
     }
     
     /**
