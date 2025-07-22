@@ -1,6 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getEnvVars, validateEnvironment, checkProductionReadiness } from '@/utils/env';
-import { getWordPressConfig, getRateLimitConfig, getCorsConfig, getLoggingConfig } from '@/utils/env';
+import { 
+  getEnvVars, 
+  validateEnvVarsSilently, 
+  isProductionReady, 
+  getSecureEnvSummary,
+  getSecurityAuditInfo,
+  getWordPressConfig, 
+  getRateLimitConfig, 
+  getCorsConfig, 
+  getLoggingConfig 
+} from '@/utils/env';
 
 export default async function handler(
   req: VercelRequest,
@@ -21,8 +30,9 @@ export default async function handler(
 
   try {
     // Validate environment variables
-    const envValidation = validateEnvironment();
-    const productionCheck = checkProductionReadiness();
+    const envValidation = validateEnvVarsSilently();
+    const productionCheck = isProductionReady();
+    const securityAudit = getSecurityAuditInfo();
     
     // Get configuration objects
     const wordpressConfig = getWordPressConfig();
@@ -37,7 +47,7 @@ export default async function handler(
         status: 'healthy',
         timestamp: new Date().toISOString(),
         environment: {
-          nodeEnv: wordpressConfig.url ? 'configured' : 'not configured',
+          nodeEnv: getEnvVars().NODE_ENV,
           productionReady: productionCheck.ready,
           issues: productionCheck.issues,
         },
@@ -63,11 +73,16 @@ export default async function handler(
         validation: {
           valid: envValidation.valid,
           errors: envValidation.errors,
-          warnings: envValidation.warnings,
-          missing: envValidation.missing,
-          invalid: envValidation.invalid,
-          suggestions: envValidation.suggestions,
         },
+        security: {
+          productionReady: securityAudit.productionReady,
+          productionIssues: securityAudit.productionIssues,
+          jwtSecretStrength: securityAudit.securityMeasures.jwtSecretStrength,
+          corsWildcard: securityAudit.securityMeasures.corsWildcard,
+          debugLogging: securityAudit.securityMeasures.debugLogging,
+        },
+        // Include secure environment summary (with masked sensitive data)
+        config: getSecureEnvSummary(),
       },
     });
   } catch (error) {

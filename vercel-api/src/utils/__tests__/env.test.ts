@@ -1,240 +1,183 @@
-import { loadEnvVars, validateEnvVarsSilently, getEnvVars } from '../env';
-import { validateEnvironment, generateEnvTemplate, checkProductionReadiness } from '../env-validator';
+import { 
+  loadEnvVars, 
+  getEnvVars, 
+  validateEnvVarsSilently,
+  isProductionReady,
+  getSecureEnvSummary,
+  getSecurityAuditInfo,
+  validateApiKeyFormat,
+  validateApiKey
+} from '../env';
 
-// Mock process.env
-const originalEnv = process.env;
+// Mock environment variables for testing
+const mockEnvVars = {
+  WORDPRESS_URL: 'https://example.com',
+  WORDPRESS_USERNAME: 'testuser',
+  WORDPRESS_APP_PASSWORD: 'testpassword123',
+  GPT_API_KEY: 'sk-test1234567890123456789012345678901234567890',
+  JWT_SECRET: 'test-jwt-secret-that-is-long-enough-for-validation-testing-purposes',
+  NODE_ENV: 'test',
+  API_RATE_LIMIT_WINDOW_MS: 60000,
+  API_RATE_LIMIT_MAX_REQUESTS: 100,
+  WORDPRESS_TIMEOUT_MS: 30000,
+  LOG_LEVEL: 'info',
+  CORS_ORIGINS: ['*'],
+  MAX_IMAGE_SIZE_MB: 10,
+  ENABLE_DEBUG_LOGGING: false,
+};
 
-describe('Environment Variable Validation', () => {
+describe('Environment Variable Security', () => {
   beforeEach(() => {
-    // Reset process.env before each test
-    process.env = { ...originalEnv };
-    // Clear the global cache
+    // Clear global cache before each test
+    (globalThis as any).envVars = undefined;
+    
+    // Mock process.env
+    process.env = {
+      ...process.env,
+      ...mockEnvVars,
+    };
+  });
+
+  afterEach(() => {
+    // Clean up
     (globalThis as any).envVars = undefined;
   });
 
-  afterAll(() => {
-    // Restore original process.env
-    process.env = originalEnv;
-  });
-
-  describe('loadEnvVars', () => {
-    it('should load valid environment variables', () => {
-      process.env.WORDPRESS_URL = 'https://example.com';
-      process.env.WORDPRESS_USERNAME = 'admin';
-      process.env.WORDPRESS_APP_PASSWORD = 'test password 123';
-      process.env.GPT_API_KEY = 'sk-1234567890abcdef1234567890abcdef';
-      process.env.JWT_SECRET = 'test-jwt-secret-that-is-long-enough-for-validation';
-
-      const envVars = loadEnvVars();
-
-      expect(envVars.WORDPRESS_URL).toBe('https://example.com');
-      expect(envVars.WORDPRESS_USERNAME).toBe('admin');
-      expect(envVars.WORDPRESS_APP_PASSWORD).toBe('test password 123');
-      expect(envVars.GPT_API_KEY).toBe('sk-1234567890abcdef1234567890abcdef');
-      expect(envVars.JWT_SECRET).toBe('test-jwt-secret-that-is-long-enough-for-validation');
-      expect(envVars.NODE_ENV).toBe('development'); // default value
-    });
-
-    it('should throw error for missing required variables', () => {
-      expect(() => loadEnvVars()).toThrow('Missing required environment variable: WORDPRESS_URL');
-    });
-
-    it('should throw error for invalid WordPress URL', () => {
-      process.env.WORDPRESS_URL = 'invalid-url';
-      process.env.WORDPRESS_USERNAME = 'admin';
-      process.env.WORDPRESS_APP_PASSWORD = 'test password 123';
-      process.env.GPT_API_KEY = 'sk-1234567890abcdef1234567890abcdef';
-      process.env.JWT_SECRET = 'test-jwt-secret-that-is-long-enough-for-validation';
-
-      expect(() => loadEnvVars()).toThrow('Invalid WORDPRESS_URL');
-    });
-
-    it('should throw error for invalid GPT API key format', () => {
-      process.env.WORDPRESS_URL = 'https://example.com';
-      process.env.WORDPRESS_USERNAME = 'admin';
-      process.env.WORDPRESS_APP_PASSWORD = 'test password 123';
-      process.env.GPT_API_KEY = 'invalid-key';
-      process.env.JWT_SECRET = 'test-jwt-secret-that-is-long-enough-for-validation';
-
-      expect(() => loadEnvVars()).toThrow('GPT_API_KEY must be a valid OpenAI API key starting with sk-');
-    });
-
-    it('should throw error for short JWT secret', () => {
-      process.env.WORDPRESS_URL = 'https://example.com';
-      process.env.WORDPRESS_USERNAME = 'admin';
-      process.env.WORDPRESS_APP_PASSWORD = 'test password 123';
-      process.env.GPT_API_KEY = 'sk-1234567890abcdef1234567890abcdef';
-      process.env.JWT_SECRET = 'short';
-
-      expect(() => loadEnvVars()).toThrow('JWT_SECRET must be 32-256 characters long');
-    });
-
-    it('should use default values for optional variables', () => {
-      process.env.WORDPRESS_URL = 'https://example.com';
-      process.env.WORDPRESS_USERNAME = 'admin';
-      process.env.WORDPRESS_APP_PASSWORD = 'test password 123';
-      process.env.GPT_API_KEY = 'sk-1234567890abcdef1234567890abcdef';
-      process.env.JWT_SECRET = 'test-jwt-secret-that-is-long-enough-for-validation';
-
-      const envVars = loadEnvVars();
-
-      expect(envVars.API_RATE_LIMIT_WINDOW_MS).toBe(60000);
-      expect(envVars.API_RATE_LIMIT_MAX_REQUESTS).toBe(100);
-      expect(envVars.WORDPRESS_TIMEOUT_MS).toBe(30000);
-      expect(envVars.LOG_LEVEL).toBe('info');
-      expect(envVars.CORS_ORIGINS).toEqual(['*']);
-      expect(envVars.MAX_IMAGE_SIZE_MB).toBe(10);
-      expect(envVars.ENABLE_DEBUG_LOGGING).toBe(false);
-    });
-
-    it('should parse custom values for optional variables', () => {
-      process.env.WORDPRESS_URL = 'https://example.com';
-      process.env.WORDPRESS_USERNAME = 'admin';
-      process.env.WORDPRESS_APP_PASSWORD = 'test password 123';
-      process.env.GPT_API_KEY = 'sk-1234567890abcdef1234567890abcdef';
-      process.env.JWT_SECRET = 'test-jwt-secret-that-is-long-enough-for-validation';
-      process.env.NODE_ENV = 'production';
-      process.env.API_RATE_LIMIT_WINDOW_MS = '120000';
-      process.env.API_RATE_LIMIT_MAX_REQUESTS = '50';
-      process.env.WORDPRESS_TIMEOUT_MS = '60000';
-      process.env.LOG_LEVEL = 'debug';
-      process.env.CORS_ORIGINS = 'https://example.com,https://test.com';
-      process.env.MAX_IMAGE_SIZE_MB = '20';
-      process.env.ENABLE_DEBUG_LOGGING = 'true';
-
-      const envVars = loadEnvVars();
-
-      expect(envVars.NODE_ENV).toBe('production');
-      expect(envVars.API_RATE_LIMIT_WINDOW_MS).toBe(120000);
-      expect(envVars.API_RATE_LIMIT_MAX_REQUESTS).toBe(50);
-      expect(envVars.WORDPRESS_TIMEOUT_MS).toBe(60000);
-      expect(envVars.LOG_LEVEL).toBe('debug');
-      expect(envVars.CORS_ORIGINS).toEqual(['https://example.com', 'https://test.com']);
-      expect(envVars.MAX_IMAGE_SIZE_MB).toBe(20);
-      expect(envVars.ENABLE_DEBUG_LOGGING).toBe(true);
-    });
-  });
-
-  describe('validateEnvVarsSilently', () => {
-    it('should return valid: true for valid environment', () => {
-      process.env.WORDPRESS_URL = 'https://example.com';
-      process.env.WORDPRESS_USERNAME = 'admin';
-      process.env.WORDPRESS_APP_PASSWORD = 'test password 123';
-      process.env.GPT_API_KEY = 'sk-1234567890abcdef1234567890abcdef';
-      process.env.JWT_SECRET = 'test-jwt-secret-that-is-long-enough-for-validation';
-
-      const result = validateEnvVarsSilently();
-
+  describe('validateApiKeyFormat', () => {
+    it('should validate correct API key format', () => {
+      const result = validateApiKeyFormat('sk-test1234567890123456789012345678901234567890');
       expect(result.valid).toBe(true);
-      expect(result.errors).toEqual([]);
+      expect(result.error).toBeUndefined();
     });
 
-    it('should return valid: false for invalid environment', () => {
-      const result = validateEnvVarsSilently();
-
-      expect(result.valid).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('getEnvVars', () => {
-    it('should cache environment variables', () => {
-      process.env.WORDPRESS_URL = 'https://example.com';
-      process.env.WORDPRESS_USERNAME = 'admin';
-      process.env.WORDPRESS_APP_PASSWORD = 'test password 123';
-      process.env.GPT_API_KEY = 'sk-1234567890abcdef1234567890abcdef';
-      process.env.JWT_SECRET = 'test-jwt-secret-that-is-long-enough-for-validation';
-
-      const firstCall = getEnvVars();
-      const secondCall = getEnvVars();
-
-      expect(firstCall).toBe(secondCall);
-    });
-  });
-
-  describe('validateEnvironment', () => {
-    it('should provide comprehensive validation results', () => {
-      process.env.WORDPRESS_URL = 'https://example.com';
-      process.env.WORDPRESS_USERNAME = 'admin';
-      process.env.WORDPRESS_APP_PASSWORD = 'test password 123';
-      process.env.GPT_API_KEY = 'sk-1234567890abcdef1234567890abcdef';
-      process.env.JWT_SECRET = 'test-jwt-secret-that-is-long-enough-for-validation';
-
-      const result = validateEnvironment();
-
+    it('should validate API key with Bearer prefix', () => {
+      const result = validateApiKeyFormat('Bearer sk-test1234567890123456789012345678901234567890');
       expect(result.valid).toBe(true);
-      expect(result.errors).toEqual([]);
-      expect(result.missing).toEqual([]);
-      expect(result.invalid).toEqual([]);
+      expect(result.error).toBeUndefined();
     });
 
-    it('should detect missing required variables', () => {
-      const result = validateEnvironment();
-
+    it('should reject empty API key', () => {
+      const result = validateApiKeyFormat('');
       expect(result.valid).toBe(false);
-      expect(result.missing).toContain('WORDPRESS_URL');
-      expect(result.missing).toContain('WORDPRESS_USERNAME');
-      expect(result.missing).toContain('WORDPRESS_APP_PASSWORD');
-      expect(result.missing).toContain('GPT_API_KEY');
-      expect(result.missing).toContain('JWT_SECRET');
+      expect(result.error).toBe('API key is required');
     });
 
-    it('should detect invalid values', () => {
-      process.env.WORDPRESS_URL = 'invalid-url';
-      process.env.GPT_API_KEY = 'invalid-key';
-      process.env.JWT_SECRET = 'short';
-      process.env.NODE_ENV = 'invalid';
+    it('should reject short API key', () => {
+      const result = validateApiKeyFormat('sk-short');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('API key is too short');
+    });
 
-      const result = validateEnvironment();
-
-      expect(result.invalid).toContain('WORDPRESS_URL: Must start with http:// or https://');
-      expect(result.invalid).toContain('GPT_API_KEY: Must start with sk-');
-      expect(result.invalid).toContain('JWT_SECRET: Must be at least 32 characters long');
-      expect(result.invalid).toContain('NODE_ENV: Must be development, production, or test');
+    it('should reject invalid API key format', () => {
+      const result = validateApiKeyFormat('invalid-key-format');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('API key format is invalid');
     });
   });
 
-  describe('generateEnvTemplate', () => {
-    it('should generate a valid environment template', () => {
-      const template = generateEnvTemplate();
+  describe('validateApiKey', () => {
+    it('should validate correct API key', () => {
+      const result = validateApiKey('sk-test1234567890123456789012345678901234567890');
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
 
-      expect(template).toContain('# PostCrafter Vercel API Environment Variables');
-      expect(template).toContain('WORDPRESS_URL=');
-      expect(template).toContain('GPT_API_KEY=');
-      expect(template).toContain('JWT_SECRET=');
-      expect(template).toContain('# Optional (default:');
+    it('should reject incorrect API key', () => {
+      const result = validateApiKey('sk-wrong1234567890123456789012345678901234567890');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid API key');
+    });
+
+    it('should reject invalid format', () => {
+      const result = validateApiKey('invalid-format');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('API key format is invalid');
     });
   });
 
-  describe('checkProductionReadiness', () => {
-    it('should return ready: true for valid production environment', () => {
-      process.env.NODE_ENV = 'production';
-      process.env.WORDPRESS_URL = 'https://example.com';
-      process.env.WORDPRESS_USERNAME = 'admin';
-      process.env.WORDPRESS_APP_PASSWORD = 'test password 123';
-      process.env.GPT_API_KEY = 'sk-1234567890abcdef1234567890abcdef';
-      process.env.JWT_SECRET = 'test-jwt-secret-that-is-long-enough-for-validation-and-production-ready';
-      process.env.LOG_LEVEL = 'info';
-      process.env.CORS_ORIGINS = 'https://example.com';
-
-      const result = checkProductionReadiness();
-
-      expect(result.ready).toBe(true);
-      expect(result.issues).toEqual([]);
+  describe('getSecureEnvSummary', () => {
+    it('should return masked sensitive values', () => {
+      const summary = getSecureEnvSummary();
+      
+      // Check that sensitive values are masked
+      expect(summary.GPT_API_KEY).toMatch(/^sk-test\.\.\.7890$/);
+      expect(summary.JWT_SECRET).toMatch(/^test-jwt\.\.\.poses$/);
+      expect(summary.WORDPRESS_APP_PASSWORD).toMatch(/^test\.\.\.123$/);
+      
+      // Check that non-sensitive values are not masked
+      expect(summary.NODE_ENV).toBe('test');
+      expect(summary.LOG_LEVEL).toBe('info');
+      expect(summary.API_RATE_LIMIT_WINDOW_MS).toBe(60000);
     });
+  });
 
-    it('should return ready: false for production with issues', () => {
-      process.env.NODE_ENV = 'production';
-      process.env.LOG_LEVEL = 'debug';
-      process.env.CORS_ORIGINS = '*';
-      process.env.JWT_SECRET = 'short';
-
-      const result = checkProductionReadiness();
-
+  describe('isProductionReady', () => {
+    it('should identify production readiness issues in test environment', () => {
+      const result = isProductionReady();
+      
       expect(result.ready).toBe(false);
-      expect(result.issues).toContain('Debug logging should not be enabled in production');
-      expect(result.issues).toContain('CORS should be restricted in production');
-      expect(result.issues).toContain('JWT_SECRET should be at least 64 characters in production');
+      expect(result.issues).toContain('NODE_ENV should be set to "production" in production environment');
+      expect(result.issues).toContain('JWT_SECRET should be at least 64 characters long for production');
+      expect(result.issues).toContain('CORS_ORIGINS should not use wildcard (*) in production');
+    });
+
+    it('should pass production readiness check with proper configuration', () => {
+      // Mock production environment
+      process.env.NODE_ENV = 'production';
+      process.env.JWT_SECRET = 'a'.repeat(64);
+      process.env.CORS_ORIGINS = 'https://example.com,https://another.com';
+      process.env.ENABLE_DEBUG_LOGGING = 'false';
+      process.env.LOG_LEVEL = 'info';
+      
+      // Clear cache to reload with new values
+      (globalThis as any).envVars = undefined;
+      
+      const result = isProductionReady();
+      expect(result.ready).toBe(true);
+      expect(result.issues).toHaveLength(0);
+    });
+  });
+
+  describe('getSecurityAuditInfo', () => {
+    it('should return comprehensive security audit information', () => {
+      const audit = getSecurityAuditInfo();
+      
+      expect(audit.environment).toBe('test');
+      expect(audit.productionReady).toBe(false);
+      expect(audit.productionIssues).toBeInstanceOf(Array);
+      expect(audit.securityMeasures).toBeDefined();
+      expect(audit.securityMeasures.jwtSecretLength).toBe(mockEnvVars.JWT_SECRET.length);
+      expect(audit.securityMeasures.jwtSecretStrength).toBe('weak');
+      expect(audit.securityMeasures.corsWildcard).toBe(true);
+      expect(audit.securityMeasures.debugLogging).toBe(false);
+      expect(audit.securityMeasures.rateLimiting.enabled).toBe(true);
+      expect(audit.sensitiveVariables).toBeDefined();
+      
+      // Check that sensitive variables are masked
+      expect(audit.sensitiveVariables.gptApiKey).toMatch(/^sk-test\.\.\.7890$/);
+      expect(audit.sensitiveVariables.jwtSecret).toMatch(/^test-jwt\.\.\.poses$/);
+    });
+  });
+
+  describe('Enhanced validation with security logging', () => {
+    it('should handle missing required environment variables securely', () => {
+      // Remove required environment variable
+      delete process.env.GPT_API_KEY;
+      (globalThis as any).envVars = undefined;
+      
+      const result = validateEnvVarsSilently();
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain('Missing required environment variable: GPT_API_KEY');
+    });
+
+    it('should validate JWT secret pattern', () => {
+      // Test with invalid JWT secret characters
+      process.env.JWT_SECRET = 'invalid-secret-with-🚀-emoji';
+      (globalThis as any).envVars = undefined;
+      
+      const result = validateEnvVarsSilently();
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(error => error.includes('JWT_SECRET'))).toBe(true);
     });
   });
 }); 

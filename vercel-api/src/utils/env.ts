@@ -1,13 +1,14 @@
 import { EnvVars } from '@/types';
 
 /**
- * Environment variable validation rules
+ * Environment variable validation rules with enhanced security
  */
 const ENV_VALIDATION_RULES = {
   WORDPRESS_URL: {
     required: true,
     pattern: /^https?:\/\/.+/,
     message: 'WORDPRESS_URL must be a valid HTTP/HTTPS URL',
+    secure: true, // Mark as sensitive for logging
   },
   WORDPRESS_USERNAME: {
     required: true,
@@ -15,29 +16,35 @@ const ENV_VALIDATION_RULES = {
     maxLength: 60,
     pattern: /^[a-zA-Z0-9_-]+$/,
     message: 'WORDPRESS_USERNAME must be 1-60 characters, alphanumeric with hyphens/underscores only',
+    secure: true,
   },
   WORDPRESS_APP_PASSWORD: {
     required: true,
     minLength: 8,
     pattern: /^[a-zA-Z0-9\s]+$/,
     message: 'WORDPRESS_APP_PASSWORD must be at least 8 characters, alphanumeric with spaces',
+    secure: true,
   },
   GPT_API_KEY: {
     required: true,
     pattern: /^sk-[a-zA-Z0-9]{32,}$/,
     message: 'GPT_API_KEY must be a valid OpenAI API key starting with sk-',
+    secure: true,
   },
   JWT_SECRET: {
     required: true,
     minLength: 32,
     maxLength: 256,
-    message: 'JWT_SECRET must be 32-256 characters long',
+    pattern: /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$/,
+    message: 'JWT_SECRET must be 32-256 characters long with valid characters',
+    secure: true,
   },
   NODE_ENV: {
     required: false,
     allowedValues: ['development', 'production', 'test'],
     defaultValue: 'development',
     message: 'NODE_ENV must be development, production, or test',
+    secure: false,
   },
   API_RATE_LIMIT_WINDOW_MS: {
     required: false,
@@ -46,6 +53,7 @@ const ENV_VALIDATION_RULES = {
     min: 1000,
     max: 3600000, // 1 hour
     message: 'API_RATE_LIMIT_WINDOW_MS must be between 1000 and 3600000 milliseconds',
+    secure: false,
   },
   API_RATE_LIMIT_MAX_REQUESTS: {
     required: false,
@@ -54,6 +62,7 @@ const ENV_VALIDATION_RULES = {
     min: 1,
     max: 10000,
     message: 'API_RATE_LIMIT_MAX_REQUESTS must be between 1 and 10000',
+    secure: false,
   },
   WORDPRESS_TIMEOUT_MS: {
     required: false,
@@ -62,17 +71,20 @@ const ENV_VALIDATION_RULES = {
     min: 5000,
     max: 120000, // 2 minutes
     message: 'WORDPRESS_TIMEOUT_MS must be between 5000 and 120000 milliseconds',
+    secure: false,
   },
   LOG_LEVEL: {
     required: false,
     allowedValues: ['error', 'warn', 'info', 'debug'],
     defaultValue: 'info',
     message: 'LOG_LEVEL must be error, warn, info, or debug',
+    secure: false,
   },
   CORS_ORIGINS: {
     required: false,
     defaultValue: '*',
     message: 'CORS_ORIGINS must be a comma-separated list of allowed origins or *',
+    secure: false,
   },
   MAX_IMAGE_SIZE_MB: {
     required: false,
@@ -81,17 +93,77 @@ const ENV_VALIDATION_RULES = {
     min: 1,
     max: 50,
     message: 'MAX_IMAGE_SIZE_MB must be between 1 and 50',
+    secure: false,
   },
   ENABLE_DEBUG_LOGGING: {
     required: false,
     defaultValue: false,
     type: 'boolean',
     message: 'ENABLE_DEBUG_LOGGING must be true or false',
+    secure: false,
   },
 } as const;
 
 /**
- * Validate a single environment variable
+ * Mask sensitive values for secure logging
+ */
+function maskSensitiveValue(value: string, type: string): string {
+  if (!value || value.length < 4) {
+    return '***';
+  }
+  
+  switch (type) {
+    case 'GPT_API_KEY':
+      // Show first 7 chars (sk-xxx) and last 4 chars
+      return `${value.substring(0, 7)}...${value.substring(value.length - 4)}`;
+    case 'JWT_SECRET':
+      // Show first 8 and last 4 chars
+      return `${value.substring(0, 8)}...${value.substring(value.length - 4)}`;
+    case 'WORDPRESS_APP_PASSWORD':
+      // Show first 4 and last 4 chars
+      return `${value.substring(0, 4)}...${value.substring(value.length - 4)}`;
+    default:
+      // Generic masking for other sensitive values
+      return `${value.substring(0, 3)}...${value.substring(value.length - 3)}`;
+  }
+}
+
+/**
+ * Secure logging function that masks sensitive data
+ */
+function secureLog(level: 'info' | 'warn' | 'error', message: string, data?: Record<string, any>): void {
+  const maskedData = data ? { ...data } : {};
+  
+  // Mask sensitive values in data
+  Object.keys(maskedData).forEach(key => {
+    const rule = ENV_VALIDATION_RULES[key as keyof typeof ENV_VALIDATION_RULES];
+    if (rule?.secure && typeof maskedData[key] === 'string') {
+      maskedData[key] = maskSensitiveValue(maskedData[key], key);
+    }
+  });
+  
+  const logMessage = {
+    level,
+    message,
+    timestamp: new Date().toISOString(),
+    ...(Object.keys(maskedData).length > 0 && { data: maskedData }),
+  };
+  
+  // Use console methods based on level
+  switch (level) {
+    case 'error':
+      console.error(JSON.stringify(logMessage));
+      break;
+    case 'warn':
+      console.warn(JSON.stringify(logMessage));
+      break;
+    default:
+      console.log(JSON.stringify(logMessage));
+  }
+}
+
+/**
+ * Validate a single environment variable with enhanced security
  */
 function validateEnvVar(
   name: string,
@@ -100,16 +172,21 @@ function validateEnvVar(
 ): string | number | boolean {
   // Handle required validation
   if (rules.required && !value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+    const errorMsg = `Missing required environment variable: ${name}`;
+    secureLog('error', errorMsg);
+    throw new Error(errorMsg);
   }
 
   // Handle default values
   if (!value && 'defaultValue' in rules) {
+    secureLog('info', `Using default value for ${name}`, { [name]: rules.defaultValue });
     return rules.defaultValue;
   }
 
   if (!value) {
-    throw new Error(`Environment variable ${name} is required but not set`);
+    const errorMsg = `Environment variable ${name} is required but not set`;
+    secureLog('error', errorMsg);
+    throw new Error(errorMsg);
   }
 
   // Handle type conversion
@@ -117,35 +194,56 @@ function validateEnvVar(
     if (rules.type === 'number') {
       const numValue = parseInt(value, 10);
       if (isNaN(numValue)) {
-        throw new Error(`Environment variable ${name} must be a valid number`);
+        const errorMsg = `Environment variable ${name} must be a valid number`;
+        secureLog('error', errorMsg, { [name]: value });
+        throw new Error(errorMsg);
       }
       if ('min' in rules && numValue < rules.min) {
-        throw new Error(`Environment variable ${name} must be at least ${rules.min}`);
+        const errorMsg = `Environment variable ${name} must be at least ${rules.min}`;
+        secureLog('error', errorMsg, { [name]: numValue, min: rules.min });
+        throw new Error(errorMsg);
       }
       if ('max' in rules && numValue > rules.max) {
-        throw new Error(`Environment variable ${name} must be at most ${rules.max}`);
+        const errorMsg = `Environment variable ${name} must be at most ${rules.max}`;
+        secureLog('error', errorMsg, { [name]: numValue, max: rules.max });
+        throw new Error(errorMsg);
       }
       return numValue;
     }
     if (rules.type === 'boolean') {
       if (value.toLowerCase() === 'true') return true;
       if (value.toLowerCase() === 'false') return false;
-      throw new Error(`Environment variable ${name} must be true or false`);
+      const errorMsg = `Environment variable ${name} must be true or false`;
+      secureLog('error', errorMsg, { [name]: value });
+      throw new Error(errorMsg);
     }
   }
 
   // Handle string validation
   if ('minLength' in rules && value.length < rules.minLength) {
-    throw new Error(`Environment variable ${name} must be at least ${rules.minLength} characters`);
+    const errorMsg = `Environment variable ${name} must be at least ${rules.minLength} characters`;
+    secureLog('error', errorMsg, { [name]: maskSensitiveValue(value, name), minLength: rules.minLength });
+    throw new Error(errorMsg);
   }
   if ('maxLength' in rules && value.length > rules.maxLength) {
-    throw new Error(`Environment variable ${name} must be at most ${rules.maxLength} characters`);
+    const errorMsg = `Environment variable ${name} must be at most ${rules.maxLength} characters`;
+    secureLog('error', errorMsg, { [name]: maskSensitiveValue(value, name), maxLength: rules.maxLength });
+    throw new Error(errorMsg);
   }
   if ('pattern' in rules && !rules.pattern.test(value)) {
+    secureLog('error', rules.message, { [name]: maskSensitiveValue(value, name) });
     throw new Error(rules.message);
   }
   if ('allowedValues' in rules && !rules.allowedValues.includes(value as any)) {
+    secureLog('error', rules.message, { [name]: value, allowedValues: rules.allowedValues });
     throw new Error(rules.message);
+  }
+
+  // Log successful validation for sensitive values
+  if (rules.secure) {
+    secureLog('info', `Environment variable ${name} validated successfully`, { 
+      [name]: maskSensitiveValue(value, name) 
+    });
   }
 
   return value;
@@ -301,6 +399,146 @@ export function validateEnvVarsSilently(): { valid: boolean; errors: string[] } 
     }
     return { valid: false, errors };
   }
+}
+
+/**
+ * Get a secure summary of environment configuration for health checks
+ */
+export function getSecureEnvSummary(): Record<string, any> {
+  const env = getEnvVars();
+  
+  return {
+    NODE_ENV: env.NODE_ENV,
+    LOG_LEVEL: env.LOG_LEVEL,
+    API_RATE_LIMIT_WINDOW_MS: env.API_RATE_LIMIT_WINDOW_MS,
+    API_RATE_LIMIT_MAX_REQUESTS: env.API_RATE_LIMIT_MAX_REQUESTS,
+    WORDPRESS_TIMEOUT_MS: env.WORDPRESS_TIMEOUT_MS,
+    MAX_IMAGE_SIZE_MB: env.MAX_IMAGE_SIZE_MB,
+    ENABLE_DEBUG_LOGGING: env.ENABLE_DEBUG_LOGGING,
+    CORS_ORIGINS: env.CORS_ORIGINS,
+    // Mask sensitive values
+    WORDPRESS_URL: maskSensitiveValue(env.WORDPRESS_URL, 'WORDPRESS_URL'),
+    WORDPRESS_USERNAME: maskSensitiveValue(env.WORDPRESS_USERNAME, 'WORDPRESS_USERNAME'),
+    WORDPRESS_APP_PASSWORD: maskSensitiveValue(env.WORDPRESS_APP_PASSWORD, 'WORDPRESS_APP_PASSWORD'),
+    GPT_API_KEY: maskSensitiveValue(env.GPT_API_KEY, 'GPT_API_KEY'),
+    JWT_SECRET: maskSensitiveValue(env.JWT_SECRET, 'JWT_SECRET'),
+  };
+}
+
+/**
+ * Check if environment is properly configured for production
+ */
+export function isProductionReady(): { ready: boolean; issues: string[] } {
+  const issues: string[] = [];
+  const env = getEnvVars();
+  
+  // Check for production environment
+  if (env.NODE_ENV !== 'production') {
+    issues.push('NODE_ENV should be set to "production" in production environment');
+  }
+  
+  // Check JWT secret strength
+  if (env.JWT_SECRET.length < 64) {
+    issues.push('JWT_SECRET should be at least 64 characters long for production');
+  }
+  
+  // Check for wildcard CORS in production
+  if (env.CORS_ORIGINS.includes('*')) {
+    issues.push('CORS_ORIGINS should not use wildcard (*) in production');
+  }
+  
+  // Check debug logging is disabled
+  if (env.ENABLE_DEBUG_LOGGING) {
+    issues.push('ENABLE_DEBUG_LOGGING should be false in production');
+  }
+  
+  // Check log level is appropriate
+  if (env.LOG_LEVEL === 'debug') {
+    issues.push('LOG_LEVEL should not be "debug" in production');
+  }
+  
+  return {
+    ready: issues.length === 0,
+    issues,
+  };
+}
+
+/**
+ * Get security audit information for environment variables
+ */
+export function getSecurityAuditInfo(): Record<string, any> {
+  const env = getEnvVars();
+  const productionReady = isProductionReady();
+  
+  return {
+    environment: env.NODE_ENV,
+    productionReady: productionReady.ready,
+    productionIssues: productionReady.issues,
+    securityMeasures: {
+      jwtSecretLength: env.JWT_SECRET.length,
+      jwtSecretStrength: env.JWT_SECRET.length >= 64 ? 'strong' : 'weak',
+      corsWildcard: env.CORS_ORIGINS.includes('*'),
+      debugLogging: env.ENABLE_DEBUG_LOGGING,
+      logLevel: env.LOG_LEVEL,
+      rateLimiting: {
+        enabled: true,
+        windowMs: env.API_RATE_LIMIT_WINDOW_MS,
+        maxRequests: env.API_RATE_LIMIT_MAX_REQUESTS,
+      },
+    },
+    sensitiveVariables: {
+      wordpressUrl: maskSensitiveValue(env.WORDPRESS_URL, 'WORDPRESS_URL'),
+      wordpressUsername: maskSensitiveValue(env.WORDPRESS_USERNAME, 'WORDPRESS_USERNAME'),
+      wordpressAppPassword: maskSensitiveValue(env.WORDPRESS_APP_PASSWORD, 'WORDPRESS_APP_PASSWORD'),
+      gptApiKey: maskSensitiveValue(env.GPT_API_KEY, 'GPT_API_KEY'),
+      jwtSecret: maskSensitiveValue(env.JWT_SECRET, 'JWT_SECRET'),
+    },
+  };
+}
+
+/**
+ * Validate API key format without exposing the actual key
+ */
+export function validateApiKeyFormat(apiKey: string): { valid: boolean; error?: string } {
+  if (!apiKey) {
+    return { valid: false, error: 'API key is required' };
+  }
+  
+  // Remove Bearer prefix if present
+  const cleanKey = apiKey.replace(/^Bearer\s+/i, '');
+  
+  if (cleanKey.length < 10) {
+    return { valid: false, error: 'API key is too short' };
+  }
+  
+  // Basic format validation for OpenAI API keys
+  if (!/^sk-[a-zA-Z0-9]{32,}$/.test(cleanKey)) {
+    return { valid: false, error: 'API key format is invalid' };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * Secure function to check if API key matches stored key
+ */
+export function validateApiKey(apiKey: string): { valid: boolean; error?: string } {
+  const formatCheck = validateApiKeyFormat(apiKey);
+  if (!formatCheck.valid) {
+    return formatCheck;
+  }
+  
+  const env = getEnvVars();
+  const cleanKey = apiKey.replace(/^Bearer\s+/i, '');
+  
+  if (cleanKey !== env.GPT_API_KEY) {
+    secureLog('warn', 'Invalid API key attempt', { 
+      providedKey: maskSensitiveValue(cleanKey, 'GPT_API_KEY') 
+    });
+    return { valid: false, error: 'Invalid API key' };
+  }
+  
+  return { valid: true };
 }
 
 // Extend global to include envVars cache
