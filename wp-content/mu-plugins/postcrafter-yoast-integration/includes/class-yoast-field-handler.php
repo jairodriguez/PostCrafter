@@ -161,11 +161,20 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        // Validate and sanitize the input
+        $validation_handler = new PostCrafter_Validation_Handler();
+        $validation = $validation_handler->validate_meta_title_comprehensive($value, $post_id);
+        
+        if (!$validation['valid']) {
+            // Log validation errors
+            $validation_handler->log_validation_errors($validation['errors'], $post_id);
+            return false;
+        }
+        
         $compatibility = new PostCrafter_Yoast_Compatibility();
         $meta_key = $compatibility->get_meta_key('title');
         
-        $sanitized_value = sanitize_text_field($value);
-        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
+        $result = update_post_meta($post_id, $meta_key, $validation['sanitized']);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
@@ -181,11 +190,20 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        // Validate and sanitize the input
+        $validation_handler = new PostCrafter_Validation_Handler();
+        $validation = $validation_handler->validate_meta_description_comprehensive($value, $post_id);
+        
+        if (!$validation['valid']) {
+            // Log validation errors
+            $validation_handler->log_validation_errors($validation['errors'], $post_id);
+            return false;
+        }
+        
         $compatibility = new PostCrafter_Yoast_Compatibility();
         $meta_key = $compatibility->get_meta_key('description');
         
-        $sanitized_value = sanitize_textarea_field($value);
-        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
+        $result = update_post_meta($post_id, $meta_key, $validation['sanitized']);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
@@ -201,11 +219,20 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        // Validate and sanitize the input
+        $validation_handler = new PostCrafter_Validation_Handler();
+        $validation = $validation_handler->validate_focus_keywords_comprehensive($value, $post_id);
+        
+        if (!$validation['valid']) {
+            // Log validation errors
+            $validation_handler->log_validation_errors($validation['errors'], $post_id);
+            return false;
+        }
+        
         $compatibility = new PostCrafter_Yoast_Compatibility();
         $meta_key = $compatibility->get_meta_key('focus_keywords');
         
-        $sanitized_value = sanitize_text_field($value);
-        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
+        $result = update_post_meta($post_id, $meta_key, $validation['sanitized']);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
@@ -221,11 +248,20 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        // Validate and sanitize the input
+        $validation_handler = new PostCrafter_Validation_Handler();
+        $validation = $validation_handler->validate_robots_noindex($value, $post_id);
+        
+        if (!$validation['valid']) {
+            // Log validation errors
+            $validation_handler->log_validation_errors($validation['errors'], $post_id);
+            return false;
+        }
+        
         $compatibility = new PostCrafter_Yoast_Compatibility();
         $meta_key = $compatibility->get_meta_key('robots_noindex');
         
-        $sanitized_value = sanitize_text_field($value);
-        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
+        $result = update_post_meta($post_id, $meta_key, $validation['sanitized']);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
@@ -241,11 +277,20 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        // Validate and sanitize the input
+        $validation_handler = new PostCrafter_Validation_Handler();
+        $validation = $validation_handler->validate_robots_nofollow($value, $post_id);
+        
+        if (!$validation['valid']) {
+            // Log validation errors
+            $validation_handler->log_validation_errors($validation['errors'], $post_id);
+            return false;
+        }
+        
         $compatibility = new PostCrafter_Yoast_Compatibility();
         $meta_key = $compatibility->get_meta_key('robots_nofollow');
         
-        $sanitized_value = sanitize_text_field($value);
-        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
+        $result = update_post_meta($post_id, $meta_key, $validation['sanitized']);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
@@ -261,16 +306,20 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
-        $compatibility = new PostCrafter_Yoast_Compatibility();
-        $meta_key = $compatibility->get_meta_key('canonical');
+        // Validate and sanitize the input
+        $validation_handler = new PostCrafter_Validation_Handler();
+        $validation = $validation_handler->validate_canonical_url($value, $post_id);
         
-        // Validate URL
-        if (!empty($value) && !filter_var($value, FILTER_VALIDATE_URL)) {
+        if (!$validation['valid']) {
+            // Log validation errors
+            $validation_handler->log_validation_errors($validation['errors'], $post_id);
             return false;
         }
         
-        $sanitized_value = esc_url_raw($value);
-        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('canonical');
+        
+        $result = update_post_meta($post_id, $meta_key, $validation['sanitized']);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
@@ -286,11 +335,20 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        // Validate and sanitize the input
+        $validation_handler = new PostCrafter_Validation_Handler();
+        $validation = $validation_handler->validate_primary_category($value, $post_id);
+        
+        if (!$validation['valid']) {
+            // Log validation errors
+            $validation_handler->log_validation_errors($validation['errors'], $post_id);
+            return false;
+        }
+        
         $compatibility = new PostCrafter_Yoast_Compatibility();
         $meta_key = $compatibility->get_meta_key('primary_category');
         
-        $sanitized_value = intval($value);
-        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
+        $result = update_post_meta($post_id, $meta_key, $validation['sanitized']);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
@@ -306,35 +364,44 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        // Validate all fields comprehensively first
+        $validation_handler = new PostCrafter_Validation_Handler();
+        $validation = $validation_handler->validate_yoast_fields_comprehensive($fields, $post_id);
+        
+        if (!$validation['valid']) {
+            // Log validation errors
+            $validation_handler->log_validation_errors($validation['errors'], $post_id);
+            return false;
+        }
+        
         $results = array();
+        $sanitized_fields = $validation['sanitized'];
         
-        // Set each field individually
-        if (isset($fields['meta_title'])) {
-            $results['meta_title'] = $this->set_yoast_meta_title($post_id, $fields['meta_title']);
-        }
-        
-        if (isset($fields['meta_description'])) {
-            $results['meta_description'] = $this->set_yoast_meta_description($post_id, $fields['meta_description']);
-        }
-        
-        if (isset($fields['focus_keywords'])) {
-            $results['focus_keywords'] = $this->set_yoast_focus_keywords($post_id, $fields['focus_keywords']);
-        }
-        
-        if (isset($fields['meta_robots_noindex'])) {
-            $results['meta_robots_noindex'] = $this->set_yoast_meta_robots_noindex($post_id, $fields['meta_robots_noindex']);
-        }
-        
-        if (isset($fields['meta_robots_nofollow'])) {
-            $results['meta_robots_nofollow'] = $this->set_yoast_meta_robots_nofollow($post_id, $fields['meta_robots_nofollow']);
-        }
-        
-        if (isset($fields['canonical'])) {
-            $results['canonical'] = $this->set_yoast_canonical($post_id, $fields['canonical']);
-        }
-        
-        if (isset($fields['primary_category'])) {
-            $results['primary_category'] = $this->set_yoast_primary_category($post_id, $fields['primary_category']);
+        // Set each field using the sanitized values
+        foreach ($sanitized_fields as $field => $value) {
+            switch ($field) {
+                case 'meta_title':
+                    $results[$field] = $this->set_yoast_meta_title($post_id, $value);
+                    break;
+                case 'meta_description':
+                    $results[$field] = $this->set_yoast_meta_description($post_id, $value);
+                    break;
+                case 'focus_keywords':
+                    $results[$field] = $this->set_yoast_focus_keywords($post_id, $value);
+                    break;
+                case 'canonical':
+                    $results[$field] = $this->set_yoast_canonical($post_id, $value);
+                    break;
+                case 'primary_category':
+                    $results[$field] = $this->set_yoast_primary_category($post_id, $value);
+                    break;
+                case 'meta_robots_noindex':
+                    $results[$field] = $this->set_yoast_meta_robots_noindex($post_id, $value);
+                    break;
+                case 'meta_robots_nofollow':
+                    $results[$field] = $this->set_yoast_meta_robots_nofollow($post_id, $value);
+                    break;
+            }
         }
         
         return $results;
