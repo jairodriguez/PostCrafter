@@ -79,12 +79,19 @@ class PostCrafter_Yoast_Integration {
         require_once POSTCRAFTER_YOAST_PLUGIN_DIR . 'includes/class-yoast-field-handler.php';
         require_once POSTCRAFTER_YOAST_PLUGIN_DIR . 'includes/class-rest-api-handler.php';
         require_once POSTCRAFTER_YOAST_PLUGIN_DIR . 'includes/class-validation-handler.php';
+        require_once POSTCRAFTER_YOAST_PLUGIN_DIR . 'includes/class-yoast-compatibility.php';
     }
     
     /**
      * Initialize plugin components
      */
     private function init_components() {
+        // Initialize compatibility handler first
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        
+        // Check compatibility status
+        $status = $compatibility->get_compatibility_status();
+        
         // Initialize field handler
         new PostCrafter_Yoast_Field_Handler();
         
@@ -93,6 +100,11 @@ class PostCrafter_Yoast_Integration {
         
         // Initialize validation handler
         new PostCrafter_Validation_Handler();
+        
+        // Handle fallback if Yoast is not active
+        if (!$status['active']) {
+            $compatibility->handle_yoast_inactive();
+        }
     }
     
     /**

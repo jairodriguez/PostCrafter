@@ -61,49 +61,63 @@ class PostCrafter_Yoast_Field_Handler {
      * Get Yoast meta title
      */
     public function get_yoast_meta_title($post_id) {
-        return get_post_meta($post_id, '_yoast_wpseo_title', true);
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('title');
+        return get_post_meta($post_id, $meta_key, true);
     }
     
     /**
      * Get Yoast meta description
      */
     public function get_yoast_meta_description($post_id) {
-        return get_post_meta($post_id, '_yoast_wpseo_metadesc', true);
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('description');
+        return get_post_meta($post_id, $meta_key, true);
     }
     
     /**
      * Get Yoast focus keywords
      */
     public function get_yoast_focus_keywords($post_id) {
-        return get_post_meta($post_id, '_yoast_wpseo_focuskw', true);
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('focus_keywords');
+        return get_post_meta($post_id, $meta_key, true);
     }
     
     /**
      * Get Yoast meta robots noindex
      */
     public function get_yoast_meta_robots_noindex($post_id) {
-        return get_post_meta($post_id, '_yoast_wpseo_meta-robots-noindex', true);
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('robots_noindex');
+        return get_post_meta($post_id, $meta_key, true);
     }
     
     /**
      * Get Yoast meta robots nofollow
      */
     public function get_yoast_meta_robots_nofollow($post_id) {
-        return get_post_meta($post_id, '_yoast_wpseo_meta-robots-nofollow', true);
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('robots_nofollow');
+        return get_post_meta($post_id, $meta_key, true);
     }
     
     /**
      * Get Yoast canonical URL
      */
     public function get_yoast_canonical($post_id) {
-        return get_post_meta($post_id, '_yoast_wpseo_canonical', true);
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('canonical');
+        return get_post_meta($post_id, $meta_key, true);
     }
     
     /**
      * Get Yoast primary category
      */
     public function get_yoast_primary_category($post_id) {
-        return get_post_meta($post_id, '_yoast_wpseo_primary_category', true);
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('primary_category');
+        return get_post_meta($post_id, $meta_key, true);
     }
     
     /**
@@ -147,8 +161,11 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('title');
+        
         $sanitized_value = sanitize_text_field($value);
-        $result = update_post_meta($post_id, '_yoast_wpseo_title', $sanitized_value);
+        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
@@ -164,8 +181,11 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('description');
+        
         $sanitized_value = sanitize_textarea_field($value);
-        $result = update_post_meta($post_id, '_yoast_wpseo_metadesc', $sanitized_value);
+        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
@@ -181,8 +201,11 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('focus_keywords');
+        
         $sanitized_value = sanitize_text_field($value);
-        $result = update_post_meta($post_id, '_yoast_wpseo_focuskw', $sanitized_value);
+        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
@@ -198,8 +221,11 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('robots_noindex');
+        
         $sanitized_value = sanitize_text_field($value);
-        $result = update_post_meta($post_id, '_yoast_wpseo_meta-robots-noindex', $sanitized_value);
+        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
@@ -215,8 +241,11 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('robots_nofollow');
+        
         $sanitized_value = sanitize_text_field($value);
-        $result = update_post_meta($post_id, '_yoast_wpseo_meta-robots-nofollow', $sanitized_value);
+        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
@@ -232,8 +261,16 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('canonical');
+        
+        // Validate URL
+        if (!empty($value) && !filter_var($value, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+        
         $sanitized_value = esc_url_raw($value);
-        $result = update_post_meta($post_id, '_yoast_wpseo_canonical', $sanitized_value);
+        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
@@ -249,8 +286,11 @@ class PostCrafter_Yoast_Field_Handler {
             return false;
         }
         
+        $compatibility = new PostCrafter_Yoast_Compatibility();
+        $meta_key = $compatibility->get_meta_key('primary_category');
+        
         $sanitized_value = intval($value);
-        $result = update_post_meta($post_id, '_yoast_wpseo_primary_category', $sanitized_value);
+        $result = update_post_meta($post_id, $meta_key, $sanitized_value);
         
         // Clear Yoast cache if available
         $this->clear_yoast_cache($post_id);
