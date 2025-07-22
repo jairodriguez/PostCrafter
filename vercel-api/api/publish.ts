@@ -3,43 +3,13 @@ import { z } from 'zod';
 import { PublishRequest, PublishResponse, ApiError, ValidationError } from '../src/types';
 import { authenticateApiKey, AuthenticatedRequest } from '../src/middleware/auth';
 import { applyMiddleware } from '../src/middleware/cors';
-
-// Request validation schema
-const publishRequestSchema = z.object({
-  post: z.object({
-    title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
-    content: z.string().min(1, 'Content is required'),
-    excerpt: z.string().optional(),
-    status: z.enum(['draft', 'publish', 'private']).optional().default('draft'),
-    categories: z.array(z.string()).optional(),
-    tags: z.array(z.string()).optional(),
-    featured_media: z.number().optional(),
-    yoast_meta: z.object({
-      meta_title: z.string().optional(),
-      meta_description: z.string().optional(),
-      focus_keywords: z.string().optional(),
-      canonical: z.string().url().optional(),
-      primary_category: z.number().optional(),
-      meta_robots_noindex: z.string().optional(),
-      meta_robots_nofollow: z.string().optional(),
-    }).optional(),
-    images: z.array(z.object({
-      url: z.string().url().optional(),
-      base64: z.string().optional(),
-      alt_text: z.string().optional(),
-      caption: z.string().optional(),
-      featured: z.boolean().optional(),
-      filename: z.string().optional(),
-      mime_type: z.string().optional(),
-    })).optional(),
-  }),
-  options: z.object({
-    publish_status: z.enum(['draft', 'publish']).optional(),
-    include_images: z.boolean().optional().default(true),
-    optimize_images: z.boolean().optional().default(false),
-    validate_content: z.boolean().optional().default(true),
-  }).optional(),
-});
+import { 
+  validateRequest, 
+  securePublishRequestSchema, 
+  validateImageData,
+  detectMaliciousContent 
+} from '../src/utils/validation';
+import { secureLog } from '../src/utils/env';
 
 // Helper function to create error response
 function createErrorResponse(
@@ -110,14 +80,77 @@ async function handlePublishRequest(
       throw new ValidationError(`Method ${req.method} not allowed. Only POST is supported.`);
     }
 
-    // Validate request body
-    if (!req.body) {
-      throw new ValidationError('Request body is required');
+    // Comprehensive request validation
+    const validationResult = validateRequest(req.body, req.headers);
+    
+    if (!validationResult.valid) {
+      secureLog('warn', `Request validation failed for ${requestId}:`, {
+        errors: validationResult.errors,
+        warnings: validationResult.warnings,
+        userAgent: req.headers['user-agent'],
+        ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+      });
+      
+      throw new ValidationError(
+        'Request validation failed',
+        validationResult.errors.join('; ')
+      );
     }
 
-    // Parse and validate the request
-    const validatedData = publishRequestSchema.parse(req.body);
+    // Log validation warnings if any
+    if (validationResult.warnings.length > 0) {
+      secureLog('warn', `Request validation warnings for ${requestId}:`, {
+        warnings: validationResult.warnings,
+      });
+    }
+
+    // Use the secure schema for additional validation and sanitization
+    const validatedData = securePublishRequestSchema.parse(req.body);
     const { post, options } = validatedData;
+
+    // Additional image validation if images are present
+    if (post.images && Array.isArray(post.images)) {
+      for (let i = 0; i < post.images.length; i++) {
+        const imageValidation = validateImageData(post.images[i]);
+        if (!imageValidation.valid) {
+          throw new ValidationError(
+            `Image validation failed at index ${i}`,
+            imageValidation.error || 'Invalid image data'
+          );
+        }
+        // Replace with sanitized image data
+        post.images[i] = imageValidation.sanitized!;
+      }
+    }
+
+    // Final security check on sanitized content
+    const titleSecurityCheck = detectMaliciousContent(post.title);
+    const contentSecurityCheck = detectMaliciousContent(post.content);
+    
+    if (titleSecurityCheck.malicious || contentSecurityCheck.malicious) {
+      const maliciousPatterns = [
+        ...titleSecurityCheck.patterns,
+        ...contentSecurityCheck.patterns
+      ];
+      
+      secureLog('error', `Malicious content detected in request ${requestId}:`, {
+        patterns: maliciousPatterns,
+        userAgent: req.headers['user-agent'],
+        ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+      });
+      
+      throw new ValidationError(
+        'Malicious content detected',
+        `Security violation: ${maliciousPatterns.join(', ')}`
+      );
+    }
+
+    // Log successful validation
+    secureLog('info', `Request validation successful for ${requestId}`, {
+      postTitle: post.title.substring(0, 50) + (post.title.length > 50 ? '...' : ''),
+      hasImages: post.images ? post.images.length : 0,
+      publishStatus: options?.publish_status || post.status,
+    });
 
     // TODO: Implement actual WordPress integration
     // For now, return a mock successful response
