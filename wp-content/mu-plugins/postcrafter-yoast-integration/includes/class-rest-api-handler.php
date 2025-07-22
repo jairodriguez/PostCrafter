@@ -17,6 +17,7 @@ class PostCrafter_REST_API_Handler {
      */
     public function __construct() {
         add_action('rest_api_init', array($this, 'register_rest_routes'));
+        add_action('rest_api_init', array($this, 'register_yoast_fields'));
         add_filter('rest_prepare_post', array($this, 'add_yoast_fields_to_response'), 10, 3);
     }
     
