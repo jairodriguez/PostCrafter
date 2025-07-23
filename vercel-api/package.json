@@ -32,7 +32,8 @@
     "logs:prod": "vercel logs --prod",
     "env:pull": "vercel env pull .env.local",
     "env:push": "vercel env push",
-    "env:ls": "vercel env ls"
+    "env:ls": "vercel env ls",
+    "validate:openapi": "node scripts/validate-openapi.js"
   },
   "keywords": [
     "vercel",
@@ -72,6 +73,7 @@
     "eslint": "^8.0.0",
     "jest": "^29.7.0",
     "prettier": "^3.0.0",
+    "swagger-parser": "^10.0.3",
     "ts-jest": "^29.1.0",
     "typescript": "^5.0.0",
     "vercel": "^32.0.0"
@@ -88,4 +90,4 @@
       "!src/**/*.d.ts"
     ]
   }
-} 
+}
