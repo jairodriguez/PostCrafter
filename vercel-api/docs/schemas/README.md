@@ -5,7 +5,9 @@ This directory contains JSON Schema definitions and validation examples for the 
 ## Files
 
 - `post-data-schema.json` - Complete JSON Schema for post data validation
-- `validation-examples.json` - Comprehensive test cases for schema validation
+- `validation-examples.json` - Comprehensive test cases for post data schema validation
+- `image-data-schema.json` - Detailed JSON Schema for image data validation
+- `image-validation-examples.json` - Comprehensive test cases for image schema validation
 - `README.md` - This documentation file
 
 ## Post Data Schema
@@ -101,17 +103,21 @@ The `validation-examples.json` file contains comprehensive test cases organized 
 
 ### Validation Script
 
-Run the validation test suite:
+Run the validation test suites:
 
 ```bash
+# Validate post data schema
 npm run validate:schema
+
+# Validate image data schema  
+npm run validate:image-schema
 ```
 
-This script:
-1. Loads and compiles the JSON schema
-2. Runs all test cases from validation examples
-3. Checks schema compatibility with OpenAPI specification
-4. Provides detailed test results and performance metrics
+These scripts:
+1. Load and compile the JSON schemas
+2. Run all test cases from validation examples
+3. Check schema compatibility with OpenAPI specification
+4. Provide detailed test results and performance metrics
 
 ### In API Code
 

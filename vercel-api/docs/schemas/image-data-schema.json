@@ -1,0 +1,287 @@
+{
+  "$id": "https://postcrafter.com/schemas/image-data.json",
+  "title": "PostCrafter Image Data Schema",
+  "description": "Comprehensive schema for validating image upload data in PostCrafter API",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "title": "Image URL",
+      "description": "URL of the image to download and upload to WordPress media library",
+      "format": "uri",
+      "pattern": "^https?://",
+      "minLength": 10,
+      "maxLength": 2000,
+      "examples": [
+        "https://example.com/images/api-diagram.png",
+        "https://cdn.example.com/photos/architecture-overview.jpg",
+        "https://assets.example.com/graphics/workflow-chart.svg"
+      ],
+      "errorMessage": {
+        "format": "Image URL must be a valid HTTP/HTTPS URL",
+        "pattern": "Image URL must use HTTP or HTTPS protocol",
+        "minLength": "Image URL must be at least 10 characters",
+        "maxLength": "Image URL must be 2000 characters or less"
+      }
+    },
+    "base64": {
+      "type": "string",
+      "title": "Base64 Image Data",
+      "description": "Base64-encoded image data as an alternative to URL. Must include data URI prefix.",
+      "pattern": "^data:image\\/(jpeg|jpg|png|gif|webp|svg\\+xml);base64,",
+      "minLength": 50,
+      "maxLength": 10485760,
+      "examples": [
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+        "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+      ],
+      "errorMessage": {
+        "pattern": "Base64 data must be a valid data URI with supported image MIME type (jpeg, jpg, png, gif, webp, svg+xml)",
+        "minLength": "Base64 data is too short to be a valid image",
+        "maxLength": "Base64 data exceeds maximum size limit of 10MB"
+      }
+    },
+    "alt_text": {
+      "type": "string",
+      "title": "Alternative Text",
+      "description": "Alternative text for accessibility and SEO. Describes the image content for screen readers.",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^(?!\\s*$).+",
+      "examples": [
+        "API architecture diagram showing client-server communication",
+        "Screenshot of WordPress dashboard with security settings highlighted",
+        "Modern web development technology stack illustration",
+        "Graph showing website performance improvements over time"
+      ],
+      "errorMessage": {
+        "minLength": "Alt text cannot be empty",
+        "maxLength": "Alt text must be 255 characters or less",
+        "pattern": "Alt text cannot be only whitespace"
+      }
+    },
+    "caption": {
+      "type": "string",
+      "title": "Image Caption",
+      "description": "Caption text that appears below the image. Provides additional context or description.",
+      "maxLength": 500,
+      "examples": [
+        "Modern API architecture with microservices and cloud integration",
+        "WordPress security dashboard showing enabled protection features",
+        "Technology stack comparison for frontend and backend development",
+        "Performance metrics before and after optimization implementation"
+      ],
+      "errorMessage": {
+        "maxLength": "Caption must be 500 characters or less"
+      }
+    },
+    "title": {
+      "type": "string",
+      "title": "Image Title",
+      "description": "Title attribute for the image. Appears on hover and used by some themes.",
+      "maxLength": 255,
+      "examples": [
+        "API Architecture Overview",
+        "WordPress Security Settings",
+        "Web Development Stack",
+        "Performance Optimization Results"
+      ],
+      "errorMessage": {
+        "maxLength": "Image title must be 255 characters or less"
+      }
+    },
+    "featured": {
+      "type": "boolean",
+      "title": "Featured Image",
+      "description": "Whether this image should be set as the featured image for the post",
+      "default": false,
+      "examples": [true, false],
+      "errorMessage": {
+        "type": "Featured flag must be a boolean value (true or false)"
+      }
+    },
+    "filename": {
+      "type": "string",
+      "title": "Custom Filename",
+      "description": "Custom filename for the uploaded image. Must be a valid filename with extension.",
+      "maxLength": 255,
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*\\.[a-zA-Z]{2,10}$",
+      "examples": [
+        "api-architecture-diagram.png",
+        "wordpress-security-guide.jpg",
+        "performance-chart-2024.svg",
+        "technology-stack-overview.webp"
+      ],
+      "errorMessage": {
+        "maxLength": "Filename must be 255 characters or less",
+        "pattern": "Filename must be valid with alphanumeric characters, dots, hyphens, underscores, and a file extension"
+      }
+    },
+    "mime_type": {
+      "type": "string",
+      "title": "MIME Type",
+      "description": "MIME type of the image. Must be a supported image format.",
+      "enum": [
+        "image/jpeg",
+        "image/jpg", 
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "image/svg+xml"
+      ],
+      "examples": [
+        "image/png",
+        "image/jpeg", 
+        "image/webp",
+        "image/svg+xml"
+      ],
+      "errorMessage": {
+        "enum": "MIME type must be one of the supported image formats: jpeg, jpg, png, gif, webp, svg+xml"
+      }
+    },
+    "width": {
+      "type": "integer",
+      "title": "Image Width",
+      "description": "Width of the image in pixels (for validation and optimization)",
+      "minimum": 1,
+      "maximum": 10000,
+      "examples": [800, 1200, 1920, 2560],
+      "errorMessage": {
+        "minimum": "Image width must be at least 1 pixel",
+        "maximum": "Image width cannot exceed 10,000 pixels"
+      }
+    },
+    "height": {
+      "type": "integer", 
+      "title": "Image Height",
+      "description": "Height of the image in pixels (for validation and optimization)",
+      "minimum": 1,
+      "maximum": 10000,
+      "examples": [600, 800, 1080, 1440],
+      "errorMessage": {
+        "minimum": "Image height must be at least 1 pixel",
+        "maximum": "Image height cannot exceed 10,000 pixels"
+      }
+    },
+    "size_bytes": {
+      "type": "integer",
+      "title": "File Size",
+      "description": "Size of the image file in bytes",
+      "minimum": 1,
+      "maximum": 10485760,
+      "examples": [15360, 204800, 1048576, 5242880],
+      "errorMessage": {
+        "minimum": "File size must be at least 1 byte",
+        "maximum": "File size cannot exceed 10MB (10,485,760 bytes)"
+      }
+    },
+    "optimize": {
+      "type": "boolean",
+      "title": "Optimize Image",
+      "description": "Whether to optimize the image for web (compression, resizing, format conversion)",
+      "default": true,
+      "examples": [true, false],
+      "errorMessage": {
+        "type": "Optimize flag must be a boolean value (true or false)"
+      }
+    },
+    "quality": {
+      "type": "integer",
+      "title": "Image Quality",
+      "description": "Quality setting for image compression (1-100, where 100 is highest quality)",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 85,
+      "examples": [70, 80, 85, 90, 95],
+      "errorMessage": {
+        "minimum": "Quality must be at least 1",
+        "maximum": "Quality cannot exceed 100"
+      }
+    },
+    "max_width": {
+      "type": "integer",
+      "title": "Maximum Width",
+      "description": "Maximum width to resize the image to (maintains aspect ratio)",
+      "minimum": 50,
+      "maximum": 5000,
+      "examples": [800, 1200, 1920, 2560],
+      "errorMessage": {
+        "minimum": "Maximum width must be at least 50 pixels",
+        "maximum": "Maximum width cannot exceed 5,000 pixels"
+      }
+    },
+    "max_height": {
+      "type": "integer",
+      "title": "Maximum Height", 
+      "description": "Maximum height to resize the image to (maintains aspect ratio)",
+      "minimum": 50,
+      "maximum": 5000,
+      "examples": [600, 800, 1080, 1440],
+      "errorMessage": {
+        "minimum": "Maximum height must be at least 50 pixels",
+        "maximum": "Maximum height cannot exceed 5,000 pixels"
+      }
+    },
+    "convert_to": {
+      "type": "string",
+      "title": "Convert Format",
+      "description": "Target format to convert the image to during processing",
+      "enum": ["jpeg", "png", "webp"],
+      "examples": ["webp", "jpeg", "png"],
+      "errorMessage": {
+        "enum": "Convert format must be one of: jpeg, png, webp"
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "required": ["url"],
+      "not": { "required": ["base64"] }
+    },
+    {
+      "required": ["base64"],
+      "not": { "required": ["url"] }
+    }
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "url": "https://example.com/api-diagram.png",
+      "alt_text": "API architecture diagram showing client-server communication",
+      "caption": "Modern API architecture with RESTful endpoints and microservices",
+      "featured": true,
+      "optimize": true,
+      "quality": 85
+    },
+    {
+      "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+      "alt_text": "Simple red pixel example",
+      "filename": "red-pixel.png",
+      "mime_type": "image/png",
+      "width": 1,
+      "height": 1
+    },
+    {
+      "url": "https://example.com/large-photo.jpg",
+      "alt_text": "High-resolution photography of modern office workspace",
+      "caption": "Remote team collaboration workspace with multiple monitors",
+      "title": "Modern Workspace Setup",
+      "optimize": true,
+      "quality": 80,
+      "max_width": 1200,
+      "max_height": 800,
+      "convert_to": "webp"
+    },
+    {
+      "url": "https://example.com/icon.svg",
+      "alt_text": "Custom application icon with gradient background",
+      "mime_type": "image/svg+xml",
+      "filename": "app-icon.svg",
+      "optimize": false
+    }
+  ],
+  "errorMessage": {
+    "oneOf": "Image must have either a URL or base64 data, but not both",
+    "additionalProperties": "Only specified properties are allowed in image data"
+  }
+}

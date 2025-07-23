@@ -34,7 +34,8 @@
     "env:push": "vercel env push",
     "env:ls": "vercel env ls",
     "validate:openapi": "node scripts/validate-openapi.js",
-    "validate:schema": "node scripts/validate-post-schema.js"
+    "validate:schema": "node scripts/validate-post-schema.js",
+    "validate:image-schema": "node scripts/validate-image-schema.js"
   },
   "keywords": [
     "vercel",
