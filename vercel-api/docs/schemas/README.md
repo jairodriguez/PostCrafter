@@ -8,6 +8,8 @@ This directory contains JSON Schema definitions and validation examples for the 
 - `validation-examples.json` - Comprehensive test cases for post data schema validation
 - `image-data-schema.json` - Detailed JSON Schema for image data validation
 - `image-validation-examples.json` - Comprehensive test cases for image schema validation
+- `response-schema.json` - Complete JSON Schema for API response validation
+- `response-validation-examples.json` - Comprehensive test cases for response schema validation
 - `README.md` - This documentation file
 
 ## Post Data Schema
@@ -111,6 +113,9 @@ npm run validate:schema
 
 # Validate image data schema  
 npm run validate:image-schema
+
+# Validate response schema
+npm run validate:response-schema
 ```
 
 These scripts:
