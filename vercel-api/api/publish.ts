@@ -10,6 +10,7 @@ import {
   detectMaliciousContent 
 } from '../src/utils/validation';
 import { secureLog } from '../src/utils/env';
+import { createWordPressPostService } from '../src/utils/wordpress-posts';
 
 // Helper function to create error response
 function createErrorResponse(
@@ -23,48 +24,31 @@ function createErrorResponse(
       code: error.code,
       message: error.message,
       details: error.details,
-      timestamp: new Date().toISOString(),
-      request_id: requestId,
+      requestId,
     },
   };
 
-  res.status(error.statusCode).json(errorResponse);
+  res.status(error.statusCode || 400).json(errorResponse);
 }
 
 // Helper function to create success response
 function createSuccessResponse(
   res: VercelResponse,
-  data: PublishResponse['data'],
+  data: any,
   requestId?: string
 ): void {
   const successResponse: PublishResponse = {
     success: true,
     data: {
       ...data,
-      timestamp: new Date().toISOString(),
-      processing_time_ms: data.processing_time_ms,
+      requestId,
     },
   };
 
   res.status(200).json(successResponse);
 }
 
-// Main handler function
 export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-): Promise<void> {
-  // Apply CORS, security headers, and rate limiting middleware
-  applyMiddleware(req, res, () => {
-    // Apply authentication middleware
-    authenticateApiKey(req as AuthenticatedRequest, res, () => {
-      handlePublishRequest(req as AuthenticatedRequest, res);
-    });
-  });
-}
-
-// Main request handler (after authentication)
-async function handlePublishRequest(
   req: AuthenticatedRequest,
   res: VercelResponse
 ): Promise<void> {
@@ -72,122 +56,192 @@ async function handlePublishRequest(
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   try {
-    // Set request ID header
-    res.setHeader('X-Request-ID', requestId);
+    // Apply middleware (CORS, security headers, rate limiting, authentication)
+    const middlewareResult = applyMiddleware(req, res);
+    if (!middlewareResult.success) {
+      return;
+    }
 
     // Only allow POST requests
     if (req.method !== 'POST') {
-      throw new ValidationError(`Method ${req.method} not allowed. Only POST is supported.`);
+      res.setHeader('Allow', ['POST']);
+      createErrorResponse(res, {
+        code: 'METHOD_NOT_ALLOWED',
+        message: `Method ${req.method} not allowed`,
+        statusCode: 405,
+      }, requestId);
+      return;
     }
 
-    // Comprehensive request validation
-    const validationResult = validateRequest(req.body, req.headers);
-    
-    if (!validationResult.valid) {
-      secureLog('warn', `Request validation failed for ${requestId}:`, {
-        errors: validationResult.errors,
-        warnings: validationResult.warnings,
-        userAgent: req.headers['user-agent'],
-        ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-      });
-      
-      throw new ValidationError(
-        'Request validation failed',
-        validationResult.errors.join('; ')
-      );
+    secureLog('info', 'Processing publish request', {
+      requestId,
+      method: req.method,
+      userAgent: req.headers['user-agent'],
+      ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+    });
+
+    // Validate request body
+    const validationResult = validateRequest(req.body, securePublishRequestSchema);
+    if (!validationResult.success) {
+      createErrorResponse(res, {
+        code: 'VALIDATION_ERROR',
+        message: 'Request validation failed',
+        details: validationResult.errors,
+        statusCode: 400,
+      }, requestId);
+      return;
     }
 
-    // Log validation warnings if any
-    if (validationResult.warnings.length > 0) {
-      secureLog('warn', `Request validation warnings for ${requestId}:`, {
-        warnings: validationResult.warnings,
-      });
+    const publishData: PublishRequest = validationResult.data;
+
+    // Check for malicious content
+    const maliciousContentCheck = detectMaliciousContent(publishData.post.title + ' ' + publishData.post.content);
+    if (maliciousContentCheck.detected) {
+      createErrorResponse(res, {
+        code: 'SECURITY_ERROR',
+        message: 'Malicious content detected in request',
+        details: maliciousContentCheck.patterns,
+        statusCode: 400,
+      }, requestId);
+      return;
     }
 
-    // Use the secure schema for additional validation and sanitization
-    const validatedData = securePublishRequestSchema.parse(req.body);
-    const { post, options } = validatedData;
-
-    // Additional image validation if images are present
-    if (post.images && Array.isArray(post.images)) {
-      for (let i = 0; i < post.images.length; i++) {
-        const imageValidation = validateImageData(post.images[i]);
+    // Validate image data if provided
+    if (publishData.images && publishData.images.length > 0) {
+      for (const image of publishData.images) {
+        const imageValidation = validateImageData(image);
         if (!imageValidation.valid) {
-          throw new ValidationError(
-            `Image validation failed at index ${i}`,
-            imageValidation.error || 'Invalid image data'
-          );
+          createErrorResponse(res, {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid image data',
+            details: imageValidation.errors,
+            statusCode: 400,
+          }, requestId);
+          return;
         }
-        // Replace with sanitized image data
-        post.images[i] = imageValidation.sanitized!;
       }
     }
 
-    // Final security check on sanitized content
-    const titleSecurityCheck = detectMaliciousContent(post.title);
-    const contentSecurityCheck = detectMaliciousContent(post.content);
-    
-    if (titleSecurityCheck.malicious || contentSecurityCheck.malicious) {
-      const maliciousPatterns = [
-        ...titleSecurityCheck.patterns,
-        ...contentSecurityCheck.patterns
-      ];
-      
-      secureLog('error', `Malicious content detected in request ${requestId}:`, {
-        patterns: maliciousPatterns,
-        userAgent: req.headers['user-agent'],
-        ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-      });
-      
-      throw new ValidationError(
-        'Malicious content detected',
-        `Security violation: ${maliciousPatterns.join(', ')}`
-      );
-    }
-
-    // Log successful validation
-    secureLog('info', `Request validation successful for ${requestId}`, {
-      postTitle: post.title.substring(0, 50) + (post.title.length > 50 ? '...' : ''),
-      hasImages: post.images ? post.images.length : 0,
-      publishStatus: options?.publish_status || post.status,
+    secureLog('info', 'Request validation passed, creating WordPress post', {
+      requestId,
+      title: publishData.post.title.substring(0, 50) + '...',
+      hasImages: publishData.images && publishData.images.length > 0,
+      hasYoastMeta: !!(publishData.yoast_meta),
     });
 
-    // TODO: Implement actual WordPress integration
-    // For now, return a mock successful response
-    const mockResponse: PublishResponse['data'] = {
-      post_id: Math.floor(Math.random() * 1000) + 1,
-      post_url: `https://example.com/post/${Math.floor(Math.random() * 1000) + 1}`,
-      status: options?.publish_status || post.status || 'draft',
-      message: 'Post created successfully',
-      timestamp: new Date().toISOString(),
-      processing_time_ms: Date.now() - startTime,
-      yoast_meta: post.yoast_meta,
+    // Create WordPress post
+    const postService = createWordPressPostService();
+    
+    const postData = {
+      title: publishData.post.title,
+      content: publishData.post.content,
+      excerpt: publishData.post.excerpt,
+      status: publishData.post.status || 'draft',
+      slug: publishData.post.slug,
     };
 
-    createSuccessResponse(res, mockResponse, requestId);
+    const postOptions = {
+      status: publishData.post.status || 'draft',
+      allowComments: publishData.options?.allow_comments !== false,
+      allowPings: publishData.options?.allow_pings !== false,
+      author: publishData.options?.author_id,
+      format: publishData.options?.post_format,
+      sticky: publishData.options?.sticky || false,
+      template: publishData.options?.template,
+      password: publishData.options?.password,
+    };
+
+    const postResult = await postService.createPost(postData, postOptions);
+
+    if (!postResult.success) {
+      secureLog('error', 'WordPress post creation failed', {
+        requestId,
+        error: postResult.error,
+        title: publishData.post.title.substring(0, 50) + '...',
+      });
+
+      createErrorResponse(res, {
+        code: postResult.error?.code || 'WORDPRESS_API_ERROR',
+        message: postResult.error?.message || 'Failed to create WordPress post',
+        details: postResult.error?.details,
+        statusCode: 500,
+      }, requestId);
+      return;
+    }
+
+    // TODO: Handle Yoast meta fields (Task 3.3)
+    if (publishData.yoast_meta) {
+      secureLog('info', 'Yoast meta fields provided, will be handled in Task 3.3', {
+        requestId,
+        postId: postResult.postId,
+        yoastFields: Object.keys(publishData.yoast_meta),
+      });
+    }
+
+    // TODO: Handle image uploads (Task 4)
+    if (publishData.images && publishData.images.length > 0) {
+      secureLog('info', 'Images provided, will be handled in Task 4', {
+        requestId,
+        postId: postResult.postId,
+        imageCount: publishData.images.length,
+      });
+    }
+
+    // TODO: Handle categories and tags (Task 3.4)
+    if (publishData.post.categories && publishData.post.categories.length > 0) {
+      secureLog('info', 'Categories provided, will be handled in Task 3.4', {
+        requestId,
+        postId: postResult.postId,
+        categoryCount: publishData.post.categories.length,
+      });
+    }
+
+    if (publishData.post.tags && publishData.post.tags.length > 0) {
+      secureLog('info', 'Tags provided, will be handled in Task 3.4', {
+        requestId,
+        postId: postResult.postId,
+        tagCount: publishData.post.tags.length,
+      });
+    }
+
+    const processingTime = Date.now() - startTime;
+
+    secureLog('info', 'Post published successfully', {
+      requestId,
+      postId: postResult.postId,
+      postUrl: postResult.postUrl,
+      processingTime,
+      status: postResult.postData?.status,
+    });
+
+    // Return success response
+    createSuccessResponse(res, {
+      post_id: postResult.postId,
+      post_url: postResult.postUrl,
+      post_status: postResult.postData?.status || 'draft',
+      processing_time_ms: processingTime,
+      message: 'Post created successfully',
+      // TODO: Add these fields when implementing related tasks
+      yoast_meta_updated: false, // Will be true when Task 3.3 is implemented
+      images_uploaded: false, // Will be true when Task 4 is implemented
+      categories_assigned: false, // Will be true when Task 3.4 is implemented
+      tags_assigned: false, // Will be true when Task 3.4 is implemented
+    }, requestId);
 
   } catch (error) {
-    console.error(`[${requestId}] Error processing request:`, error);
+    const processingTime = Date.now() - startTime;
+    
+    secureLog('error', 'Unexpected error in publish endpoint', {
+      requestId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      processingTime,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
 
-    if (error instanceof z.ZodError) {
-      // Handle validation errors
-      const validationError = new ValidationError(
-        'Request validation failed',
-        error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
-      );
-      createErrorResponse(res, validationError, requestId);
-    } else if (error instanceof ApiError) {
-      // Handle custom API errors
-      createErrorResponse(res, error, requestId);
-    } else {
-      // Handle unexpected errors
-      const unexpectedError = new ApiError(
-        'INTERNAL_ERROR',
-        'An unexpected error occurred',
-        500,
-        error instanceof Error ? error.message : 'Unknown error'
-      );
-      createErrorResponse(res, unexpectedError, requestId);
-    }
+    createErrorResponse(res, {
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'An unexpected error occurred while processing the request',
+      statusCode: 500,
+    }, requestId);
   }
 } 
