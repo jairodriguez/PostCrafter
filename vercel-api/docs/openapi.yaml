@@ -30,6 +30,7 @@ servers:
 
 security:
   - ApiKeyAuth: []
+  - BearerAuth: []
 
 paths:
   /publish:
@@ -49,6 +50,9 @@ paths:
       operationId: publishPost
       tags:
         - Publishing
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -319,12 +323,74 @@ components:
       in: header
       name: x-api-key
       description: |
-        API key for authentication. Include this header with every request.
+        API key authentication using custom header. This is the preferred method for GPT Actions.
         
-        Example: `x-api-key: your-secret-api-key-here`
+        **For GPT Actions in ChatGPT:**
+        Use this method when configuring authentication in ChatGPT's GPT Action settings.
+        The API key will be automatically included in all requests as the `x-api-key` header.
         
-        You can also use the Authorization header with Bearer token format:
-        `Authorization: Bearer your-secret-api-key-here`
+        **Example:**
+        ```
+        x-api-key: pc_sk_live_1234567890abcdef
+        ```
+        
+        **API Key Format:**
+        - Prefix: `pc_sk_` (PostCrafter Secret Key)
+        - Environment: `live_` for production, `test_` for development  
+        - Identifier: 16-character alphanumeric string
+        
+        **Security Notes:**
+        - Keep your API key secret and secure
+        - Use environment-specific keys (test vs live)
+        - Rotate keys regularly for security
+        - Monitor API usage for unusual activity
+    
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API_KEY
+      description: |
+        Bearer token authentication using Authorization header. Alternative to x-api-key header.
+        
+        **For direct API calls:**
+        Include the Authorization header with Bearer token format using your API key.
+        
+        **Example:**
+        ```
+        Authorization: Bearer pc_sk_live_1234567890abcdef
+        ```
+        
+        **Usage:**
+        This method can be used interchangeably with x-api-key header authentication.
+        The API accepts both formats and will validate the key regardless of method used.
+        
+        **Compatibility:**
+        - Works with all standard HTTP clients
+        - Compatible with API testing tools (Postman, Insomnia, etc.)
+        - Suitable for server-to-server integrations
+        
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: |
+        Basic authentication for testing and development purposes only.
+        
+        **⚠️ Development Only:**
+        This method is intended for local development and testing environments.
+        Do not use Basic auth in production environments.
+        
+        **Format:**
+        Username: your-api-key
+        Password: (leave empty)
+        
+        **Example:**
+        ```
+        Authorization: Basic cGNfc2tfbGl2ZV8xMjM0NTY3ODkwYWJjZGVmOg==
+        ```
+        
+        **Security Warning:**
+        Basic authentication transmits credentials in base64 encoding, which is easily decoded.
+        Always use HTTPS when using this authentication method.
 
   schemas:
     PublishRequest:
