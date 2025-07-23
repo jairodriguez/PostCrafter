@@ -1,4 +1,4 @@
-import { EnvVars } from '@/types';
+import { EnvVars } from '../types';
 
 /**
  * Environment variable validation rules with enhanced security
@@ -108,6 +108,91 @@ const ENV_VALIDATION_RULES = {
     type: 'boolean',
     message: 'ENABLE_DEBUG_LOGGING must be true or false',
   },
+  SECURITY_MONITORING_ENABLED: {
+    required: false,
+    default: true,
+    type: 'boolean',
+    message: 'SECURITY_MONITORING_ENABLED must be true or false',
+  },
+  SECURITY_ALERTS_ENABLED: {
+    required: false,
+    default: false,
+    type: 'boolean',
+    message: 'SECURITY_ALERTS_ENABLED must be true or false',
+  },
+  SECURITY_ALERT_SEVERITY_THRESHOLD: {
+    required: false,
+    default: 'medium',
+    enum: ['low', 'medium', 'high', 'critical'],
+    message: 'SECURITY_ALERT_SEVERITY_THRESHOLD must be low, medium, high, or critical',
+  },
+  SECURITY_ALERT_RATE_LIMIT_WINDOW_MS: {
+    required: false,
+    default: 300000, // 5 minutes
+    type: 'number',
+    min: 60000, // 1 minute
+    max: 3600000, // 1 hour
+    message: 'SECURITY_ALERT_RATE_LIMIT_WINDOW_MS must be between 60000 and 3600000 milliseconds',
+  },
+  SECURITY_ALERT_MAX_PER_WINDOW: {
+    required: false,
+    default: 10,
+    type: 'number',
+    min: 1,
+    max: 100,
+    message: 'SECURITY_ALERT_MAX_PER_WINDOW must be between 1 and 100',
+  },
+  SLACK_WEBHOOK_URL: {
+    required: false,
+    pattern: /^https:\/\/hooks\.slack\.com\/services\/.+/,
+    message: 'SLACK_WEBHOOK_URL must be a valid Slack webhook URL',
+    secure: true,
+  },
+  DISCORD_WEBHOOK_URL: {
+    required: false,
+    pattern: /^https:\/\/discord\.com\/api\/webhooks\/.+/,
+    message: 'DISCORD_WEBHOOK_URL must be a valid Discord webhook URL',
+    secure: true,
+  },
+  PAGERDUTY_ROUTING_KEY: {
+    required: false,
+    pattern: /^[a-zA-Z0-9]{32}$/,
+    message: 'PAGERDUTY_ROUTING_KEY must be a 32-character alphanumeric string',
+    secure: true,
+  },
+  SECURITY_WEBHOOK_URL: {
+    required: false,
+    pattern: /^https?:\/\/.+/,
+    message: 'SECURITY_WEBHOOK_URL must be a valid HTTP/HTTPS URL',
+    secure: true,
+  },
+  // Security hardening configuration
+  MAX_REQUEST_SIZE_MB: {
+    required: false,
+    default: 10,
+    type: 'number',
+    min: 1,
+    max: 50,
+    message: 'MAX_REQUEST_SIZE_MB must be between 1 and 50',
+  },
+  ENABLE_IP_REPUTATION: {
+    required: false,
+    default: true,
+    type: 'boolean',
+    message: 'ENABLE_IP_REPUTATION must be true or false',
+  },
+  ENABLE_TIMING_ATTACK_PROTECTION: {
+    required: false,
+    default: true,
+    type: 'boolean',
+    message: 'ENABLE_TIMING_ATTACK_PROTECTION must be true or false',
+  },
+  ENABLE_SECURITY_HARDENING: {
+    required: false,
+    default: true,
+    type: 'boolean',
+    message: 'ENABLE_SECURITY_HARDENING must be true or false',
+  },
 } as const;
 
 /**
@@ -137,7 +222,7 @@ function maskSensitiveValue(value: string, type: string): string {
 /**
  * Secure logging function that masks sensitive data
  */
-function secureLog(level: 'info' | 'warn' | 'error', message: string, data?: Record<string, any>): void {
+export function secureLog(level: 'info' | 'warn' | 'error', message: string, data?: Record<string, any>): void {
   const maskedData = data ? { ...data } : {};
   
   // Mask sensitive values in data

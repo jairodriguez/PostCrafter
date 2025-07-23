@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { AuthenticationError } from '../types';
 import { getEnvVars, validateApiKey } from '../utils/env';
+import SecurityMonitoring from '../utils/monitoring';
 
 /**
  * Authentication middleware for API key validation
@@ -22,10 +23,25 @@ export function authenticateApiKey(
   next: () => void
 ): void {
   try {
+    // Get client IP and user agent for monitoring
+    const clientIP = req.headers['x-forwarded-for'] || 
+                    req.headers['x-real-ip'] || 
+                    req.connection.remoteAddress || 
+                    'unknown';
+    const ip = Array.isArray(clientIP) ? clientIP[0] : clientIP;
+    const userAgent = req.headers['user-agent'];
+
+    // Check if IP is blacklisted
+    if (SecurityMonitoring.isIPBlacklisted(ip)) {
+      SecurityMonitoring.recordAuthFailure(ip, userAgent, undefined, 'IP is blacklisted');
+      throw new AuthenticationError('Access denied', 'IP address is blacklisted due to security violations');
+    }
+
     // Get API key from headers
     const apiKey = req.headers['x-api-key'] || req.headers['authorization'];
     
     if (!apiKey) {
+      SecurityMonitoring.recordAuthFailure(ip, userAgent, undefined, 'Missing API key');
       throw new AuthenticationError('API key is required', 'Missing API key in request headers');
     }
     
@@ -33,6 +49,7 @@ export function authenticateApiKey(
     const apiKeyString = typeof apiKey === 'string' ? apiKey : Array.isArray(apiKey) ? apiKey[0] : '';
     
     if (!apiKeyString) {
+      SecurityMonitoring.recordAuthFailure(ip, userAgent, undefined, 'Empty API key');
       throw new AuthenticationError('Invalid API key format', 'API key cannot be empty');
     }
     
@@ -40,6 +57,7 @@ export function authenticateApiKey(
     const validation = validateApiKey(apiKeyString);
     
     if (!validation.valid) {
+      SecurityMonitoring.recordAuthFailure(ip, userAgent, apiKeyString, validation.error || 'API key validation failed');
       throw new AuthenticationError('Invalid API key', validation.error || 'API key validation failed');
     }
     
@@ -51,6 +69,9 @@ export function authenticateApiKey(
       apiKey: cleanApiKey,
       timestamp: Date.now(),
     };
+    
+    // Record successful authentication
+    SecurityMonitoring.recordAuthSuccess(ip, userAgent, cleanApiKey);
     
     // Continue to next middleware/route handler
     next();

@@ -1,10 +1,11 @@
 import { WordPressClient, createWordPressClient } from './wordpress';
 import { getEnvVars, secureLog } from './env';
 import { 
-  WordPressError, 
+  WordPressApiError,
   ValidationError, 
   YoastMetaFields,
-  WordPressPostResponse 
+  WordPressPostResponse,
+  WordPressResponse
 } from '../types';
 
 /**

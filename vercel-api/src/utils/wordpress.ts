@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import { getEnvVars, secureLog } from './env';
-import { WordPressError, ValidationError } from '../types';
+import { WordPressApiError, ValidationError } from '../types';
 
 /**
  * WordPress API client configuration

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getEnvVars, secureLog } from '../utils/env';
+import SecurityMonitoring from '../utils/monitoring';
 
 /**
  * Rate limiting configuration
@@ -358,6 +359,16 @@ export function enhancedRateLimit(
         adaptiveMultiplier,
         endpoint: `${req.method} ${req.url}`,
         clientIP: ip
+      });
+
+      // Record rate limit violation for monitoring
+      SecurityMonitoring.recordRateLimitViolation(ip, req.headers['user-agent'], apiKey as string, {
+        tier: tier.name,
+        retryAfter,
+        adaptiveMultiplier,
+        endpoint: `${req.method} ${req.url}`,
+        limit: adjustedConfig.maxRequests,
+        windowMs: adjustedConfig.windowMs
       });
       
       // Return rate limit error

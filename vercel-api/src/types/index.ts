@@ -13,6 +13,24 @@ export interface EnvVars {
   CORS_ORIGINS: string[];
   MAX_IMAGE_SIZE_MB: number;
   ENABLE_DEBUG_LOGGING: boolean;
+  ENABLE_ADAPTIVE_RATE_LIMITING?: boolean;
+  ADAPTIVE_RATE_LIMIT_MULTIPLIER?: number;
+  // Security monitoring configuration
+  SECURITY_MONITORING_ENABLED?: boolean;
+  SECURITY_ALERTS_ENABLED?: boolean;
+  SECURITY_ALERT_SEVERITY_THRESHOLD?: 'low' | 'medium' | 'high' | 'critical';
+  SECURITY_ALERT_RATE_LIMIT_WINDOW_MS?: number;
+  SECURITY_ALERT_MAX_PER_WINDOW?: number;
+  // Notification channels
+  SLACK_WEBHOOK_URL?: string;
+  DISCORD_WEBHOOK_URL?: string;
+  PAGERDUTY_ROUTING_KEY?: string;
+  SECURITY_WEBHOOK_URL?: string;
+  // Security hardening configuration
+  MAX_REQUEST_SIZE_MB?: number;
+  ENABLE_IP_REPUTATION?: boolean;
+  ENABLE_TIMING_ATTACK_PROTECTION?: boolean;
+  ENABLE_SECURITY_HARDENING?: boolean;
 }
 
 // WordPress post data interface
@@ -26,8 +44,36 @@ export interface WordPressPost {
   featured_media?: number;
 }
 
+// WordPress post data interface for API operations
+export interface WordPressPostData {
+  title: string;
+  content: string;
+  excerpt?: string;
+  status?: 'draft' | 'publish' | 'private' | 'pending';
+  author?: number;
+  slug?: string;
+  featured_media?: number;
+  comment_status?: 'open' | 'closed';
+  ping_status?: 'open' | 'closed';
+  format?: string;
+  template?: string;
+  sticky?: boolean;
+  password?: string;
+}
+
 // Yoast SEO meta fields interface
 export interface YoastMeta {
+  meta_title?: string;
+  meta_description?: string;
+  focus_keywords?: string;
+  canonical?: string;
+  primary_category?: number;
+  meta_robots_noindex?: string;
+  meta_robots_nofollow?: string;
+}
+
+// Yoast meta fields for API operations
+export interface YoastMetaFields {
   meta_title?: string;
   meta_description?: string;
   focus_keywords?: string;
@@ -57,6 +103,7 @@ export interface ImageData {
 // API request interface
 export interface PublishRequest {
   post: PostData;
+  yoast?: YoastMeta;
   options?: {
     publish_status?: 'draft' | 'publish';
     include_images?: boolean;
@@ -101,7 +148,7 @@ export class ApiError extends Error {
     this.name = 'ApiError';
     this.code = code;
     this.statusCode = statusCode;
-    this.details = details;
+    this.details = details || undefined;
   }
 }
 
@@ -142,6 +189,18 @@ export interface WordPressApiResponse<T = any> {
     message: string;
     data?: any;
   };
+}
+
+export interface WordPressResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: string[];
+    statusCode?: number;
+  };
+  statusCode?: number;
 }
 
 export interface WordPressPostResponse {
@@ -267,4 +326,73 @@ export interface LogEntry {
   ipAddress?: string;
   userAgent?: string;
   metadata?: Record<string, any>;
+}
+
+// Taxonomy interfaces
+export interface CategoryData {
+  id?: number;
+  name: string;
+  slug?: string;
+  description?: string;
+  parent?: number;
+}
+
+export interface TagData {
+  id?: number;
+  name: string;
+  slug?: string;
+  description?: string;
+}
+
+export interface TaxonomyTerm {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  count: number;
+  link: string;
+  taxonomy: string;
+  meta?: any[];
+  _links?: any;
+}
+
+export interface TaxonomyResponse {
+  success: boolean;
+  data?: TaxonomyTerm[];
+  error?: {
+    code: string;
+    message: string;
+    details?: string[];
+  };
+}
+
+// Post creation result interface
+export interface PostCreationResult {
+  success: boolean;
+  postId?: number;
+  postUrl?: string;
+  postData?: WordPressPostResponse;
+  warnings?: string[];
+  error?: {
+    code: string;
+    message: string;
+    details?: string[];
+  };
+}
+
+// Post creation options interface
+export interface PostCreationOptions {
+  status?: 'draft' | 'publish' | 'private';
+  author?: number;
+  categories?: number[];
+  tags?: number[];
+  featured_media?: number;
+  comment_status?: 'open' | 'closed';
+  ping_status?: 'open' | 'closed';
+  format?: string;
+  template?: string;
+  sticky?: boolean;
+  password?: string;
+  allowComments?: boolean;
+  allowPings?: boolean;
 } 

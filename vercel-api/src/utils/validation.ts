@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ValidationResult, ValidationError } from '../types';
+import SecurityMonitoring from './monitoring';
 
 /**
  * Security patterns for detecting malicious content
@@ -210,7 +211,7 @@ export function validateImageData(imageData: any): { valid: boolean; sanitized?:
 /**
  * Detect malicious content in text
  */
-export function detectMaliciousContent(text: string): { malicious: boolean; patterns: string[] } {
+export function detectMaliciousContent(text: string, sourceIP?: string, userAgent?: string, apiKey?: string): { malicious: boolean; patterns: string[] } {
   if (!text) {
     return { malicious: false, patterns: [] };
   }
@@ -246,17 +247,35 @@ export function detectMaliciousContent(text: string): { malicious: boolean; patt
     detectedPatterns.push('Path traversal attempt');
   }
   
+  // Check for suspicious URL patterns
+  if (SECURITY_PATTERNS.suspiciousUrl.test(text)) {
+    detectedPatterns.push('Suspicious URL protocol');
+  }
+
+  const isMalicious = detectedPatterns.length > 0;
+
+  // Record malicious content detection for monitoring
+  if (isMalicious && sourceIP) {
+    SecurityMonitoring.recordMaliciousContent(
+      sourceIP,
+      userAgent,
+      apiKey,
+      detectedPatterns.join(', '),
+      { contentLength: text.length, patterns: detectedPatterns }
+    );
+  }
+
   return {
-    malicious: detectedPatterns.length > 0,
+    malicious: isMalicious,
     patterns: detectedPatterns,
   };
 }
 
-/**
+  /**
  * Validate request headers
- */
+   */
 export function validateRequestHeaders(headers: any): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
+    const errors: string[] = [];
   
   // Check content type
   const contentType = headers['content-type'];
@@ -279,15 +298,15 @@ export function validateRequestHeaders(headers: any): { valid: boolean; errors: 
   const userAgent = headers['user-agent'];
   if (!userAgent) {
     errors.push('User-Agent header is required');
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
-}
+    }
 
-/**
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
  * Comprehensive request validation middleware
  */
 export function validateRequest(
@@ -295,8 +314,8 @@ export function validateRequest(
   headers: any,
   maxBodySize: number = 10 * 1024 * 1024 // 10MB default
 ): ValidationResult {
-  const errors: string[] = [];
-  const warnings: string[] = [];
+    const errors: string[] = [];
+    const warnings: string[] = [];
   let sanitizedData: any = null;
   
   try {
@@ -331,17 +350,17 @@ export function validateRequest(
     
   } catch (error) {
     errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-  
-  return {
-    valid: errors.length === 0,
-    errors,
-    warnings,
-    sanitizedData,
-  };
-}
+    }
 
-/**
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+    sanitizedData,
+    };
+  }
+
+  /**
  * Sanitize request data recursively
  */
 function sanitizeRequestData(data: any): any {

@@ -1,14 +1,17 @@
-import { WordPressClient, createWordPressClient } from './wordpress';
+import { WordPressClient } from './wordpress';
 import { getEnvVars, secureLog } from './env';
 import { createYoastService, YoastService } from './wordpress-yoast';
 import { createWordPressTaxonomyService, WordPressTaxonomyService } from './wordpress-taxonomy';
+import { wordPressValidationService, WordPressValidationService } from './wordpress-validation';
 import { 
-  WordPressError, 
+  WordPressApiError, 
   ValidationError, 
-  PublishRequest, 
   WordPressPostData,
   WordPressPostResponse,
-  YoastMetaFields
+  YoastMetaFields,
+  WordPressResponse,
+  PostCreationResult,
+  PostCreationOptions
 } from '../types';
 
 /**
@@ -25,31 +28,7 @@ export interface PostCreationConfig {
   maxContentLength: number;
 }
 
-/**
- * WordPress post creation options
- */
-export interface PostCreationOptions {
-  status?: 'draft' | 'publish' | 'private';
-  allowComments?: boolean;
-  allowPings?: boolean;
-  author?: number;
-  format?: string;
-  sticky?: boolean;
-  template?: string;
-  password?: string;
-}
 
-/**
- * WordPress post creation result
- */
-export interface PostCreationResult {
-  success: boolean;
-  postId?: number;
-  postUrl?: string;
-  postData?: WordPressPostResponse;
-  error?: WordPressError | ValidationError;
-  warnings?: string[];
-}
 
 /**
  * WordPress post creation service with Yoast and taxonomy integration
@@ -58,12 +37,14 @@ export class WordPressPostService {
   private client: WordPressClient;
   private yoastService: YoastService;
   private taxonomyService: WordPressTaxonomyService;
+  private validationService: WordPressValidationService;
   private config: PostCreationConfig;
 
   constructor(client: WordPressClient, config?: Partial<PostCreationConfig>) {
     this.client = client;
     this.yoastService = createYoastService(client);
     this.taxonomyService = createWordPressTaxonomyService(client);
+    this.validationService = wordPressValidationService;
     this.config = {
       defaultStatus: 'draft',
       allowComments: true,
@@ -96,43 +77,22 @@ export class WordPressPostService {
   }
 
   /**
-   * Validate post data before creation
+   * Validate and sanitize post data before creation
    */
-  private validatePostData(data: WordPressPostData): { valid: boolean; errors: string[] } {
-    const errors: string[] = [];
-
-    // Validate title
-    if (!data.title || data.title.trim().length === 0) {
-      errors.push('Post title is required');
-    } else if (data.title.length > this.config.maxTitleLength) {
-      errors.push(`Post title exceeds maximum length of ${this.config.maxTitleLength} characters`);
-    }
-
-    // Validate content
-    if (!data.content || data.content.trim().length === 0) {
-      errors.push('Post content is required');
-    } else if (data.content.length > this.config.maxContentLength) {
-      errors.push(`Post content exceeds maximum length of ${this.config.maxContentLength} characters`);
-    }
-
-    // Validate excerpt (optional but if provided, check length)
-    if (data.excerpt && data.excerpt.length > this.config.maxExcerptLength) {
-      errors.push(`Post excerpt exceeds maximum length of ${this.config.maxExcerptLength} characters`);
-    }
-
-    // Validate status
-    if (data.status && !['draft', 'publish', 'private'].includes(data.status)) {
-      errors.push('Invalid post status. Must be draft, publish, or private');
-    }
-
-    // Validate author ID
-    if (data.author && (!Number.isInteger(data.author) || data.author <= 0)) {
-      errors.push('Author ID must be a positive integer');
-    }
-
+  private validatePostData(data: WordPressPostData, requestId?: string): { 
+    valid: boolean; 
+    errors: string[]; 
+    warnings: string[];
+    sanitizedData?: WordPressPostData;
+  } {
+    // Use the comprehensive WordPress validation service
+    const validationResult = this.validationService.validateAndSanitizePostData(data, requestId);
+    
     return {
-      valid: errors.length === 0,
-      errors
+      valid: validationResult.valid,
+      errors: validationResult.errors,
+      warnings: validationResult.warnings,
+      sanitizedData: validationResult.sanitizedData as WordPressPostData,
     };
   }
 
@@ -182,17 +142,19 @@ export class WordPressPostService {
    */
   async createPost(
     data: WordPressPostData, 
-    options: PostCreationOptions = {}
+    options: PostCreationOptions = {},
+    requestId?: string
   ): Promise<PostCreationResult> {
     try {
       secureLog('info', 'Creating WordPress post', {
+        requestId,
         title: data.title?.substring(0, 50) + '...',
         status: options.status || data.status || this.config.defaultStatus,
         author: options.author || data.author || this.config.defaultAuthor,
       });
 
-      // Validate post data
-      const validation = this.validatePostData(data);
+      // Validate and sanitize post data
+      const validation = this.validatePostData(data, requestId);
       if (!validation.valid) {
         return {
           success: false,
@@ -200,12 +162,16 @@ export class WordPressPostService {
             code: 'VALIDATION_ERROR',
             message: 'Post data validation failed',
             details: validation.errors,
-          } as ValidationError,
+          },
+          warnings: validation.warnings,
         };
       }
 
+      // Use sanitized data if available
+      const postDataToUse = validation.sanitizedData || data;
+
       // Prepare post data for WordPress API
-      const postData = this.preparePostData(data, options);
+      const postData = this.preparePostData(postDataToUse, options);
 
       // Create post via WordPress REST API
       const response = await this.client.post<WordPressPostResponse>('/wp/v2/posts', postData);
@@ -216,7 +182,7 @@ export class WordPressPostService {
           error: response.error || {
             code: 'WORDPRESS_API_ERROR',
             message: 'Failed to create post via WordPress API',
-          } as WordPressError,
+          } as WordPressApiError,
         };
       }
 
@@ -234,6 +200,7 @@ export class WordPressPostService {
         postId: post.id,
         postUrl,
         postData: post,
+        warnings: validation.warnings.length > 0 ? validation.warnings : [],
       };
 
     } catch (error) {
@@ -242,13 +209,13 @@ export class WordPressPostService {
         title: data.title?.substring(0, 50) + '...',
       });
 
-      return {
-        success: false,
-        error: {
-          code: 'WORDPRESS_API_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error occurred while creating post',
-        } as WordPressError,
-      };
+              return {
+          success: false,
+          error: {
+            code: 'WORDPRESS_API_ERROR',
+            message: error instanceof Error ? error.message : 'Unknown error occurred while creating post',
+          } as WordPressApiError,
+        };
     }
   }
 
@@ -258,10 +225,12 @@ export class WordPressPostService {
   async updatePost(
     postId: number,
     data: Partial<WordPressPostData>,
-    options: PostCreationOptions = {}
+    options: PostCreationOptions = {},
+    requestId?: string
   ): Promise<PostCreationResult> {
     try {
       secureLog('info', 'Updating WordPress post', {
+        requestId,
         postId,
         title: data.title?.substring(0, 50) + '...',
       });
@@ -277,8 +246,8 @@ export class WordPressPostService {
         };
       }
 
-      // Validate partial post data
-      const validation = this.validatePostData(data as WordPressPostData);
+      // Validate and sanitize partial post data
+      const validation = this.validatePostData(data as WordPressPostData, requestId);
       if (!validation.valid) {
         return {
           success: false,
@@ -286,12 +255,16 @@ export class WordPressPostService {
             code: 'VALIDATION_ERROR',
             message: 'Post data validation failed',
             details: validation.errors,
-          } as ValidationError,
+          },
+          warnings: validation.warnings,
         };
       }
 
+      // Use sanitized data if available
+      const postDataToUse = validation.sanitizedData || data;
+
       // Prepare post data for WordPress API
-      const postData = this.preparePostData(data as WordPressPostData, options);
+      const postData = this.preparePostData(postDataToUse as WordPressPostData, options);
 
       // Update post via WordPress REST API
       const response = await this.client.put<WordPressPostResponse>(`/wp/v2/posts/${postId}`, postData);
@@ -302,7 +275,7 @@ export class WordPressPostService {
           error: response.error || {
             code: 'WORDPRESS_API_ERROR',
             message: 'Failed to update post via WordPress API',
-          } as WordPressError,
+          } as WordPressApiError,
         };
       }
 
@@ -320,6 +293,7 @@ export class WordPressPostService {
         postId: post.id,
         postUrl,
         postData: post,
+        warnings: validation.warnings.length > 0 ? validation.warnings : [],
       };
 
     } catch (error) {
@@ -329,13 +303,13 @@ export class WordPressPostService {
         title: data.title?.substring(0, 50) + '...',
       });
 
-      return {
-        success: false,
-        error: {
-          code: 'WORDPRESS_API_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error occurred while updating post',
-        } as WordPressError,
-      };
+              return {
+          success: false,
+          error: {
+            code: 'WORDPRESS_API_ERROR',
+            message: error instanceof Error ? error.message : 'Unknown error occurred while updating post',
+          } as WordPressApiError,
+        };
     }
   }
 
@@ -366,7 +340,7 @@ export class WordPressPostService {
           error: response.error || {
             code: 'WORDPRESS_API_ERROR',
             message: 'Failed to retrieve post via WordPress API',
-          } as WordPressError,
+          } as WordPressApiError,
         };
       }
 
@@ -391,7 +365,7 @@ export class WordPressPostService {
         error: {
           code: 'WORDPRESS_API_ERROR',
           message: error instanceof Error ? error.message : 'Unknown error occurred while retrieving post',
-        } as WordPressError,
+        } as WordPressApiError,
       };
     }
   }
@@ -424,7 +398,7 @@ export class WordPressPostService {
           error: response.error || {
             code: 'WORDPRESS_API_ERROR',
             message: 'Failed to delete post via WordPress API',
-          } as WordPressError,
+          } as WordPressApiError,
         };
       }
 
@@ -446,7 +420,7 @@ export class WordPressPostService {
         error: {
           code: 'WORDPRESS_API_ERROR',
           message: error instanceof Error ? error.message : 'Unknown error occurred while deleting post',
-        } as WordPressError,
+        } as WordPressApiError,
       };
     }
   }

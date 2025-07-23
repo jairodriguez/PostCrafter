@@ -1,12 +1,12 @@
 import { WordPressClient, createWordPressClient } from './wordpress';
 import { getEnvVars, secureLog } from './env';
 import { 
-  WordPressError, 
+  WordPressApiError,
   ValidationError, 
-  CategoryData,
-  TagData,
-  TaxonomyTerm,
-  TaxonomyResponse
+  CategoryData, 
+  TagData, 
+  TaxonomyTerm, 
+  TaxonomyResponse 
 } from '../types';
 
 /**
