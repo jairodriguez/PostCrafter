@@ -1,353 +1,502 @@
-import { AxiosError, AxiosResponse } from 'axios';
 import { secureLog } from './env';
-import { WordPressApiError, ValidationError } from '../types';
+import { 
+  WordPressError, 
+  WordPressErrorType, 
+  WordPressErrorContext, 
+  WordPressApiErrorDetails,
+  WordPressValidationErrorDetails,
+  WordPressRetryConfig,
+  WordPressErrorHandlingConfig,
+  WordPressErrorResponse
+} from '../types';
 
 /**
- * Error categories for WordPress API errors
- */
-export enum WordPressErrorCategory {
-  AUTHENTICATION = 'authentication',
-  AUTHORIZATION = 'authorization',
-  VALIDATION = 'validation',
-  RATE_LIMIT = 'rate_limit',
-  NETWORK = 'network',
-  SERVER = 'server',
-  TIMEOUT = 'timeout',
-  UNKNOWN = 'unknown'
-}
-
-/**
- * Retry configuration for different error types
- */
-export interface RetryConfig {
-  maxAttempts: number;
-  baseDelay: number;
-  maxDelay: number;
-  backoffMultiplier: number;
-  retryableErrors: string[];
-  nonRetryableErrors: string[];
-}
-
-/**
- * Circuit breaker configuration
- */
-export interface CircuitBreakerConfig {
-  failureThreshold: number;
-  recoveryTimeout: number;
-  expectedErrors: string[];
-}
-
-/**
- * Enhanced WordPress error with additional context
- */
-export interface EnhancedWordPressError extends WordPressApiError {
-  category: WordPressErrorCategory;
-  retryable: boolean;
-  retryAfter?: number;
-  requestId?: string;
-  endpoint?: string;
-  method?: string;
-  timestamp: Date;
-  context?: Record<string, any>;
-}
-
-/**
- * Error handling statistics
- */
-export interface ErrorStats {
-  totalErrors: number;
-  errorsByCategory: Record<WordPressErrorCategory, number>;
-  errorsByCode: Record<string, number>;
-  lastError?: EnhancedWordPressError;
-  consecutiveFailures: number;
-}
-
-/**
- * Comprehensive WordPress error handler
+ * WordPress Error Handler Service
+ * Provides comprehensive error handling, retry logic, and circuit breaker pattern
  */
 export class WordPressErrorHandler {
-  private retryConfig: RetryConfig;
-  private circuitBreakerConfig: CircuitBreakerConfig;
-  private errorStats: ErrorStats;
+  private config: WordPressErrorHandlingConfig;
+  private errorCount: number = 0;
+  private lastErrorTime: number = 0;
   private circuitBreakerState: 'CLOSED' | 'OPEN' | 'HALF_OPEN' = 'CLOSED';
-  private lastFailureTime: number = 0;
-  private failureCount: number = 0;
+  private circuitBreakerOpenTime: number = 0;
 
-  constructor(
-    retryConfig?: Partial<RetryConfig>,
-    circuitBreakerConfig?: Partial<CircuitBreakerConfig>
-  ) {
-    this.retryConfig = {
-      maxAttempts: 3,
-      baseDelay: 1000,
-      maxDelay: 10000,
-      backoffMultiplier: 2,
-      retryableErrors: [
-        'WORDPRESS_RATE_LIMIT',
-        'WORDPRESS_TIMEOUT',
-        'WORDPRESS_SERVER_ERROR',
-        'WORDPRESS_BAD_GATEWAY',
-        'WORDPRESS_SERVICE_UNAVAILABLE',
-        'ECONNRESET',
-        'ECONNABORTED',
-        'ETIMEDOUT'
-      ],
-      nonRetryableErrors: [
-        'WORDPRESS_AUTHENTICATION_ERROR',
-        'WORDPRESS_PERMISSION_ERROR',
-        'WORDPRESS_BAD_REQUEST',
-        'WORDPRESS_NOT_FOUND',
-        'VALIDATION_ERROR'
-      ],
-      ...retryConfig
-    };
-
-    this.circuitBreakerConfig = {
-      failureThreshold: 5,
-      recoveryTimeout: 30000,
-      expectedErrors: [
-        'WORDPRESS_AUTHENTICATION_ERROR',
-        'WORDPRESS_PERMISSION_ERROR',
-        'WORDPRESS_BAD_REQUEST',
-        'WORDPRESS_NOT_FOUND'
-      ],
-      ...circuitBreakerConfig
-    };
-
-    this.errorStats = {
-      totalErrors: 0,
-      errorsByCategory: {
-        [WordPressErrorCategory.AUTHENTICATION]: 0,
-        [WordPressErrorCategory.AUTHORIZATION]: 0,
-        [WordPressErrorCategory.VALIDATION]: 0,
-        [WordPressErrorCategory.RATE_LIMIT]: 0,
-        [WordPressErrorCategory.NETWORK]: 0,
-        [WordPressErrorCategory.SERVER]: 0,
-        [WordPressErrorCategory.TIMEOUT]: 0,
-        [WordPressErrorCategory.UNKNOWN]: 0
+  constructor(config?: Partial<WordPressErrorHandlingConfig>) {
+    this.config = {
+      enableDetailedLogging: true,
+      enableErrorTracking: true,
+      enableRetryLogic: true,
+      enableCircuitBreaker: true,
+      retryConfig: {
+        maxRetries: 3,
+        retryDelay: 1000,
+        backoffMultiplier: 2,
+        maxRetryDelay: 10000,
+        retryableStatusCodes: [408, 429, 500, 502, 503, 504],
+        retryableErrorCodes: [
+          WordPressErrorType.TIMEOUT_ERROR,
+          WordPressErrorType.RATE_LIMIT_EXCEEDED,
+          WordPressErrorType.SERVER_ERROR,
+          WordPressErrorType.BAD_GATEWAY,
+          WordPressErrorType.SERVICE_UNAVAILABLE,
+          WordPressErrorType.CONNECTION_ERROR
+        ]
       },
-      errorsByCode: {},
-      consecutiveFailures: 0
+      errorThreshold: 5,
+      errorWindowMs: 60000, // 1 minute
+      ...config
     };
   }
 
   /**
-   * Create enhanced WordPress error from various error types
+   * Handle WordPress API errors with comprehensive error categorization
    */
-  createEnhancedError(
-    error: any,
-    context?: {
-      requestId?: string;
-      endpoint?: string;
-      method?: string;
-      data?: any;
+  handleError(
+    error: any, 
+    context: Partial<WordPressErrorContext> = {}
+  ): WordPressError {
+    const wordPressError = this.categorizeError(error, context);
+    
+    // Track error for circuit breaker
+    if (this.config.enableErrorTracking) {
+      this.trackError(wordPressError);
     }
-  ): EnhancedWordPressError {
-    const baseError = this.createBaseError(error);
-    const category = this.categorizeError(baseError);
-    const retryable = this.isRetryableError(baseError);
-    const retryAfter = this.getRetryAfterTime(error);
 
-    const enhancedError: EnhancedWordPressError = {
-      ...baseError,
-      category,
-      retryable,
-      retryAfter,
-      requestId: context?.requestId,
-      endpoint: context?.endpoint,
-      method: context?.method,
-      timestamp: new Date(),
-      context: {
-        originalError: error.message || error.toString(),
-        ...context
-      }
-    };
+    // Log error with detailed context
+    if (this.config.enableDetailedLogging) {
+      this.logError(wordPressError, context);
+    }
 
-    this.updateErrorStats(enhancedError);
-    this.updateCircuitBreaker(enhancedError);
-
-    return enhancedError;
+    return wordPressError;
   }
 
   /**
-   * Create base WordPress error
+   * Categorize errors based on type and context
    */
-  private createBaseError(error: any): WordPressApiError {
-    if (error instanceof WordPressApiError) {
+  private categorizeError(
+    error: any, 
+    context: Partial<WordPressErrorContext>
+  ): WordPressError {
+    const timestamp = new Date().toISOString();
+    const errorContext: WordPressErrorContext = {
+      timestamp,
+      ...context
+    };
+
+    // Handle WordPress-specific errors
+    if (error instanceof WordPressError) {
       return error;
     }
 
-    if (error instanceof AxiosError) {
-      return this.createErrorFromAxios(error);
+    // Handle Axios errors
+    if (error.response) {
+      return this.handleHttpError(error, errorContext);
     }
 
-    if (error instanceof ValidationError) {
-      return new WordPressApiError(
-        'VALIDATION_ERROR',
-        error.message,
-        400,
-        error.details
-      );
+    // Handle network errors
+    if (error.code) {
+      return this.handleNetworkError(error, errorContext);
     }
 
-    // Generic error
-    return new WordPressApiError(
-      'WORDPRESS_API_ERROR',
-      'WordPress API request failed',
-      500,
-      error.message || 'Unknown error'
-    );
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      return this.handleValidationError(error, errorContext);
+    }
+
+    // Handle unknown errors
+    return this.handleUnknownError(error, errorContext);
   }
 
   /**
-   * Create WordPress error from Axios error
+   * Handle HTTP errors from WordPress API
    */
-  private createErrorFromAxios(error: AxiosError): WordPressApiError {
+  private handleHttpError(error: any, context: WordPressErrorContext): WordPressError {
     const statusCode = error.response?.status || 500;
-    const responseData = error.response?.data as any;
+    const responseData = error.response?.data;
+    const isRetryable = this.isRetryableStatusCode(statusCode);
+
+    context.statusCode = statusCode;
+    context.responseData = responseData;
 
     // WordPress-specific error handling
     if (responseData && typeof responseData === 'object') {
-      const message = responseData.message || responseData.error || error.message;
-      const code = responseData.code || this.getErrorCodeFromStatus(statusCode);
+      return this.handleWordPressApiError(responseData, statusCode, context);
+    }
+
+    // Standard HTTP error handling
+    switch (statusCode) {
+      case 400:
+        return WordPressError.createNonRetryable(
+          WordPressErrorType.VALIDATION_ERROR,
+          'Bad request - invalid data provided',
+          statusCode,
+          error.message,
+          'bad_request',
+          context
+        );
+
+      case 401:
+        return WordPressError.createNonRetryable(
+          WordPressErrorType.AUTHENTICATION_FAILED,
+          'Authentication failed - invalid credentials',
+          statusCode,
+          'Check your WordPress username and app password',
+          'invalid_credentials',
+          context
+        );
+
+      case 403:
+        return WordPressError.createNonRetryable(
+          WordPressErrorType.INSUFFICIENT_PERMISSIONS,
+          'Insufficient permissions to perform this action',
+          statusCode,
+          'User lacks required capabilities',
+          'insufficient_permissions',
+          context
+        );
+
+      case 404:
+        return WordPressError.createNonRetryable(
+          WordPressErrorType.RESOURCE_NOT_FOUND,
+          'Resource not found',
+          statusCode,
+          error.message,
+          'not_found',
+          context
+        );
+
+      case 408:
+        return WordPressError.createRetryable(
+          WordPressErrorType.TIMEOUT_ERROR,
+          'Request timeout',
+          statusCode,
+          error.message,
+          'timeout',
+          context
+        );
+
+      case 429:
+        return WordPressError.createRetryable(
+          WordPressErrorType.RATE_LIMIT_EXCEEDED,
+          'Rate limit exceeded',
+          statusCode,
+          'Too many requests, please try again later',
+          'rate_limit_exceeded',
+          context
+        );
+
+      case 500:
+        return WordPressError.createRetryable(
+          WordPressErrorType.SERVER_ERROR,
+          'WordPress server error',
+          statusCode,
+          error.message,
+          'internal_server_error',
+          context
+        );
+
+      case 502:
+        return WordPressError.createRetryable(
+          WordPressErrorType.BAD_GATEWAY,
+          'Bad gateway error',
+          statusCode,
+          error.message,
+          'bad_gateway',
+          context
+        );
+
+      case 503:
+        return WordPressError.createRetryable(
+          WordPressErrorType.SERVICE_UNAVAILABLE,
+          'WordPress service unavailable',
+          statusCode,
+          error.message,
+          'service_unavailable',
+          context
+        );
+
+      case 504:
+        return WordPressError.createRetryable(
+          WordPressErrorType.TIMEOUT_ERROR,
+          'Gateway timeout',
+          statusCode,
+          error.message,
+          'gateway_timeout',
+          context
+        );
+
+      default:
+        return WordPressError.createRetryable(
+          WordPressErrorType.API_ERROR,
+          `WordPress API error: ${statusCode}`,
+          statusCode,
+          error.message,
+          'api_error',
+          context
+        );
+    }
+  }
+
+  /**
+   * Handle WordPress API-specific errors
+   */
+  private handleWordPressApiError(
+    responseData: any, 
+    statusCode: number, 
+    context: WordPressErrorContext
+  ): WordPressError {
+    const message = responseData.message || responseData.error || 'WordPress API error';
+    const code = responseData.code || this.getErrorCodeFromStatus(statusCode);
+    const details = responseData.details || responseData.data;
+
+    // Handle WordPress validation errors
+    if (responseData.additional_errors && Array.isArray(responseData.additional_errors)) {
+      const validationErrors = responseData.additional_errors
+        .map((err: any) => `${err.code}: ${err.message}`)
+        .join('; ');
       
-      return new WordPressApiError(
-        code,
-        message,
+      return WordPressError.createNonRetryable(
+        WordPressErrorType.VALIDATION_ERROR,
+        'WordPress validation failed',
         statusCode,
-        responseData.details || error.message
+        validationErrors,
+        code,
+        context
       );
     }
 
-    // Network or timeout errors
-    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      return new WordPressApiError(
-        'WORDPRESS_TIMEOUT',
-        'WordPress API request timed out',
-        408,
-        error.message
-      );
-    }
+    // Handle specific WordPress error codes
+    switch (code) {
+      case 'rest_invalid_param':
+        return WordPressError.createNonRetryable(
+          WordPressErrorType.VALIDATION_ERROR,
+          'Invalid parameter provided',
+          statusCode,
+          details,
+          code,
+          context
+        );
 
-    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-      return new WordPressApiError(
-        'WORDPRESS_CONNECTION_ERROR',
-        'Unable to connect to WordPress site',
-        503,
-        error.message
-      );
-    }
+      case 'rest_missing_param':
+        return WordPressError.createNonRetryable(
+          WordPressErrorType.VALIDATION_ERROR,
+          'Required parameter missing',
+          statusCode,
+          details,
+          code,
+          context
+        );
 
-    // Authentication errors
-    if (statusCode === 401) {
-      return new WordPressApiError(
-        'WORDPRESS_AUTHENTICATION_ERROR',
-        'WordPress authentication failed. Please check your username and app password.',
-        401,
-        'Invalid credentials or app password'
-      );
-    }
+      case 'rest_invalid_json':
+        return WordPressError.createNonRetryable(
+          WordPressErrorType.VALIDATION_ERROR,
+          'Invalid JSON in request body',
+          statusCode,
+          details,
+          code,
+          context
+        );
 
-    if (statusCode === 403) {
-      return new WordPressApiError(
-        'WORDPRESS_PERMISSION_ERROR',
-        'Insufficient permissions to perform this action',
-        403,
-        'User lacks required capabilities'
-      );
-    }
+      case 'rest_cannot_create':
+        return WordPressError.createNonRetryable(
+          WordPressErrorType.VALIDATION_ERROR,
+          'Cannot create resource',
+          statusCode,
+          details,
+          code,
+          context
+        );
 
-    // Rate limiting
-    if (statusCode === 429) {
-      return new WordPressApiError(
-        'WORDPRESS_RATE_LIMIT',
-        'WordPress API rate limit exceeded',
-        429,
-        'Too many requests, please try again later'
-      );
-    }
+      case 'rest_cannot_update':
+        return WordPressError.createNonRetryable(
+          WordPressErrorType.VALIDATION_ERROR,
+          'Cannot update resource',
+          statusCode,
+          details,
+          code,
+          context
+        );
 
-    // Generic HTTP error
-    return new WordPressApiError(
-      this.getErrorCodeFromStatus(statusCode),
-      `WordPress API request failed with status ${statusCode}`,
-      statusCode,
-      error.message
+      case 'rest_cannot_delete':
+        return WordPressError.createNonRetryable(
+          WordPressErrorType.VALIDATION_ERROR,
+          'Cannot delete resource',
+          statusCode,
+          details,
+          code,
+          context
+        );
+
+      default:
+        return WordPressError.createRetryable(
+          WordPressErrorType.API_ERROR,
+          message,
+          statusCode,
+          details,
+          code,
+          context
+        );
+    }
+  }
+
+  /**
+   * Handle network errors
+   */
+  private handleNetworkError(error: any, context: WordPressErrorContext): WordPressError {
+    switch (error.code) {
+      case 'ECONNABORTED':
+        return WordPressError.createRetryable(
+          WordPressErrorType.TIMEOUT_ERROR,
+          'Request timeout',
+          408,
+          error.message,
+          'timeout',
+          context
+        );
+
+      case 'ENOTFOUND':
+        return WordPressError.createRetryable(
+          WordPressErrorType.DNS_ERROR,
+          'DNS resolution failed',
+          503,
+          error.message,
+          'dns_error',
+          context
+        );
+
+      case 'ECONNREFUSED':
+        return WordPressError.createRetryable(
+          WordPressErrorType.CONNECTION_ERROR,
+          'Connection refused',
+          503,
+          error.message,
+          'connection_refused',
+          context
+        );
+
+      case 'ECONNRESET':
+        return WordPressError.createRetryable(
+          WordPressErrorType.CONNECTION_ERROR,
+          'Connection reset',
+          503,
+          error.message,
+          'connection_reset',
+          context
+        );
+
+      case 'UNABLE_TO_VERIFY_LEAF_SIGNATURE':
+      case 'CERT_HAS_EXPIRED':
+      case 'CERT_NOT_YET_VALID':
+        return WordPressError.createNonRetryable(
+          WordPressErrorType.SSL_ERROR,
+          'SSL certificate error',
+          495,
+          error.message,
+          'ssl_error',
+          context
+        );
+
+      default:
+        return WordPressError.createRetryable(
+          WordPressErrorType.CONNECTION_ERROR,
+          'Network error',
+          503,
+          error.message,
+          'network_error',
+          context
+        );
+    }
+  }
+
+  /**
+   * Handle validation errors
+   */
+  private handleValidationError(error: any, context: WordPressErrorContext): WordPressError {
+    return WordPressError.createNonRetryable(
+      WordPressErrorType.VALIDATION_ERROR,
+      'Validation failed',
+      400,
+      error.message,
+      'validation_error',
+      context
     );
   }
 
   /**
-   * Categorize error based on type and status
+   * Handle unknown errors
    */
-  private categorizeError(error: WordPressApiError): WordPressErrorCategory {
-    const code = error.code;
-    const statusCode = error.statusCode;
-
-    // Authentication errors
-    if (code === 'WORDPRESS_AUTHENTICATION_ERROR' || statusCode === 401) {
-      return WordPressErrorCategory.AUTHENTICATION;
-    }
-
-    // Authorization errors
-    if (code === 'WORDPRESS_PERMISSION_ERROR' || statusCode === 403) {
-      return WordPressErrorCategory.AUTHORIZATION;
-    }
-
-    // Validation errors
-    if (code === 'VALIDATION_ERROR' || code === 'WORDPRESS_BAD_REQUEST' || statusCode === 400) {
-      return WordPressErrorCategory.VALIDATION;
-    }
-
-    // Rate limiting
-    if (code === 'WORDPRESS_RATE_LIMIT' || statusCode === 429) {
-      return WordPressErrorCategory.RATE_LIMIT;
-    }
-
-    // Network errors
-    if (code === 'WORDPRESS_CONNECTION_ERROR' || code === 'ECONNREFUSED' || code === 'ENOTFOUND') {
-      return WordPressErrorCategory.NETWORK;
-    }
-
-    // Timeout errors
-    if (code === 'WORDPRESS_TIMEOUT' || code === 'ECONNABORTED') {
-      return WordPressErrorCategory.TIMEOUT;
-    }
-
-    // Server errors
-    if (statusCode >= 500) {
-      return WordPressErrorCategory.SERVER;
-    }
-
-    return WordPressErrorCategory.UNKNOWN;
+  private handleUnknownError(error: any, context: WordPressErrorContext): WordPressError {
+    return WordPressError.createRetryable(
+      WordPressErrorType.UNKNOWN_ERROR,
+      'Unknown error occurred',
+      500,
+      error.message,
+      'unknown_error',
+      context
+    );
   }
 
   /**
-   * Check if error is retryable
+   * Check if status code is retryable
    */
-  private isRetryableError(error: WordPressApiError): boolean {
-    return this.retryConfig.retryableErrors.includes(error.code);
+  private isRetryableStatusCode(statusCode: number): boolean {
+    return this.config.retryConfig.retryableStatusCodes.includes(statusCode);
   }
 
   /**
-   * Get retry after time from error response
+   * Get error code from HTTP status
    */
-  private getRetryAfterTime(error: any): number | undefined {
-    if (error.response?.headers?.['retry-after']) {
-      return parseInt(error.response.headers['retry-after'], 10);
+  private getErrorCodeFromStatus(status: number): string {
+    switch (status) {
+      case 400: return 'bad_request';
+      case 401: return 'unauthorized';
+      case 403: return 'forbidden';
+      case 404: return 'not_found';
+      case 408: return 'timeout';
+      case 429: return 'rate_limit_exceeded';
+      case 500: return 'internal_server_error';
+      case 502: return 'bad_gateway';
+      case 503: return 'service_unavailable';
+      case 504: return 'gateway_timeout';
+      default: return 'api_error';
     }
-    return undefined;
   }
 
   /**
-   * Calculate retry delay with exponential backoff
+   * Track error for circuit breaker
    */
-  calculateRetryDelay(attempt: number, retryAfter?: number): number {
-    if (retryAfter) {
-      return retryAfter * 1000; // Convert to milliseconds
+  private trackError(error: WordPressError): void {
+    const now = Date.now();
+    
+    // Reset error count if window has passed
+    if (now - this.lastErrorTime > this.config.errorWindowMs) {
+      this.errorCount = 0;
     }
 
-    const delay = this.retryConfig.baseDelay * Math.pow(this.retryConfig.backoffMultiplier, attempt - 1);
-    return Math.min(delay, this.retryConfig.maxDelay);
+    this.errorCount++;
+    this.lastErrorTime = now;
+
+    // Check if circuit breaker should open
+    if (this.config.enableCircuitBreaker && 
+        this.errorCount >= this.config.errorThreshold && 
+        this.circuitBreakerState === 'CLOSED') {
+      this.openCircuitBreaker();
+    }
+  }
+
+  /**
+   * Open circuit breaker
+   */
+  private openCircuitBreaker(): void {
+    this.circuitBreakerState = 'OPEN';
+    this.circuitBreakerOpenTime = Date.now();
+    
+    secureLog('warn', 'WordPress circuit breaker opened', {
+      errorCount: this.errorCount,
+      errorThreshold: this.config.errorThreshold,
+      errorWindowMs: this.config.errorWindowMs,
+      timestamp: new Date().toISOString()
+    });
   }
 
   /**
@@ -356,184 +505,137 @@ export class WordPressErrorHandler {
   isCircuitBreakerOpen(): boolean {
     if (this.circuitBreakerState === 'OPEN') {
       const now = Date.now();
-      if (now - this.lastFailureTime > this.circuitBreakerConfig.recoveryTimeout) {
+      const timeSinceOpen = now - this.circuitBreakerOpenTime;
+      
+      // Move to half-open after 30 seconds
+      if (timeSinceOpen > 30000) {
         this.circuitBreakerState = 'HALF_OPEN';
-        secureLog('info', 'Circuit breaker moved to HALF_OPEN state');
-        return false;
+        secureLog('info', 'WordPress circuit breaker moved to half-open state');
       }
-      return true;
     }
-    return false;
+    
+    return this.circuitBreakerState === 'OPEN';
   }
 
   /**
-   * Update circuit breaker state
-   */
-  private updateCircuitBreaker(error: EnhancedWordPressError): void {
-    if (this.circuitBreakerConfig.expectedErrors.includes(error.code)) {
-      return; // Don't count expected errors
-    }
-
-    if (error.retryable) {
-      this.failureCount++;
-      this.lastFailureTime = Date.now();
-
-      if (this.failureCount >= this.circuitBreakerConfig.failureThreshold) {
-        this.circuitBreakerState = 'OPEN';
-        secureLog('warn', 'Circuit breaker opened due to consecutive failures', {
-          failureCount: this.failureCount,
-          threshold: this.circuitBreakerConfig.failureThreshold
-        });
-      }
-    } else {
-      // Reset on non-retryable errors
-      this.failureCount = 0;
-    }
-  }
-
-  /**
-   * Record successful request
+   * Record successful request to close circuit breaker
    */
   recordSuccess(): void {
     if (this.circuitBreakerState === 'HALF_OPEN') {
       this.circuitBreakerState = 'CLOSED';
-      this.failureCount = 0;
-      secureLog('info', 'Circuit breaker closed after successful request');
-    }
-    this.errorStats.consecutiveFailures = 0;
-  }
-
-  /**
-   * Update error statistics
-   */
-  private updateErrorStats(error: EnhancedWordPressError): void {
-    this.errorStats.totalErrors++;
-    this.errorStats.errorsByCategory[error.category]++;
-    this.errorStats.errorsByCode[error.code] = (this.errorStats.errorsByCode[error.code] || 0) + 1;
-    this.errorStats.lastError = error;
-    this.errorStats.consecutiveFailures++;
-  }
-
-  /**
-   * Get error statistics
-   */
-  getErrorStats(): ErrorStats {
-    return { ...this.errorStats };
-  }
-
-  /**
-   * Reset error statistics
-   */
-  resetErrorStats(): void {
-    this.errorStats = {
-      totalErrors: 0,
-      errorsByCategory: {
-        [WordPressErrorCategory.AUTHENTICATION]: 0,
-        [WordPressErrorCategory.AUTHORIZATION]: 0,
-        [WordPressErrorCategory.VALIDATION]: 0,
-        [WordPressErrorCategory.RATE_LIMIT]: 0,
-        [WordPressErrorCategory.NETWORK]: 0,
-        [WordPressErrorCategory.SERVER]: 0,
-        [WordPressErrorCategory.TIMEOUT]: 0,
-        [WordPressErrorCategory.UNKNOWN]: 0
-      },
-      errorsByCode: {},
-      consecutiveFailures: 0
-    };
-  }
-
-  /**
-   * Get error code from HTTP status
-   */
-  private getErrorCodeFromStatus(status: number): string {
-    switch (status) {
-      case 400:
-        return 'WORDPRESS_BAD_REQUEST';
-      case 401:
-        return 'WORDPRESS_AUTHENTICATION_ERROR';
-      case 403:
-        return 'WORDPRESS_PERMISSION_ERROR';
-      case 404:
-        return 'WORDPRESS_NOT_FOUND';
-      case 429:
-        return 'WORDPRESS_RATE_LIMIT';
-      case 500:
-        return 'WORDPRESS_SERVER_ERROR';
-      case 502:
-        return 'WORDPRESS_BAD_GATEWAY';
-      case 503:
-        return 'WORDPRESS_SERVICE_UNAVAILABLE';
-      default:
-        return 'WORDPRESS_API_ERROR';
+      this.errorCount = 0;
+      
+      secureLog('info', 'WordPress circuit breaker closed after successful request');
     }
   }
 
   /**
-   * Create user-friendly error message
+   * Log error with detailed context
    */
-  createUserFriendlyMessage(error: EnhancedWordPressError): string {
-    switch (error.category) {
-      case WordPressErrorCategory.AUTHENTICATION:
-        return 'Authentication failed. Please check your WordPress credentials and try again.';
-      
-      case WordPressErrorCategory.AUTHORIZATION:
-        return 'You don\'t have permission to perform this action. Please contact your administrator.';
-      
-      case WordPressErrorCategory.VALIDATION:
-        return 'The request contains invalid data. Please check your input and try again.';
-      
-      case WordPressErrorCategory.RATE_LIMIT:
-        return 'Too many requests. Please wait a moment and try again.';
-      
-      case WordPressErrorCategory.NETWORK:
-        return 'Unable to connect to WordPress. Please check your internet connection and try again.';
-      
-      case WordPressErrorCategory.TIMEOUT:
-        return 'The request timed out. Please try again.';
-      
-      case WordPressErrorCategory.SERVER:
-        return 'WordPress server error. Please try again later.';
-      
-      default:
-        return 'An unexpected error occurred. Please try again.';
-    }
-  }
-
-  /**
-   * Log error with context
-   */
-  logError(error: EnhancedWordPressError, context?: Record<string, any>): void {
+  private logError(error: WordPressError, context: WordPressErrorContext): void {
     const logData = {
-      errorCode: error.code,
-      errorMessage: error.message,
-      category: error.category,
-      retryable: error.retryable,
-      statusCode: error.statusCode,
-      requestId: error.requestId,
-      endpoint: error.endpoint,
-      method: error.method,
-      timestamp: error.timestamp.toISOString(),
-      context: { ...error.context, ...context }
+      ...error.getErrorContext(),
+      ...context,
+      timestamp: new Date().toISOString(),
+      circuitBreakerState: this.circuitBreakerState,
+      errorCount: this.errorCount
     };
 
-    if (error.category === WordPressErrorCategory.AUTHENTICATION) {
-      secureLog('error', 'WordPress authentication error', logData);
-    } else if (error.category === WordPressErrorCategory.RATE_LIMIT) {
-      secureLog('warn', 'WordPress rate limit exceeded', logData);
-    } else if (error.retryable) {
-      secureLog('warn', 'WordPress retryable error', logData);
-    } else {
-      secureLog('error', 'WordPress API error', logData);
+    secureLog('error', `WordPress API Error: ${error.message}`, logData);
+  }
+
+  /**
+   * Create error response for API endpoints
+   */
+  createErrorResponse(error: WordPressError, context: WordPressErrorContext): WordPressErrorResponse {
+    return {
+      success: false,
+      error: {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        statusCode: error.statusCode,
+        wordPressCode: error.wordPressCode,
+        retryable: error.retryable,
+        context,
+        timestamp: new Date().toISOString(),
+        requestId: context.requestId
+      }
+    };
+  }
+
+  /**
+   * Get retry configuration
+   */
+  getRetryConfig(): WordPressRetryConfig {
+    return this.config.retryConfig;
+  }
+
+  /**
+   * Check if error should be retried
+   */
+  shouldRetry(error: WordPressError): boolean {
+    if (!this.config.enableRetryLogic) {
+      return false;
     }
+
+    if (this.isCircuitBreakerOpen()) {
+      return false;
+    }
+
+    return error.shouldRetry() && 
+           this.config.retryConfig.retryableErrorCodes.includes(error.code);
+  }
+
+  /**
+   * Calculate retry delay with exponential backoff
+   */
+  calculateRetryDelay(attempt: number): number {
+    const { retryDelay, backoffMultiplier, maxRetryDelay } = this.config.retryConfig;
+    const delay = retryDelay * Math.pow(backoffMultiplier, attempt - 1);
+    return Math.min(delay, maxRetryDelay);
+  }
+
+  /**
+   * Get circuit breaker status
+   */
+  getCircuitBreakerStatus(): {
+    state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+    errorCount: number;
+    lastErrorTime: number;
+    openTime?: number;
+  } {
+    return {
+      state: this.circuitBreakerState,
+      errorCount: this.errorCount,
+      lastErrorTime: this.lastErrorTime,
+      openTime: this.circuitBreakerState === 'OPEN' ? this.circuitBreakerOpenTime : undefined
+    };
+  }
+
+  /**
+   * Reset circuit breaker (for testing or manual intervention)
+   */
+  resetCircuitBreaker(): void {
+    this.circuitBreakerState = 'CLOSED';
+    this.errorCount = 0;
+    this.lastErrorTime = 0;
+    this.circuitBreakerOpenTime = 0;
+    
+    secureLog('info', 'WordPress circuit breaker manually reset');
   }
 }
 
 /**
- * Create WordPress error handler with default configuration
+ * Create WordPress error handler instance
  */
 export function createWordPressErrorHandler(
-  retryConfig?: Partial<RetryConfig>,
-  circuitBreakerConfig?: Partial<CircuitBreakerConfig>
+  config?: Partial<WordPressErrorHandlingConfig>
 ): WordPressErrorHandler {
-  return new WordPressErrorHandler(retryConfig, circuitBreakerConfig);
-} 
+  return new WordPressErrorHandler(config);
+}
+
+/**
+ * Default WordPress error handler instance
+ */
+export const wordPressErrorHandler = createWordPressErrorHandler(); 

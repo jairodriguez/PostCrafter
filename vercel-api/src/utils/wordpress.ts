@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import { getEnvVars, secureLog } from './env';
-import { WordPressApiError, ValidationError } from '../types';
+import { WordPressError, ValidationError, WordPressErrorContext } from '../types';
+import { wordPressErrorHandler } from './wordpress-error-handler';
 
 /**
  * WordPress API client configuration
@@ -183,12 +184,22 @@ export class WordPressClient {
     params?: Record<string, any>,
     options?: WordPressRequestOptions
   ): Promise<AxiosResponse<T>> {
-    const maxRetries = options?.retryAttempts || this.config.retryAttempts;
-    const retryDelay = this.config.retryDelay;
-    let lastError: AxiosError;
+    const retryConfig = wordPressErrorHandler.getRetryConfig();
+    const maxRetries = options?.retryAttempts || retryConfig.maxRetries;
+    let lastError: any;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
+        // Check circuit breaker
+        if (wordPressErrorHandler.isCircuitBreakerOpen()) {
+          throw new WordPressError(
+            'WORDPRESS_CIRCUIT_BREAKER_OPEN',
+            'WordPress API circuit breaker is open',
+            503,
+            'Service temporarily unavailable due to repeated failures'
+          );
+        }
+
         const config = {
           method,
           url: endpoint,
@@ -203,6 +214,9 @@ export class WordPressClient {
 
         const response = await this.axiosInstance.request<T>(config);
         
+        // Record success to close circuit breaker
+        wordPressErrorHandler.recordSuccess();
+        
         // Validate response if requested
         if (options?.validateResponse !== false) {
           this.validateResponse(response);
@@ -210,30 +224,36 @@ export class WordPressClient {
 
         return response;
       } catch (error) {
-        lastError = error as AxiosError;
+        lastError = error;
         
-        // Don't retry on client errors (4xx) except for rate limiting
-        if (this.isClientError(error) && !this.isRateLimitError(error)) {
-          throw error;
-        }
+        // Handle error through the error handler
+        const wordPressError = wordPressErrorHandler.handleError(error, {
+          requestId: this.requestId,
+          endpoint,
+          method,
+          retryCount: attempt - 1
+        });
 
-        // Don't retry on server errors (5xx) after max attempts
-        if (attempt === maxRetries) {
-          throw error;
+        // Don't retry if error is not retryable or circuit breaker is open
+        if (!wordPressErrorHandler.shouldRetry(wordPressError) || attempt === maxRetries) {
+          throw wordPressError;
         }
 
         // Log retry attempt
+        const retryDelay = wordPressErrorHandler.calculateRetryDelay(attempt);
         secureLog('warn', `WordPress API request failed, retrying (${attempt}/${maxRetries})`, {
           requestId: this.requestId,
           method,
           endpoint,
-          status: error.response?.status,
-          error: error.message,
+          status: wordPressError.statusCode,
+          error: wordPressError.message,
           attempt,
+          retryDelay,
+          retryable: wordPressError.retryable
         });
 
         // Wait before retrying
-        await this.delay(retryDelay * attempt);
+        await this.delay(retryDelay);
       }
     }
 
@@ -256,138 +276,32 @@ export class WordPressClient {
    * Handle and format errors
    */
   private handleError<T>(error: any): WordPressResponse<T> {
-    const wordPressError = this.createWordPressError(error);
+    const context: WordPressErrorContext = {
+      requestId: this.requestId,
+      endpoint: error.config?.url,
+      method: error.config?.method,
+      statusCode: error.response?.status,
+      responseData: error.response?.data,
+      requestData: error.config?.data,
+      timestamp: new Date().toISOString(),
+      userAgent: 'PostCrafter/1.0'
+    };
+
+    const wordPressError = wordPressErrorHandler.handleError(error, context);
     
     return {
       success: false,
-      error: wordPressError,
+      error: {
+        code: wordPressError.code,
+        message: wordPressError.message,
+        details: wordPressError.details,
+        statusCode: wordPressError.statusCode,
+      },
       statusCode: wordPressError.statusCode,
     };
   }
 
-  /**
-   * Create WordPress error from various error types
-   */
-  private createWordPressError(error: any): WordPressError {
-    if (error instanceof AxiosError) {
-      return this.createWordPressErrorFromAxios(error);
-    }
 
-    if (error instanceof WordPressError) {
-      return error;
-    }
-
-    // Generic error
-    return new WordPressError(
-      'WORDPRESS_API_ERROR',
-      'WordPress API request failed',
-      500,
-      error.message || 'Unknown error'
-    );
-  }
-
-  /**
-   * Create WordPress error from Axios error
-   */
-  private createWordPressErrorFromAxios(error: AxiosError): WordPressError {
-    const statusCode = error.response?.status || 500;
-    const responseData = error.response?.data as any;
-
-    // WordPress-specific error handling
-    if (responseData && typeof responseData === 'object') {
-      const message = responseData.message || responseData.error || error.message;
-      const code = responseData.code || this.getErrorCodeFromStatus(statusCode);
-      
-      return new WordPressError(
-        code,
-        message,
-        statusCode,
-        responseData.details || error.message
-      );
-    }
-
-    // Network or timeout errors
-    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      return new WordPressError(
-        'WORDPRESS_TIMEOUT',
-        'WordPress API request timed out',
-        408,
-        error.message
-      );
-    }
-
-    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-      return new WordPressError(
-        'WORDPRESS_CONNECTION_ERROR',
-        'Unable to connect to WordPress site',
-        503,
-        error.message
-      );
-    }
-
-    // Authentication errors
-    if (statusCode === 401) {
-      return new WordPressError(
-        'WORDPRESS_AUTHENTICATION_ERROR',
-        'WordPress authentication failed. Please check your username and app password.',
-        401,
-        'Invalid credentials or app password'
-      );
-    }
-
-    if (statusCode === 403) {
-      return new WordPressError(
-        'WORDPRESS_PERMISSION_ERROR',
-        'Insufficient permissions to perform this action',
-        403,
-        'User lacks required capabilities'
-      );
-    }
-
-    // Rate limiting
-    if (statusCode === 429) {
-      return new WordPressError(
-        'WORDPRESS_RATE_LIMIT',
-        'WordPress API rate limit exceeded',
-        429,
-        'Too many requests, please try again later'
-      );
-    }
-
-    // Generic HTTP error
-    return new WordPressError(
-      this.getErrorCodeFromStatus(statusCode),
-      `WordPress API request failed with status ${statusCode}`,
-      statusCode,
-      error.message
-    );
-  }
-
-  /**
-   * Get error code from HTTP status
-   */
-  private getErrorCodeFromStatus(status: number): string {
-    switch (status) {
-      case 400:
-        return 'WORDPRESS_BAD_REQUEST';
-      case 401:
-        return 'WORDPRESS_AUTHENTICATION_ERROR';
-      case 403:
-        return 'WORDPRESS_PERMISSION_ERROR';
-      case 404:
-        return 'WORDPRESS_NOT_FOUND';
-      case 429:
-        return 'WORDPRESS_RATE_LIMIT';
-      case 500:
-        return 'WORDPRESS_SERVER_ERROR';
-      case 502:
-        return 'WORDPRESS_BAD_GATEWAY';
-      case 503:
-        return 'WORDPRESS_SERVICE_UNAVAILABLE';
-      default:
-        return 'WORDPRESS_API_ERROR';
-    }
-  }
 
   /**
    * Handle Axios error in interceptor
@@ -423,19 +337,7 @@ export class WordPressClient {
     }
   }
 
-  /**
-   * Check if error is a client error (4xx)
-   */
-  private isClientError(error: any): boolean {
-    return error.response?.status >= 400 && error.response?.status < 500;
-  }
 
-  /**
-   * Check if error is a rate limit error
-   */
-  private isRateLimitError(error: any): boolean {
-    return error.response?.status === 429;
-  }
 
   /**
    * Delay utility for retry logic

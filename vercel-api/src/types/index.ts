@@ -168,16 +168,217 @@ export class AuthenticationError extends ApiError {
 
 export class WordPressApiError extends ApiError {
   constructor(message: string, details?: string) {
-    super('WORDPRESS_API_ERROR', message, 502, details);
-    this.name = 'WordPressApiError';
+    super('WORDPRESS_API_ERROR', message, 500, details);
   }
 }
 
 export class RateLimitError extends ApiError {
   constructor(message: string = 'Rate limit exceeded', details?: string) {
     super('RATE_LIMIT_ERROR', message, 429, details);
-    this.name = 'RateLimitError';
   }
+}
+
+/**
+ * WordPress-specific error class for comprehensive error handling
+ */
+export class WordPressError extends ApiError {
+  public readonly wordPressCode?: string;
+  public readonly retryable: boolean;
+  public readonly context?: Record<string, any>;
+
+  constructor(
+    code: string, 
+    message: string, 
+    statusCode: number = 500, 
+    details?: string,
+    wordPressCode?: string,
+    retryable: boolean = false,
+    context?: Record<string, any>
+  ) {
+    super(code, message, statusCode, details);
+    this.wordPressCode = wordPressCode;
+    this.retryable = retryable;
+    this.context = context;
+  }
+
+  /**
+   * Create a retryable WordPress error
+   */
+  static createRetryable(
+    code: string,
+    message: string,
+    statusCode: number = 500,
+    details?: string,
+    wordPressCode?: string,
+    context?: Record<string, any>
+  ): WordPressError {
+    return new WordPressError(code, message, statusCode, details, wordPressCode, true, context);
+  }
+
+  /**
+   * Create a non-retryable WordPress error
+   */
+  static createNonRetryable(
+    code: string,
+    message: string,
+    statusCode: number = 500,
+    details?: string,
+    wordPressCode?: string,
+    context?: Record<string, any>
+  ): WordPressError {
+    return new WordPressError(code, message, statusCode, details, wordPressCode, false, context);
+  }
+
+  /**
+   * Check if this error should trigger a retry
+   */
+  shouldRetry(): boolean {
+    return this.retryable && this.statusCode >= 500;
+  }
+
+  /**
+   * Get error context for logging
+   */
+  getErrorContext(): Record<string, any> {
+    return {
+      code: this.code,
+      wordPressCode: this.wordPressCode,
+      statusCode: this.statusCode,
+      retryable: this.retryable,
+      context: this.context,
+    };
+  }
+}
+
+/**
+ * WordPress error types for categorization
+ */
+export enum WordPressErrorType {
+  // Authentication errors
+  AUTHENTICATION_FAILED = 'WORDPRESS_AUTHENTICATION_ERROR',
+  INVALID_CREDENTIALS = 'WORDPRESS_INVALID_CREDENTIALS',
+  TOKEN_EXPIRED = 'WORDPRESS_TOKEN_EXPIRED',
+  INSUFFICIENT_PERMISSIONS = 'WORDPRESS_PERMISSION_ERROR',
+
+  // Validation errors
+  VALIDATION_ERROR = 'WORDPRESS_VALIDATION_ERROR',
+  INVALID_POST_DATA = 'WORDPRESS_INVALID_POST_DATA',
+  INVALID_META_FIELDS = 'WORDPRESS_INVALID_META_FIELDS',
+  INVALID_TAXONOMY = 'WORDPRESS_INVALID_TAXONOMY',
+
+  // Network errors
+  CONNECTION_ERROR = 'WORDPRESS_CONNECTION_ERROR',
+  TIMEOUT_ERROR = 'WORDPRESS_TIMEOUT',
+  DNS_ERROR = 'WORDPRESS_DNS_ERROR',
+  SSL_ERROR = 'WORDPRESS_SSL_ERROR',
+
+  // Rate limiting
+  RATE_LIMIT_EXCEEDED = 'WORDPRESS_RATE_LIMIT',
+  TOO_MANY_REQUESTS = 'WORDPRESS_TOO_MANY_REQUESTS',
+
+  // Server errors
+  SERVER_ERROR = 'WORDPRESS_SERVER_ERROR',
+  BAD_GATEWAY = 'WORDPRESS_BAD_GATEWAY',
+  SERVICE_UNAVAILABLE = 'WORDPRESS_SERVICE_UNAVAILABLE',
+  INTERNAL_SERVER_ERROR = 'WORDPRESS_INTERNAL_ERROR',
+
+  // Resource errors
+  RESOURCE_NOT_FOUND = 'WORDPRESS_NOT_FOUND',
+  RESOURCE_CONFLICT = 'WORDPRESS_CONFLICT',
+  RESOURCE_LOCKED = 'WORDPRESS_LOCKED',
+
+  // Content errors
+  CONTENT_TOO_LARGE = 'WORDPRESS_CONTENT_TOO_LARGE',
+  INVALID_CONTENT_TYPE = 'WORDPRESS_INVALID_CONTENT_TYPE',
+  MALICIOUS_CONTENT = 'WORDPRESS_MALICIOUS_CONTENT',
+
+  // Generic errors
+  UNKNOWN_ERROR = 'WORDPRESS_UNKNOWN_ERROR',
+  API_ERROR = 'WORDPRESS_API_ERROR',
+}
+
+/**
+ * WordPress error context for detailed error information
+ */
+export interface WordPressErrorContext {
+  requestId?: string;
+  endpoint?: string;
+  method?: string;
+  statusCode?: number;
+  responseData?: any;
+  requestData?: any;
+  timestamp?: string;
+  retryCount?: number;
+  userAgent?: string;
+  ipAddress?: string;
+  userId?: string;
+}
+
+/**
+ * Enhanced WordPress error response with context
+ */
+export interface WordPressErrorResponse {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    details?: string;
+    statusCode: number;
+    wordPressCode?: string;
+    retryable: boolean;
+    context?: WordPressErrorContext;
+    timestamp: string;
+    requestId?: string;
+  };
+}
+
+/**
+ * WordPress API error details
+ */
+export interface WordPressApiErrorDetails {
+  code: string;
+  message: string;
+  data?: any;
+  additional_errors?: Array<{
+    code: string;
+    message: string;
+    data?: any;
+  }>;
+}
+
+/**
+ * WordPress validation error details
+ */
+export interface WordPressValidationErrorDetails {
+  field: string;
+  code: string;
+  message: string;
+  data?: any;
+}
+
+/**
+ * WordPress retry configuration
+ */
+export interface WordPressRetryConfig {
+  maxRetries: number;
+  retryDelay: number;
+  backoffMultiplier: number;
+  maxRetryDelay: number;
+  retryableStatusCodes: number[];
+  retryableErrorCodes: string[];
+}
+
+/**
+ * WordPress error handling configuration
+ */
+export interface WordPressErrorHandlingConfig {
+  enableDetailedLogging: boolean;
+  enableErrorTracking: boolean;
+  enableRetryLogic: boolean;
+  enableCircuitBreaker: boolean;
+  retryConfig: WordPressRetryConfig;
+  errorThreshold: number;
+  errorWindowMs: number;
 }
 
 // WordPress API response interfaces
