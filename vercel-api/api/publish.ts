@@ -24,28 +24,11 @@ function createErrorResponse(
       code: error.code,
       message: error.message,
       details: error.details,
-      requestId,
-    },
+      requestId
+    }
   };
 
-  res.status(error.statusCode || 400).json(errorResponse);
-}
-
-// Helper function to create success response
-function createSuccessResponse(
-  res: VercelResponse,
-  data: any,
-  requestId?: string
-): void {
-  const successResponse: PublishResponse = {
-    success: true,
-    data: {
-      ...data,
-      requestId,
-    },
-  };
-
-  res.status(200).json(successResponse);
+  res.status(error.statusCode || 500).json(errorResponse);
 }
 
 export default async function handler(
@@ -57,10 +40,9 @@ export default async function handler(
 
   try {
     // Apply middleware (CORS, security headers, rate limiting, authentication)
-    const middlewareResult = applyMiddleware(req, res);
-    if (!middlewareResult.success) {
-      return;
-    }
+    applyMiddleware(req, res, () => {
+      // Middleware will handle the request
+    });
 
     // Only allow POST requests
     if (req.method !== 'POST') {
@@ -68,26 +50,19 @@ export default async function handler(
       createErrorResponse(res, {
         code: 'METHOD_NOT_ALLOWED',
         message: `Method ${req.method} not allowed`,
-        statusCode: 405,
+        statusCode: 405
       }, requestId);
       return;
     }
 
-    secureLog('info', 'Processing publish request', {
-      requestId,
-      method: req.method,
-      userAgent: req.headers['user-agent'],
-      ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
-    });
-
     // Validate request body
-    const validationResult = validateRequest(req.body, securePublishRequestSchema);
-    if (!validationResult.success) {
+    const validationResult = validateRequest(req, securePublishRequestSchema);
+    if (!validationResult.valid) {
       createErrorResponse(res, {
         code: 'VALIDATION_ERROR',
         message: 'Request validation failed',
-        details: validationResult.errors,
-        statusCode: 400,
+        details: validationResult.errors.join(', '),
+        statusCode: 400
       }, requestId);
       return;
     }
@@ -95,13 +70,13 @@ export default async function handler(
     const publishData: PublishRequest = validationResult.data;
 
     // Check for malicious content
-    const maliciousContentCheck = detectMaliciousContent(publishData.post.title + ' ' + publishData.post.content);
-    if (maliciousContentCheck.detected) {
+    const maliciousContent = detectMaliciousContent(publishData);
+    if (maliciousContent.detected) {
       createErrorResponse(res, {
-        code: 'SECURITY_ERROR',
-        message: 'Malicious content detected in request',
-        details: maliciousContentCheck.patterns,
-        statusCode: 400,
+        code: 'SECURITY_VIOLATION',
+        message: 'Malicious content detected',
+        details: `Detected patterns: ${maliciousContent.patterns.join(', ')}`,
+        statusCode: 400
       }, requestId);
       return;
     }
@@ -112,136 +87,113 @@ export default async function handler(
         const imageValidation = validateImageData(image);
         if (!imageValidation.valid) {
           createErrorResponse(res, {
-            code: 'VALIDATION_ERROR',
-            message: 'Invalid image data',
-            details: imageValidation.errors,
-            statusCode: 400,
+            code: 'IMAGE_VALIDATION_ERROR',
+            message: 'Image validation failed',
+            details: imageValidation.errors.join(', '),
+            statusCode: 400
           }, requestId);
           return;
         }
       }
     }
 
-    secureLog('info', 'Request validation passed, creating WordPress post', {
-      requestId,
-      title: publishData.post.title.substring(0, 50) + '...',
-      hasImages: publishData.images && publishData.images.length > 0,
-      hasYoastMeta: !!(publishData.yoast_meta),
-    });
-
-    // Create WordPress post
+    // Create WordPress post service
     const postService = createWordPressPostService();
-    
+
+    // Prepare post data
     const postData = {
       title: publishData.post.title,
       content: publishData.post.content,
-      excerpt: publishData.post.excerpt,
+      excerpt: publishData.post.excerpt || '',
       status: publishData.post.status || 'draft',
-      slug: publishData.post.slug,
+      author: publishData.post.author || 1,
+      categories: publishData.post.categories || [],
+      tags: publishData.post.tags || [],
+      featured_media: publishData.post.featured_media || 0,
+      comment_status: publishData.post.comment_status || 'open',
+      ping_status: publishData.post.ping_status || 'open',
+      format: publishData.post.format || 'standard',
+      template: publishData.post.template || '',
+      password: publishData.post.password || '',
+      sticky: publishData.post.sticky || false
     };
 
-    const postOptions = {
-      status: publishData.post.status || 'draft',
-      allowComments: publishData.options?.allow_comments !== false,
-      allowPings: publishData.options?.allow_pings !== false,
-      author: publishData.options?.author_id,
-      format: publishData.options?.post_format,
-      sticky: publishData.options?.sticky || false,
-      template: publishData.options?.template,
-      password: publishData.options?.password,
-    };
+    // Prepare Yoast fields
+    let yoastFields = undefined;
+    if (publishData.yoast) {
+      yoastFields = {
+        meta_title: publishData.yoast.meta_title,
+        meta_description: publishData.yoast.meta_description,
+        focus_keywords: publishData.yoast.focus_keywords,
+        meta_robots_noindex: publishData.yoast.meta_robots_noindex,
+        meta_robots_nofollow: publishData.yoast.meta_robots_nofollow,
+        canonical: publishData.yoast.canonical,
+        primary_category: publishData.yoast.primary_category
+      };
+    } else {
+      // Generate default Yoast fields if not provided
+      yoastFields = postService.generateDefaultYoastFields(postData);
+    }
 
-    const postResult = await postService.createPost(postData, postOptions);
+    // Create post with Yoast integration
+    const result = await postService.createPostWithYoast(postData, yoastFields);
 
-    if (!postResult.success) {
-      secureLog('error', 'WordPress post creation failed', {
+    if (result.success && result.data) {
+      const processingTime = Date.now() - startTime;
+
+      const successResponse: PublishResponse = {
+        success: true,
+        data: {
+          post_id: result.data.id,
+          post_url: result.data.link,
+          post_title: result.data.title.rendered,
+          post_status: result.data.status,
+          created_at: result.data.date,
+          modified_at: result.data.modified,
+          author: result.data.author,
+          featured_media: result.data.featured_media,
+          categories: result.data.categories,
+          tags: result.data.tags,
+          yoast_applied: yoastFields ? Object.keys(yoastFields).length > 0 : false,
+          yoast_warning: (result.data as any).yoastWarning,
+          processing_time_ms: processingTime,
+          request_id: requestId
+        }
+      };
+
+      secureLog('info', 'Post published successfully with Yoast integration', {
         requestId,
-        error: postResult.error,
-        title: publishData.post.title.substring(0, 50) + '...',
+        postId: result.data.id,
+        postTitle: result.data.title.rendered,
+        postStatus: result.data.status,
+        processingTime,
+        yoastFieldsApplied: yoastFields ? Object.keys(yoastFields) : [],
+        yoastWarning: (result.data as any).yoastWarning
       });
 
+      res.status(201).json(successResponse);
+    } else {
       createErrorResponse(res, {
-        code: postResult.error?.code || 'WORDPRESS_API_ERROR',
-        message: postResult.error?.message || 'Failed to create WordPress post',
-        details: postResult.error?.details,
-        statusCode: 500,
+        code: result.error?.code || 'PUBLISH_FAILED',
+        message: result.error?.message || 'Failed to publish post',
+        details: result.error?.details || 'Unknown error occurred',
+        statusCode: result.statusCode || 500
       }, requestId);
-      return;
     }
-
-    // TODO: Handle Yoast meta fields (Task 3.3)
-    if (publishData.yoast_meta) {
-      secureLog('info', 'Yoast meta fields provided, will be handled in Task 3.3', {
-        requestId,
-        postId: postResult.postId,
-        yoastFields: Object.keys(publishData.yoast_meta),
-      });
-    }
-
-    // TODO: Handle image uploads (Task 4)
-    if (publishData.images && publishData.images.length > 0) {
-      secureLog('info', 'Images provided, will be handled in Task 4', {
-        requestId,
-        postId: postResult.postId,
-        imageCount: publishData.images.length,
-      });
-    }
-
-    // TODO: Handle categories and tags (Task 3.4)
-    if (publishData.post.categories && publishData.post.categories.length > 0) {
-      secureLog('info', 'Categories provided, will be handled in Task 3.4', {
-        requestId,
-        postId: postResult.postId,
-        categoryCount: publishData.post.categories.length,
-      });
-    }
-
-    if (publishData.post.tags && publishData.post.tags.length > 0) {
-      secureLog('info', 'Tags provided, will be handled in Task 3.4', {
-        requestId,
-        postId: postResult.postId,
-        tagCount: publishData.post.tags.length,
-      });
-    }
-
-    const processingTime = Date.now() - startTime;
-
-    secureLog('info', 'Post published successfully', {
-      requestId,
-      postId: postResult.postId,
-      postUrl: postResult.postUrl,
-      processingTime,
-      status: postResult.postData?.status,
-    });
-
-    // Return success response
-    createSuccessResponse(res, {
-      post_id: postResult.postId,
-      post_url: postResult.postUrl,
-      post_status: postResult.postData?.status || 'draft',
-      processing_time_ms: processingTime,
-      message: 'Post created successfully',
-      // TODO: Add these fields when implementing related tasks
-      yoast_meta_updated: false, // Will be true when Task 3.3 is implemented
-      images_uploaded: false, // Will be true when Task 4 is implemented
-      categories_assigned: false, // Will be true when Task 3.4 is implemented
-      tags_assigned: false, // Will be true when Task 3.4 is implemented
-    }, requestId);
-
   } catch (error) {
     const processingTime = Date.now() - startTime;
     
     secureLog('error', 'Unexpected error in publish endpoint', {
       requestId,
       error: error instanceof Error ? error.message : 'Unknown error',
-      processingTime,
-      stack: error instanceof Error ? error.stack : undefined,
+      processingTime
     });
 
     createErrorResponse(res, {
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'An unexpected error occurred while processing the request',
-      statusCode: 500,
+      code: 'INTERNAL_ERROR',
+      message: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error occurred',
+      statusCode: 500
     }, requestId);
   }
 } 

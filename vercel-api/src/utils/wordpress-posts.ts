@@ -1,11 +1,13 @@
 import { WordPressClient, createWordPressClient } from './wordpress';
 import { getEnvVars, secureLog } from './env';
+import { createYoastService, YoastService } from './wordpress-yoast';
 import { 
   WordPressError, 
   ValidationError, 
   PublishRequest, 
   WordPressPostData,
-  WordPressPostResponse 
+  WordPressPostResponse,
+  YoastMetaFields
 } from '../types';
 
 /**
@@ -49,15 +51,27 @@ export interface PostCreationResult {
 }
 
 /**
- * WordPress post creation service
+ * WordPress post creation service with Yoast integration
  */
 export class WordPressPostService {
   private client: WordPressClient;
+  private yoastService: YoastService;
   private config: PostCreationConfig;
 
-  constructor(client?: WordPressClient) {
-    this.client = client || createWordPressClient();
-    this.config = this.getDefaultConfig();
+  constructor(client: WordPressClient, config?: Partial<PostCreationConfig>) {
+    this.client = client;
+    this.yoastService = createYoastService(client);
+    this.config = {
+      defaultStatus: 'draft',
+      allowComments: true,
+      allowPings: true,
+      defaultAuthor: 1,
+      defaultFormat: 'standard',
+      maxTitleLength: 200,
+      maxExcerptLength: 160,
+      maxContentLength: 50000,
+      ...config
+    };
   }
 
   /**
@@ -432,6 +446,232 @@ export class WordPressPostService {
         } as WordPressError,
       };
     }
+  }
+
+  /**
+   * Create a new WordPress post with Yoast SEO integration
+   */
+  async createPostWithYoast(
+    postData: WordPressPostData,
+    yoastFields?: Partial<YoastMetaFields>
+  ): Promise<WordPressResponse<WordPressPostResponse>> {
+    try {
+      // Validate post data
+      const postValidation = this.validatePostData(postData);
+      if (!postValidation.valid) {
+        return {
+          success: false,
+          error: {
+            code: 'POST_VALIDATION_ERROR',
+            message: 'Post data validation failed',
+            details: postValidation.errors.join(', ')
+          },
+          statusCode: 400
+        };
+      }
+
+      // Create the post first
+      const postResponse = await this.createPost(postData);
+      if (!postResponse.success || !postResponse.data) {
+        return postResponse;
+      }
+
+      const postId = postResponse.data.id;
+
+      // Apply Yoast fields if provided
+      if (yoastFields && Object.keys(yoastFields).length > 0) {
+        const yoastResponse = await this.yoastService.applyYoastFields(postId, yoastFields);
+        
+        if (!yoastResponse.success) {
+          secureLog('warn', 'Failed to apply Yoast fields, but post was created', {
+            postId,
+            yoastError: yoastResponse.error?.message
+          });
+          
+          // Return post creation success with Yoast warning
+          return {
+            success: true,
+            data: {
+              ...postResponse.data,
+              yoastWarning: 'Post created successfully but Yoast fields could not be applied'
+            },
+            statusCode: 201
+          };
+        }
+
+        secureLog('info', 'Post created with Yoast fields', {
+          postId,
+          yoastFieldsApplied: Object.keys(yoastFields)
+        });
+      }
+
+      return postResponse;
+    } catch (error) {
+      secureLog('error', 'Error creating post with Yoast integration', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        postData: { title: postData.title, status: postData.status }
+      });
+
+      return {
+        success: false,
+        error: {
+          code: 'POST_CREATION_ERROR',
+          message: 'Error creating post with Yoast integration',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        },
+        statusCode: 500
+      };
+    }
+  }
+
+  /**
+   * Update an existing WordPress post with Yoast fields
+   */
+  async updatePostWithYoast(
+    postId: number,
+    postData: Partial<WordPressPostData>,
+    yoastFields?: Partial<YoastMetaFields>
+  ): Promise<WordPressResponse<WordPressPostResponse>> {
+    try {
+      // Validate post data
+      if (postData) {
+        const postValidation = this.validatePostData(postData as WordPressPostData, true);
+        if (!postValidation.valid) {
+          return {
+            success: false,
+            error: {
+              code: 'POST_VALIDATION_ERROR',
+              message: 'Post data validation failed',
+              details: postValidation.errors.join(', ')
+            },
+            statusCode: 400
+          };
+        }
+      }
+
+      // Update the post
+      const postResponse = await this.updatePost(postId, postData);
+      if (!postResponse.success || !postResponse.data) {
+        return postResponse;
+      }
+
+      // Apply Yoast fields if provided
+      if (yoastFields && Object.keys(yoastFields).length > 0) {
+        const yoastResponse = await this.yoastService.applyYoastFields(postId, yoastFields);
+        
+        if (!yoastResponse.success) {
+          secureLog('warn', 'Failed to apply Yoast fields during update', {
+            postId,
+            yoastError: yoastResponse.error?.message
+          });
+          
+          // Return post update success with Yoast warning
+          return {
+            success: true,
+            data: {
+              ...postResponse.data,
+              yoastWarning: 'Post updated successfully but Yoast fields could not be applied'
+            },
+            statusCode: 200
+          };
+        }
+
+        secureLog('info', 'Post updated with Yoast fields', {
+          postId,
+          yoastFieldsApplied: Object.keys(yoastFields)
+        });
+      }
+
+      return postResponse;
+    } catch (error) {
+      secureLog('error', 'Error updating post with Yoast integration', {
+        postId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      return {
+        success: false,
+        error: {
+          code: 'POST_UPDATE_ERROR',
+          message: 'Error updating post with Yoast integration',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        },
+        statusCode: 500
+      };
+    }
+  }
+
+  /**
+   * Get a post with its Yoast fields
+   */
+  async getPostWithYoast(postId: number): Promise<WordPressResponse<WordPressPostResponse & { yoast: YoastMetaFields }>> {
+    try {
+      // Get the post
+      const postResponse = await this.getPost(postId);
+      if (!postResponse.success || !postResponse.data) {
+        return postResponse as any;
+      }
+
+      // Get Yoast fields
+      const yoastResponse = await this.yoastService.getYoastFields(postId);
+      const yoastFields = yoastResponse.success ? yoastResponse.data : {
+        meta_title: '',
+        meta_description: '',
+        focus_keywords: [],
+        meta_robots_noindex: false,
+        meta_robots_nofollow: false,
+        canonical: '',
+        primary_category: null
+      };
+
+      return {
+        success: true,
+        data: {
+          ...postResponse.data,
+          yoast: yoastFields
+        },
+        statusCode: 200
+      };
+    } catch (error) {
+      secureLog('error', 'Error retrieving post with Yoast fields', {
+        postId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      return {
+        success: false,
+        error: {
+          code: 'POST_RETRIEVAL_ERROR',
+          message: 'Error retrieving post with Yoast fields',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        },
+        statusCode: 500
+      };
+    }
+  }
+
+  /**
+   * Generate default Yoast fields from post data
+   */
+  generateDefaultYoastFields(postData: WordPressPostData): Partial<YoastMetaFields> {
+    const yoastFields: Partial<YoastMetaFields> = {};
+
+    // Generate default meta title from post title
+    if (postData.title) {
+      yoastFields.meta_title = this.yoastService.generateDefaultMetaTitle(postData.title);
+    }
+
+    // Generate default meta description from excerpt or content
+    if (postData.excerpt) {
+      yoastFields.meta_description = this.yoastService.generateDefaultMetaDescription(postData.excerpt);
+    } else if (postData.content) {
+      // Extract first paragraph as excerpt
+      const contentText = postData.content.replace(/<[^>]*>/g, '').trim();
+      const firstParagraph = contentText.split('\n')[0].substring(0, 160);
+      yoastFields.meta_description = this.yoastService.generateDefaultMetaDescription(firstParagraph);
+    }
+
+    return yoastFields;
   }
 }
 
