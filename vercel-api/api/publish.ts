@@ -13,6 +13,7 @@ import { secureLog } from '../src/utils/env';
 import { createWordPressPostService } from '../src/utils/wordpress-posts';
 import ErrorHandler from '../src/middleware/error-handler';
 import { requestResponseLogger } from '../src/middleware/request-response-logger';
+import { applicationMonitor } from '../src/utils/application-monitor';
 
 async function publishHandler(
   req: AuthenticatedRequest,
@@ -159,9 +160,17 @@ async function publishHandler(
 
       res.status(201).json(successResponse);
       
+      // Record successful request and WordPress API call
+      const processingTime = Date.now() - startTime;
+      applicationMonitor.recordRequest(true, processingTime);
+      applicationMonitor.recordWordPressApiCall(true);
+      
       // Log successful response
       requestResponseLogger.logResponse(req, res, requestId, successResponse);
     } else {
+      // Record failed WordPress API call
+      applicationMonitor.recordWordPressApiCall(false);
+      
       throw new ApiError(
         result.error?.code || 'PUBLISH_FAILED',
         result.error?.message || 'Failed to publish post',
