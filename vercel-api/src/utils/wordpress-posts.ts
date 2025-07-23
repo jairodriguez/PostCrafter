@@ -62,7 +62,6 @@ export class WordPressPostService {
    * Get default post creation configuration
    */
   private getDefaultConfig(): PostCreationConfig {
-    const env = getEnvVars();
     
     return {
       defaultStatus: 'draft',

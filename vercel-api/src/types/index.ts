@@ -322,7 +322,7 @@ export interface WordPressErrorResponse {
   error: {
     code: string;
     message: string;
-    details?: string;
+    details?: string | string[];
     statusCode: number;
     wordPressCode?: string;
     retryable: boolean;
@@ -559,7 +559,12 @@ export interface TaxonomyTerm {
 
 export interface TaxonomyResponse {
   success: boolean;
-  data?: TaxonomyTerm[];
+  data?: TaxonomyTerm[] & {
+    categoryIds?: number[];
+    tagIds?: number[];
+    id?: number;
+  };
+  statusCode?: number;
   error?: {
     code: string;
     message: string;
@@ -570,6 +575,7 @@ export interface TaxonomyResponse {
 // Post creation result interface
 export interface PostCreationResult {
   success: boolean;
+  data?: WordPressPostResponse;
   postId?: number;
   postUrl?: string;
   postData?: WordPressPostResponse;
