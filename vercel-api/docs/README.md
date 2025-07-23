@@ -10,6 +10,8 @@ PostCrafter provides a seamless integration between ChatGPT and WordPress, allow
 
 - `openapi.yaml` - Complete OpenAPI 3.0 specification for the PostCrafter API
 - `authentication.md` - Comprehensive authentication guide for GPT Actions and API usage
+- `gpt-action-config.json` - Complete GPT Action configuration for ChatGPT integration
+- `gpt-action-setup.md` - Step-by-step GPT Action setup guide
 - `schemas/` - JSON Schema definitions and validation examples
 - `README.md` - This documentation file
 

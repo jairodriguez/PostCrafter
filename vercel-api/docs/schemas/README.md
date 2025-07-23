@@ -116,6 +116,9 @@ npm run validate:image-schema
 
 # Validate response schema
 npm run validate:response-schema
+
+# Validate GPT Action configuration
+npm run validate:gpt-action
 ```
 
 These scripts:

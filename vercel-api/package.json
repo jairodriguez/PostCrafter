@@ -36,7 +36,8 @@
     "validate:openapi": "node scripts/validate-openapi.js",
     "validate:schema": "node scripts/validate-post-schema.js",
     "validate:image-schema": "node scripts/validate-image-schema.js",
-    "validate:response-schema": "node scripts/validate-response-schema.js"
+    "validate:response-schema": "node scripts/validate-response-schema.js",
+    "validate:gpt-action": "node scripts/validate-gpt-action.js"
   },
   "keywords": [
     "vercel",
