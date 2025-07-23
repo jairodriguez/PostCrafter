@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getEnvVars } from '../utils/env';
+import { enhancedRateLimit } from './rate-limiter';
 
 /**
  * CORS configuration for the API
@@ -219,7 +220,7 @@ export function applyMiddleware(
   logRequest(req, res, () => {
     configureCors(req, res, () => {
       setSecurityHeaders(req, res, () => {
-        rateLimitByIP(req, res, next);
+        enhancedRateLimit(req, res, next);
       });
     });
   });

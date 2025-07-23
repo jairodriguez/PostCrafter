@@ -22,7 +22,7 @@ const ENV_VALIDATION_RULES = {
     required: true,
     minLength: 8,
     pattern: /^[a-zA-Z0-9\s]+$/,
-    message: 'WORDPRESS_APP_PASSWORD must be at least 8 characters, alphanumeric with spaces',
+    message: 'WORDPRESS_APP_PASSWORD must be at least 8 characters, alphanumeric with spaces only',
     secure: true,
   },
   GPT_API_KEY: {
@@ -34,73 +34,79 @@ const ENV_VALIDATION_RULES = {
   JWT_SECRET: {
     required: true,
     minLength: 32,
-    maxLength: 256,
     pattern: /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$/,
-    message: 'JWT_SECRET must be 32-256 characters long with valid characters',
+    message: 'JWT_SECRET must be at least 32 characters with valid characters only',
     secure: true,
   },
   NODE_ENV: {
     required: false,
-    allowedValues: ['development', 'production', 'test'],
-    defaultValue: 'development',
+    default: 'development',
+    enum: ['development', 'production', 'test'],
     message: 'NODE_ENV must be development, production, or test',
-    secure: false,
   },
   API_RATE_LIMIT_WINDOW_MS: {
     required: false,
-    defaultValue: 60000, // 1 minute
+    default: 60000,
     type: 'number',
     min: 1000,
-    max: 3600000, // 1 hour
+    max: 3600000,
     message: 'API_RATE_LIMIT_WINDOW_MS must be between 1000 and 3600000 milliseconds',
-    secure: false,
   },
   API_RATE_LIMIT_MAX_REQUESTS: {
     required: false,
-    defaultValue: 100,
+    default: 100,
     type: 'number',
     min: 1,
     max: 10000,
     message: 'API_RATE_LIMIT_MAX_REQUESTS must be between 1 and 10000',
-    secure: false,
+  },
+  ENABLE_ADAPTIVE_RATE_LIMITING: {
+    required: false,
+    default: false,
+    type: 'boolean',
+    message: 'ENABLE_ADAPTIVE_RATE_LIMITING must be true or false',
+  },
+  ADAPTIVE_RATE_LIMIT_MULTIPLIER: {
+    required: false,
+    default: 0.2,
+    type: 'number',
+    min: 0.1,
+    max: 1.0,
+    message: 'ADAPTIVE_RATE_LIMIT_MULTIPLIER must be between 0.1 and 1.0',
   },
   WORDPRESS_TIMEOUT_MS: {
     required: false,
-    defaultValue: 30000, // 30 seconds
+    default: 30000,
     type: 'number',
     min: 5000,
-    max: 120000, // 2 minutes
+    max: 120000,
     message: 'WORDPRESS_TIMEOUT_MS must be between 5000 and 120000 milliseconds',
-    secure: false,
   },
   LOG_LEVEL: {
     required: false,
-    allowedValues: ['error', 'warn', 'info', 'debug'],
-    defaultValue: 'info',
+    default: 'info',
+    enum: ['error', 'warn', 'info', 'debug'],
     message: 'LOG_LEVEL must be error, warn, info, or debug',
-    secure: false,
   },
   CORS_ORIGINS: {
     required: false,
-    defaultValue: '*',
-    message: 'CORS_ORIGINS must be a comma-separated list of allowed origins or *',
-    secure: false,
+    default: ['*'],
+    type: 'array',
+    message: 'CORS_ORIGINS must be an array of allowed origins',
   },
   MAX_IMAGE_SIZE_MB: {
     required: false,
-    defaultValue: 10,
+    default: 10,
     type: 'number',
     min: 1,
     max: 50,
     message: 'MAX_IMAGE_SIZE_MB must be between 1 and 50',
-    secure: false,
   },
   ENABLE_DEBUG_LOGGING: {
     required: false,
-    defaultValue: false,
+    default: false,
     type: 'boolean',
     message: 'ENABLE_DEBUG_LOGGING must be true or false',
-    secure: false,
   },
 } as const;
 
@@ -178,9 +184,9 @@ function validateEnvVar(
   }
 
   // Handle default values
-  if (!value && 'defaultValue' in rules) {
-    secureLog('info', `Using default value for ${name}`, { [name]: rules.defaultValue });
-    return rules.defaultValue;
+  if (!value && 'default' in rules) {
+    secureLog('info', `Using default value for ${name}`, { [name]: rules.default });
+    return rules.default;
   }
 
   if (!value) {
@@ -217,6 +223,14 @@ function validateEnvVar(
       secureLog('error', errorMsg, { [name]: value });
       throw new Error(errorMsg);
     }
+    if (rules.type === 'array') {
+      if (!Array.isArray(value)) {
+        const errorMsg = `Environment variable ${name} must be an array`;
+        secureLog('error', errorMsg, { [name]: value });
+        throw new Error(errorMsg);
+      }
+      return value;
+    }
   }
 
   // Handle string validation
@@ -234,8 +248,8 @@ function validateEnvVar(
     secureLog('error', rules.message, { [name]: maskSensitiveValue(value, name) });
     throw new Error(rules.message);
   }
-  if ('allowedValues' in rules && !rules.allowedValues.includes(value as any)) {
-    secureLog('error', rules.message, { [name]: value, allowedValues: rules.allowedValues });
+  if ('enum' in rules && !rules.enum.includes(value as any)) {
+    secureLog('error', rules.message, { [name]: value, allowedValues: rules.enum });
     throw new Error(rules.message);
   }
 
@@ -295,6 +309,8 @@ export function loadEnvVars(): EnvVars {
     NODE_ENV: envVars.NODE_ENV as EnvVars['NODE_ENV'],
     API_RATE_LIMIT_WINDOW_MS: envVars.API_RATE_LIMIT_WINDOW_MS as number,
     API_RATE_LIMIT_MAX_REQUESTS: envVars.API_RATE_LIMIT_MAX_REQUESTS as number,
+    ENABLE_ADAPTIVE_RATE_LIMITING: envVars.ENABLE_ADAPTIVE_RATE_LIMITING as boolean,
+    ADAPTIVE_RATE_LIMIT_MULTIPLIER: envVars.ADAPTIVE_RATE_LIMIT_MULTIPLIER as number,
     WORDPRESS_TIMEOUT_MS: envVars.WORDPRESS_TIMEOUT_MS as number,
     LOG_LEVEL: envVars.LOG_LEVEL as string,
     CORS_ORIGINS: corsOrigins,
