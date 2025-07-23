@@ -8,6 +8,7 @@ import {
   WordPressError 
 } from '../types';
 import { secureLog } from '../utils/env';
+import { logger } from '../utils/logger';
 import SecurityMonitoring from '../utils/monitoring';
 
 /**
@@ -87,9 +88,16 @@ export class ErrorHandler {
 
     } catch (handlingError) {
       // Fallback error handling if error handler itself fails
-      secureLog('error', 'Error handler failed', { 
-        originalError: error.message,
-        handlingError: handlingError instanceof Error ? handlingError.message : 'Unknown error'
+      logger.error('Error handler failed', {
+        requestId: ErrorHandler.requestId,
+        error: {
+          name: 'ErrorHandlerFailure',
+          message: handlingError instanceof Error ? handlingError.message : 'Unknown error'
+        },
+        metadata: {
+          originalError: error.message,
+          timestamp: new Date().toISOString()
+        }
       });
       
       res.status(500).json({
@@ -214,7 +222,7 @@ export class ErrorHandler {
   }
 
   /**
-   * Log error details securely
+   * Log error details securely using structured logger
    */
   private static logError(error: Error | ApiError, context: {
     requestId: string;
@@ -224,32 +232,33 @@ export class ErrorHandler {
     url?: string;
     statusCode: string;
   }): void {
-    const logData = {
+    const logContext = {
+      requestId: context.requestId,
+      ip: context.ip,
+      userAgent: context.userAgent,
+      method: context.method,
+      url: context.url,
       error: {
         name: error.name,
         message: error.message,
         code: error instanceof ApiError ? error.code : 'UNKNOWN',
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       },
-      context: {
-        requestId: context.requestId,
-        ip: context.ip,
-        userAgent: context.userAgent,
-        method: context.method,
-        url: context.url,
+      metadata: {
         statusCode: context.statusCode,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        errorType: error.constructor.name
       }
     };
 
     // Log with appropriate level based on error severity
     const statusCode = ErrorHandler.getStatusCode(error);
     if (statusCode >= 500) {
-      secureLog('error', 'Server error occurred', logData);
+      logger.error('Server error occurred', logContext);
     } else if (statusCode >= 400) {
-      secureLog('warn', 'Client error occurred', logData);
+      logger.warn('Client error occurred', logContext);
     } else {
-      secureLog('info', 'Request processed with error', logData);
+      logger.info('Request processed with error', logContext);
     }
   }
 
@@ -283,9 +292,16 @@ export class ErrorHandler {
       }
 
     } catch (monitoringError) {
-      secureLog('warn', 'Failed to record security event', {
-        error: monitoringError instanceof Error ? monitoringError.message : 'Unknown error',
-        originalError: error.message
+      logger.warn('Failed to record security event', {
+        requestId,
+        error: {
+          name: 'SecurityMonitoringFailure',
+          message: monitoringError instanceof Error ? monitoringError.message : 'Unknown error'
+        },
+        metadata: {
+          originalError: error.message,
+          timestamp: new Date().toISOString()
+        }
       });
     }
   }
@@ -343,17 +359,30 @@ export function errorHandlerMiddleware(
  */
 export function setupGlobalErrorHandlers(): void {
   process.on('unhandledRejection', (reason, promise) => {
-    secureLog('error', 'Unhandled Promise Rejection', {
-      reason: reason instanceof Error ? reason.message : String(reason),
-      stack: reason instanceof Error ? reason.stack : undefined,
-      promise: promise.toString()
+    logger.error('Unhandled Promise Rejection', {
+      error: {
+        name: 'UnhandledPromiseRejection',
+        message: reason instanceof Error ? reason.message : String(reason),
+        stack: reason instanceof Error ? reason.stack : undefined
+      },
+      metadata: {
+        promise: promise.toString(),
+        timestamp: new Date().toISOString()
+      }
     });
   });
 
   process.on('uncaughtException', (error) => {
-    secureLog('error', 'Uncaught Exception', {
-      error: error.message,
-      stack: error.stack
+    logger.error('Uncaught Exception', {
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+        fatal: true
+      }
     });
     
     // In production, we might want to exit gracefully
