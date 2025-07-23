@@ -12,6 +12,7 @@ import {
 import { secureLog } from '../src/utils/env';
 import { createWordPressPostService } from '../src/utils/wordpress-posts';
 import ErrorHandler from '../src/middleware/error-handler';
+import { requestResponseLogger } from '../src/middleware/request-response-logger';
 
 async function publishHandler(
   req: AuthenticatedRequest,
@@ -22,6 +23,9 @@ async function publishHandler(
 
   // Set request ID for error correlation
   ErrorHandler.setRequestId(requestId);
+  
+  // Log incoming request
+  requestResponseLogger.logRequest(req, requestId);
 
   // Apply middleware (CORS, security headers, rate limiting, authentication)
   applyMiddleware(req, res, () => {
@@ -154,6 +158,9 @@ async function publishHandler(
       });
 
       res.status(201).json(successResponse);
+      
+      // Log successful response
+      requestResponseLogger.logResponse(req, res, requestId, successResponse);
     } else {
       throw new ApiError(
         result.error?.code || 'PUBLISH_FAILED',
