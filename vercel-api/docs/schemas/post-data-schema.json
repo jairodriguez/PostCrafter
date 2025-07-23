@@ -1,0 +1,369 @@
+{
+  "$id": "https://postcrafter.com/schemas/post-data.json",
+  "title": "PostCrafter Post Data Schema",
+  "description": "Comprehensive schema for validating post data input in PostCrafter API",
+  "type": "object",
+  "required": ["title", "content"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "Post Title",
+      "description": "The title of the post. Will be used as the H1 and page title.",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!\\s*$).+",
+      "examples": [
+        "Complete Guide to API Development",
+        "10 Best Practices for WordPress Security",
+        "How to Optimize Your Website for SEO"
+      ],
+      "errorMessage": {
+        "minLength": "Title cannot be empty",
+        "maxLength": "Title must be 200 characters or less",
+        "pattern": "Title cannot be only whitespace"
+      }
+    },
+    "content": {
+      "type": "string",
+      "title": "Post Content",
+      "description": "The main content of the post. Supports HTML and Markdown formatting.",
+      "minLength": 1,
+      "maxLength": 50000,
+      "examples": [
+        "# Introduction\n\nThis is a comprehensive guide that covers...",
+        "<h2>Getting Started</h2><p>In this section, we'll explore...</p>",
+        "## Key Benefits\n\n1. **Improved Performance**\n2. **Better Security**\n3. **Enhanced User Experience**"
+      ],
+      "errorMessage": {
+        "minLength": "Content cannot be empty",
+        "maxLength": "Content must be 50,000 characters or less"
+      }
+    },
+    "excerpt": {
+      "type": "string",
+      "title": "Post Excerpt",
+      "description": "A short summary or excerpt of the post content. Used in previews and meta descriptions.",
+      "maxLength": 500,
+      "examples": [
+        "Learn the essential practices for building secure and scalable APIs.",
+        "Discover the top WordPress security practices that will protect your site from common threats.",
+        "A comprehensive guide to website optimization techniques for better search engine rankings."
+      ],
+      "errorMessage": {
+        "maxLength": "Excerpt must be 500 characters or less"
+      }
+    },
+    "status": {
+      "type": "string",
+      "title": "Post Status",
+      "description": "The publication status of the post",
+      "enum": ["draft", "publish", "private"],
+      "default": "draft",
+      "examples": ["draft", "publish", "private"],
+      "errorMessage": {
+        "enum": "Status must be one of: draft, publish, private"
+      }
+    },
+    "categories": {
+      "type": "array",
+      "title": "Post Categories",
+      "description": "Categories to assign to the post. Will be created if they don't exist.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^(?!\\s*$).+",
+        "examples": [
+          "Technology",
+          "Web Development", 
+          "WordPress",
+          "SEO",
+          "Security"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "examples": [
+        ["Technology", "Development"],
+        ["WordPress", "SEO", "Performance"],
+        ["Security", "Best Practices"]
+      ],
+      "errorMessage": {
+        "maxItems": "Cannot assign more than 10 categories",
+        "uniqueItems": "Category names must be unique"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "title": "Post Tags",
+      "description": "Tags to assign to the post. Will be created if they don't exist.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^(?!\\s*$).+",
+        "examples": [
+          "API",
+          "REST",
+          "GraphQL",
+          "Security",
+          "Performance",
+          "Best Practices"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 20,
+      "uniqueItems": true,
+      "examples": [
+        ["API", "REST", "Development"],
+        ["WordPress", "Plugin", "Security", "Best Practices"],
+        ["SEO", "Optimization", "Performance", "Analytics"]
+      ],
+      "errorMessage": {
+        "maxItems": "Cannot assign more than 20 tags",
+        "uniqueItems": "Tag names must be unique"
+      }
+    },
+    "featured_media": {
+      "type": "integer",
+      "title": "Featured Media ID",
+      "description": "WordPress media ID for the featured image",
+      "minimum": 1,
+      "examples": [123, 456, 789],
+      "errorMessage": {
+        "minimum": "Featured media ID must be a positive integer"
+      }
+    },
+    "yoast_meta": {
+      "type": "object",
+      "title": "Yoast SEO Metadata",
+      "description": "SEO metadata fields for Yoast SEO plugin integration",
+      "properties": {
+        "meta_title": {
+          "type": "string",
+          "title": "SEO Title",
+          "description": "The SEO title for search engines and social media",
+          "maxLength": 60,
+          "examples": [
+            "Complete API Development Guide 2024 | Developer Resources",
+            "WordPress Security Best Practices | Protect Your Site",
+            "SEO Optimization Tips | Boost Your Rankings"
+          ],
+          "errorMessage": {
+            "maxLength": "SEO title should be 60 characters or less for optimal display"
+          }
+        },
+        "meta_description": {
+          "type": "string",
+          "title": "Meta Description",
+          "description": "The meta description for search engines and social media previews",
+          "maxLength": 160,
+          "examples": [
+            "Learn API development best practices, security considerations, and documentation strategies in this comprehensive guide for developers.",
+            "Discover essential WordPress security practices that will protect your website from common threats and vulnerabilities.",
+            "Complete guide to SEO optimization techniques including keyword research, content optimization, and technical SEO strategies."
+          ],
+          "errorMessage": {
+            "maxLength": "Meta description should be 160 characters or less for optimal display"
+          }
+        },
+        "focus_keywords": {
+          "type": "string",
+          "title": "Focus Keywords",
+          "description": "Primary keywords for SEO optimization (comma-separated)",
+          "maxLength": 200,
+          "pattern": "^[^,]+(,[^,]+)*$",
+          "examples": [
+            "API development, REST API, API security",
+            "WordPress security, website protection, security best practices",
+            "SEO optimization, search engine optimization, website ranking"
+          ],
+          "errorMessage": {
+            "maxLength": "Focus keywords should be 200 characters or less",
+            "pattern": "Focus keywords should be comma-separated without leading/trailing commas"
+          }
+        },
+        "canonical": {
+          "type": "string",
+          "title": "Canonical URL",
+          "description": "The canonical URL for this post to prevent duplicate content issues",
+          "format": "uri",
+          "examples": [
+            "https://example.com/api-development-guide",
+            "https://myblog.com/wordpress-security-guide",
+            "https://mysite.com/seo-optimization-tips"
+          ],
+          "errorMessage": {
+            "format": "Canonical URL must be a valid HTTP/HTTPS URL"
+          }
+        },
+        "primary_category": {
+          "type": "integer",
+          "title": "Primary Category ID",
+          "description": "WordPress category ID for the primary category",
+          "minimum": 1,
+          "examples": [1, 5, 10],
+          "errorMessage": {
+            "minimum": "Primary category ID must be a positive integer"
+          }
+        },
+        "meta_robots_noindex": {
+          "type": "string",
+          "title": "Robots Noindex",
+          "description": "Whether search engines should index this page",
+          "enum": ["0", "1", ""],
+          "default": "0",
+          "examples": ["0", "1"],
+          "errorMessage": {
+            "enum": "Meta robots noindex must be '0' (index), '1' (noindex), or empty"
+          }
+        },
+        "meta_robots_nofollow": {
+          "type": "string",
+          "title": "Robots Nofollow", 
+          "description": "Whether search engines should follow links on this page",
+          "enum": ["0", "1", ""],
+          "default": "0",
+          "examples": ["0", "1"],
+          "errorMessage": {
+            "enum": "Meta robots nofollow must be '0' (follow), '1' (nofollow), or empty"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "meta_title": "Complete API Development Guide 2024",
+          "meta_description": "Learn API development best practices and security considerations.",
+          "focus_keywords": "API development, REST API, security"
+        },
+        {
+          "meta_title": "WordPress Security Best Practices",
+          "meta_description": "Essential security practices to protect your WordPress site.",
+          "focus_keywords": "WordPress security, website protection",
+          "canonical": "https://example.com/wordpress-security"
+        }
+      ]
+    },
+    "images": {
+      "type": "array",
+      "title": "Post Images",
+      "description": "Images to upload and attach to the post",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "title": "Image URL",
+            "description": "URL of the image to download and upload"
+          },
+          "base64": {
+            "type": "string",
+            "title": "Base64 Image Data",
+            "description": "Base64-encoded image data (alternative to URL)",
+            "pattern": "^data:image\\/[a-zA-Z]+;base64,"
+          },
+          "alt_text": {
+            "type": "string",
+            "title": "Alt Text",
+            "description": "Alternative text for accessibility",
+            "maxLength": 255
+          },
+          "caption": {
+            "type": "string", 
+            "title": "Image Caption",
+            "description": "Caption text for the image",
+            "maxLength": 500
+          },
+          "featured": {
+            "type": "boolean",
+            "title": "Featured Image",
+            "description": "Whether this image should be the featured image",
+            "default": false
+          },
+          "filename": {
+            "type": "string",
+            "title": "Custom Filename",
+            "description": "Custom filename for the uploaded image",
+            "maxLength": 255,
+            "pattern": "^[a-zA-Z0-9._-]+\\.[a-zA-Z]+$"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "MIME Type",
+            "description": "MIME type of the image",
+            "enum": [
+              "image/jpeg",
+              "image/jpg",
+              "image/png", 
+              "image/gif",
+              "image/webp",
+              "image/svg+xml"
+            ]
+          }
+        },
+        "oneOf": [
+          {"required": ["url"]},
+          {"required": ["base64"]}
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 10,
+      "examples": [
+        [
+          {
+            "url": "https://example.com/api-diagram.png",
+            "alt_text": "API architecture diagram",
+            "featured": true
+          }
+        ],
+        [
+          {
+            "base64": "data:image/png;base64,iVBORw0KGgo...",
+            "alt_text": "Screenshot of API response",
+            "caption": "Example API response structure"
+          }
+        ]
+      ],
+      "errorMessage": {
+        "maxItems": "Cannot include more than 10 images per post"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "title": "Complete Guide to API Development",
+      "content": "# API Development Best Practices\n\nThis comprehensive guide covers everything you need to know...",
+      "excerpt": "Learn essential API development practices and security considerations.",
+      "status": "publish",
+      "categories": ["Technology", "Development"],
+      "tags": ["API", "REST", "Best Practices"],
+      "yoast_meta": {
+        "meta_title": "Complete API Development Guide 2024",
+        "meta_description": "Learn API development best practices and security considerations in this comprehensive guide.",
+        "focus_keywords": "API development, REST API, security"
+      }
+    },
+    {
+      "title": "WordPress Security Essentials",
+      "content": "## Protecting Your WordPress Site\n\nSecurity should be a top priority...",
+      "status": "draft",
+      "categories": ["WordPress", "Security"],
+      "tags": ["Security", "Best Practices", "WordPress"],
+      "images": [
+        {
+          "url": "https://example.com/security-diagram.png",
+          "alt_text": "WordPress security layers diagram",
+          "featured": true
+        }
+      ]
+    }
+  ],
+  "errorMessage": {
+    "required": "Both title and content are required fields",
+    "additionalProperties": "Only specified properties are allowed"
+  }
+}

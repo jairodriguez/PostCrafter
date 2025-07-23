@@ -1,0 +1,449 @@
+{
+  "validExamples": [
+    {
+      "name": "Minimal Valid Post",
+      "description": "Basic post with only required fields",
+      "data": {
+        "title": "Hello World",
+        "content": "This is my first post content."
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with minimal required fields"
+    },
+    {
+      "name": "Complete Blog Post",
+      "description": "Full-featured blog post with all optional fields",
+      "data": {
+        "title": "Complete Guide to Modern Web Development",
+        "content": "# Introduction\n\nWeb development has evolved significantly over the past decade. In this comprehensive guide, we'll explore the latest trends, tools, and techniques that every developer should know.\n\n## Key Technologies\n\n1. **Frontend Frameworks**\n   - React\n   - Vue.js\n   - Angular\n\n2. **Backend Technologies**\n   - Node.js\n   - Python\n   - Go\n\n## Best Practices\n\nFollowing industry best practices is crucial for building maintainable and scalable applications.",
+        "excerpt": "Explore the latest trends, tools, and techniques in modern web development that every developer should master.",
+        "status": "publish",
+        "categories": ["Web Development", "Technology", "Programming"],
+        "tags": ["JavaScript", "React", "Node.js", "Best Practices", "Modern Development"],
+        "yoast_meta": {
+          "meta_title": "Modern Web Development Guide 2024 | Complete Tutorial",
+          "meta_description": "Master modern web development with our comprehensive guide covering React, Node.js, best practices, and the latest industry trends.",
+          "focus_keywords": "web development, React, Node.js, JavaScript",
+          "canonical": "https://example.com/modern-web-development-guide"
+        },
+        "images": [
+          {
+            "url": "https://example.com/web-dev-trends.png",
+            "alt_text": "Modern web development technology stack diagram",
+            "caption": "Overview of popular web development technologies in 2024",
+            "featured": true
+          }
+        ]
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with all fields properly formatted"
+    },
+    {
+      "name": "SEO-Optimized Article",
+      "description": "Article with comprehensive SEO metadata",
+      "data": {
+        "title": "10 WordPress Security Best Practices Every Site Owner Should Know",
+        "content": "## Why WordPress Security Matters\n\nWordPress powers over 40% of all websites on the internet, making it a prime target for hackers and malicious attacks. Implementing proper security measures is not just recommended—it's essential for protecting your website, your users' data, and your online reputation.\n\n### 1. Keep Everything Updated\n\nRegularly update WordPress core, themes, and plugins to patch security vulnerabilities.\n\n### 2. Use Strong Authentication\n\nImplement two-factor authentication and strong password policies.\n\n### 3. Secure Your Login\n\nLimit login attempts and change the default admin username.",
+        "excerpt": "Protect your WordPress website with these essential security practices that every site owner should implement immediately.",
+        "status": "draft",
+        "categories": ["WordPress", "Security", "Web Development"],
+        "tags": ["WordPress Security", "Website Protection", "Cybersecurity", "Best Practices", "Site Maintenance"],
+        "yoast_meta": {
+          "meta_title": "WordPress Security Guide | 10 Essential Best Practices",
+          "meta_description": "Secure your WordPress site with these 10 essential security practices. Protect against hackers, malware, and data breaches effectively.",
+          "focus_keywords": "WordPress security, website security, WordPress protection",
+          "meta_robots_noindex": "0",
+          "meta_robots_nofollow": "0",
+          "primary_category": 1
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with comprehensive SEO optimization"
+    },
+    {
+      "name": "Multiple Images Post",
+      "description": "Post with multiple images including featured image",
+      "data": {
+        "title": "Visual Guide to API Architecture Patterns",
+        "content": "# Understanding API Architecture\n\nThis visual guide will walk you through the most common API architecture patterns used in modern software development.\n\n## REST Architecture\n\nREpresentational State Transfer (REST) is the most widely adopted architectural style for web APIs.\n\n## GraphQL Approach\n\nGraphQL provides a more flexible approach to API design and data fetching.",
+        "excerpt": "A comprehensive visual guide to API architecture patterns including REST, GraphQL, and microservices approaches.",
+        "status": "publish",
+        "categories": ["API Development", "Software Architecture"],
+        "tags": ["API", "REST", "GraphQL", "Architecture", "Development"],
+        "images": [
+          {
+            "url": "https://example.com/rest-architecture.png",
+            "alt_text": "REST API architecture diagram showing client-server communication",
+            "caption": "REST architecture follows a stateless, client-server communication model",
+            "featured": true
+          },
+          {
+            "url": "https://example.com/graphql-diagram.png",
+            "alt_text": "GraphQL query and response flow diagram",
+            "caption": "GraphQL allows clients to request exactly the data they need"
+          },
+          {
+            "url": "https://example.com/microservices-overview.png",
+            "alt_text": "Microservices architecture pattern illustration",
+            "caption": "Microservices break down applications into smaller, manageable services"
+          }
+        ]
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with multiple properly formatted images"
+    },
+    {
+      "name": "Base64 Image Post",
+      "description": "Post with base64-encoded image data",
+      "data": {
+        "title": "Quick Tutorial: Creating Custom Icons",
+        "content": "# Creating Custom Icons\n\nIn this tutorial, we'll create a simple custom icon and show how to implement it in your projects.",
+        "excerpt": "Learn how to create and implement custom icons for your web projects.",
+        "status": "draft",
+        "categories": ["Design", "Tutorials"],
+        "tags": ["Icons", "Design", "Tutorial"],
+        "images": [
+          {
+            "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+            "alt_text": "Simple custom icon example",
+            "caption": "A basic custom icon created in this tutorial",
+            "filename": "custom-icon-example.png",
+            "mime_type": "image/png"
+          }
+        ]
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with valid base64 image data"
+    }
+  ],
+  "invalidExamples": [
+    {
+      "name": "Missing Required Fields",
+      "description": "Post missing required title field",
+      "data": {
+        "content": "This post has content but no title."
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Title is required"],
+      "notes": "Should fail due to missing required title field"
+    },
+    {
+      "name": "Empty Title",
+      "description": "Post with empty string title",
+      "data": {
+        "title": "",
+        "content": "This post has an empty title."
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Title cannot be empty"],
+      "notes": "Should fail due to empty title"
+    },
+    {
+      "name": "Whitespace Only Title",
+      "description": "Post with whitespace-only title",
+      "data": {
+        "title": "   \n\t   ",
+        "content": "This post has a whitespace-only title."
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Title cannot be only whitespace"],
+      "notes": "Should fail due to whitespace-only title"
+    },
+    {
+      "name": "Title Too Long",
+      "description": "Post with title exceeding 200 characters",
+      "data": {
+        "title": "This is an extremely long title that exceeds the maximum allowed length of 200 characters. It keeps going and going with more text to demonstrate what happens when a title is way too long for the system to handle properly and efficiently.",
+        "content": "Content for the post with an overly long title."
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Title must be 200 characters or less"],
+      "notes": "Should fail due to title length exceeding 200 characters"
+    },
+    {
+      "name": "Content Too Long",
+      "description": "Post with content exceeding 50,000 characters",
+      "data": {
+        "title": "Valid Title",
+        "content": "This content would be extremely long, exceeding 50,000 characters. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?"
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Content must be 50,000 characters or less"],
+      "notes": "Should fail due to content length exceeding limit"
+    },
+    {
+      "name": "Invalid Status",
+      "description": "Post with invalid status value",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "status": "published"
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Status must be one of: draft, publish, private"],
+      "notes": "Should fail due to invalid status value"
+    },
+    {
+      "name": "Too Many Categories",
+      "description": "Post with more than 10 categories",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "categories": [
+          "Cat1", "Cat2", "Cat3", "Cat4", "Cat5", 
+          "Cat6", "Cat7", "Cat8", "Cat9", "Cat10", "Cat11"
+        ]
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Cannot assign more than 10 categories"],
+      "notes": "Should fail due to exceeding category limit"
+    },
+    {
+      "name": "Too Many Tags",
+      "description": "Post with more than 20 tags",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "tags": [
+          "Tag1", "Tag2", "Tag3", "Tag4", "Tag5", "Tag6", "Tag7", "Tag8", "Tag9", "Tag10",
+          "Tag11", "Tag12", "Tag13", "Tag14", "Tag15", "Tag16", "Tag17", "Tag18", "Tag19", "Tag20", "Tag21"
+        ]
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Cannot assign more than 20 tags"],
+      "notes": "Should fail due to exceeding tag limit"
+    },
+    {
+      "name": "Duplicate Categories",
+      "description": "Post with duplicate category names",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "categories": ["Technology", "Development", "Technology"]
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Category names must be unique"],
+      "notes": "Should fail due to duplicate categories"
+    },
+    {
+      "name": "Duplicate Tags",
+      "description": "Post with duplicate tag names",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "tags": ["JavaScript", "React", "JavaScript"]
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Tag names must be unique"],
+      "notes": "Should fail due to duplicate tags"
+    },
+    {
+      "name": "SEO Title Too Long",
+      "description": "Post with SEO title exceeding 60 characters",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "yoast_meta": {
+          "meta_title": "This SEO title is way too long and exceeds the recommended 60 character limit for optimal search engine display"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["SEO title should be 60 characters or less for optimal display"],
+      "notes": "Should fail due to SEO title length"
+    },
+    {
+      "name": "Meta Description Too Long",
+      "description": "Post with meta description exceeding 160 characters",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "yoast_meta": {
+          "meta_description": "This meta description is far too long and exceeds the recommended 160 character limit for optimal search engine display and social media previews which could impact SEO performance"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Meta description should be 160 characters or less for optimal display"],
+      "notes": "Should fail due to meta description length"
+    },
+    {
+      "name": "Invalid Canonical URL",
+      "description": "Post with malformed canonical URL",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "yoast_meta": {
+          "canonical": "not-a-valid-url"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Canonical URL must be a valid HTTP/HTTPS URL"],
+      "notes": "Should fail due to invalid URL format"
+    },
+    {
+      "name": "Invalid Robots Setting",
+      "description": "Post with invalid robots noindex value",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "yoast_meta": {
+          "meta_robots_noindex": "true"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Meta robots noindex must be '0' (index), '1' (noindex), or empty"],
+      "notes": "Should fail due to invalid robots setting"
+    },
+    {
+      "name": "Too Many Images",
+      "description": "Post with more than 10 images",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "images": [
+          {"url": "https://example.com/image1.jpg"},
+          {"url": "https://example.com/image2.jpg"},
+          {"url": "https://example.com/image3.jpg"},
+          {"url": "https://example.com/image4.jpg"},
+          {"url": "https://example.com/image5.jpg"},
+          {"url": "https://example.com/image6.jpg"},
+          {"url": "https://example.com/image7.jpg"},
+          {"url": "https://example.com/image8.jpg"},
+          {"url": "https://example.com/image9.jpg"},
+          {"url": "https://example.com/image10.jpg"},
+          {"url": "https://example.com/image11.jpg"}
+        ]
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Cannot include more than 10 images per post"],
+      "notes": "Should fail due to exceeding image limit"
+    },
+    {
+      "name": "Image Missing URL and Base64",
+      "description": "Image object missing both URL and base64 data",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "images": [
+          {
+            "alt_text": "Image with no source"
+          }
+        ]
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Image must have either URL or base64 data"],
+      "notes": "Should fail due to missing image source"
+    },
+    {
+      "name": "Invalid Image URL",
+      "description": "Image with malformed URL",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "images": [
+          {
+            "url": "not-a-valid-url",
+            "alt_text": "Invalid URL image"
+          }
+        ]
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Image URL must be valid"],
+      "notes": "Should fail due to invalid image URL"
+    },
+    {
+      "name": "Invalid Base64 Format",
+      "description": "Image with malformed base64 data",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "images": [
+          {
+            "base64": "invalid-base64-data",
+            "alt_text": "Invalid base64 image"
+          }
+        ]
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Base64 data must start with data:image/ prefix"],
+      "notes": "Should fail due to invalid base64 format"
+    },
+    {
+      "name": "Invalid MIME Type",
+      "description": "Image with unsupported MIME type",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "images": [
+          {
+            "url": "https://example.com/image.bmp",
+            "mime_type": "image/bmp",
+            "alt_text": "Unsupported format image"
+          }
+        ]
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["MIME type must be one of the supported image formats"],
+      "notes": "Should fail due to unsupported MIME type"
+    }
+  ],
+  "edgeCases": [
+    {
+      "name": "Unicode Characters",
+      "description": "Post with Unicode characters in title and content",
+      "data": {
+        "title": "Guide to Émojis and Special Characters 🚀",
+        "content": "This guide covers Unicode support: café, naïve, résumé, and emojis 😊 🎉 📱"
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should handle Unicode characters properly"
+    },
+    {
+      "name": "HTML in Content",
+      "description": "Post with HTML markup in content",
+      "data": {
+        "title": "HTML Content Example",
+        "content": "<h2>Section Title</h2>\n<p>This is a paragraph with <strong>bold text</strong> and <a href=\"https://example.com\">a link</a>.</p>\n<ul>\n<li>List item 1</li>\n<li>List item 2</li>\n</ul>"
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should allow HTML content that will be sanitized"
+    },
+    {
+      "name": "Markdown Content",
+      "description": "Post with Markdown formatting",
+      "data": {
+        "title": "Markdown Example",
+        "content": "# Main Heading\n\n## Subheading\n\nThis is **bold** and this is *italic*.\n\n- List item 1\n- List item 2\n\n[Link to example](https://example.com)\n\n```javascript\nconsole.log('Code block');\n```"
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should allow Markdown formatting"
+    },
+    {
+      "name": "Empty Optional Arrays",
+      "description": "Post with empty categories and tags arrays",
+      "data": {
+        "title": "Valid Title",
+        "content": "Valid content.",
+        "categories": [],
+        "tags": []
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should allow empty optional arrays"
+    },
+    {
+      "name": "Boundary Length Values",
+      "description": "Post with values at boundary lengths", 
+      "data": {
+        "title": "This title is exactly 200 characters long and should pass validation as it meets the maximum allowed length requirement for post titles in the PostCrafter API schema definition and specifications",
+        "content": "This is test content that represents a typical blog post with sufficient length to test content validation. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+        "excerpt": "This is a test excerpt that is exactly at the maximum allowed length for excerpt validation testing purposes. It should pass validation as it meets the character limit requirements for this field in the schema definition.",
+        "yoast_meta": {
+          "meta_title": "SEO Title That Is Exactly Sixty Characters Long For Testing",
+          "meta_description": "This meta description is exactly one hundred sixty characters long for testing the maximum allowed length validation in the schema def",
+          "focus_keywords": "keyword one, keyword two, keyword three, keyword four, keyword five, keyword six, keyword seven, keyword eight, keyword nine, keyword ten, keyword eleven, keyword twelve"
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should allow values at reasonable boundary lengths"
+    }
+  ]
+}
