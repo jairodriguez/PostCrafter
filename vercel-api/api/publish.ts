@@ -11,89 +11,60 @@ import {
 } from '../src/utils/validation';
 import { secureLog } from '../src/utils/env';
 import { createWordPressPostService } from '../src/utils/wordpress-posts';
+import ErrorHandler from '../src/middleware/error-handler';
 
-// Helper function to create error response
-function createErrorResponse(
-  res: VercelResponse,
-  error: ApiError,
-  requestId?: string
-): void {
-  const errorResponse: PublishResponse = {
-    success: false,
-    error: {
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      requestId
-    }
-  };
-
-  res.status(error.statusCode || 500).json(errorResponse);
-}
-
-export default async function handler(
+async function publishHandler(
   req: AuthenticatedRequest,
   res: VercelResponse
 ): Promise<void> {
   const startTime = Date.now();
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  try {
-    // Apply middleware (CORS, security headers, rate limiting, authentication)
-    applyMiddleware(req, res, () => {
-      // Middleware will handle the request
-    });
+  // Set request ID for error correlation
+  ErrorHandler.setRequestId(requestId);
 
-    // Only allow POST requests
-    if (req.method !== 'POST') {
-      res.setHeader('Allow', ['POST']);
-      createErrorResponse(res, {
-        code: 'METHOD_NOT_ALLOWED',
-        message: `Method ${req.method} not allowed`,
-        statusCode: 405
-      }, requestId);
-      return;
-    }
+  // Apply middleware (CORS, security headers, rate limiting, authentication)
+  applyMiddleware(req, res, () => {
+    // Middleware will handle the request
+  });
 
-    // Validate request body
-    const validationResult = validateRequest(req, securePublishRequestSchema);
-    if (!validationResult.valid) {
-      createErrorResponse(res, {
-        code: 'VALIDATION_ERROR',
-        message: 'Request validation failed',
-        details: validationResult.errors.join(', '),
-        statusCode: 400
-      }, requestId);
-      return;
-    }
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
+    throw new ApiError('METHOD_NOT_ALLOWED', 'Method not allowed', 405);
+  }
 
-    const publishData: PublishRequest = validationResult.data;
+  // Validate request body
+  const validationResult = validateRequest(req, securePublishRequestSchema);
+  if (!validationResult.valid) {
+    throw ErrorHandler.formatValidationError(validationResult.errors);
+  }
 
-    // Check for malicious content
-    const maliciousContent = detectMaliciousContent(publishData);
-    if (maliciousContent.detected) {
-      createErrorResponse(res, {
-        code: 'SECURITY_VIOLATION',
-        message: 'Malicious content detected',
-        details: `Detected patterns: ${maliciousContent.patterns.join(', ')}`,
-        statusCode: 400
-      }, requestId);
-      return;
-    }
+  const publishData: PublishRequest = validationResult.data;
 
-    // Validate image data if provided
-    if (publishData.images && publishData.images.length > 0) {
-      for (const image of publishData.images) {
-        const imageValidation = validateImageData(image);
-        if (!imageValidation.valid) {
-          createErrorResponse(res, {
-            code: 'IMAGE_VALIDATION_ERROR',
-            message: 'Image validation failed',
-            details: imageValidation.errors.join(', '),
-            statusCode: 400
-          }, requestId);
-          return;
-        }
+  // Check for malicious content
+  const maliciousContent = detectMaliciousContent(publishData);
+  if (maliciousContent.detected) {
+    throw new ApiError(
+      'SECURITY_VIOLATION', 
+      'Malicious content detected', 
+      400, 
+      `Detected patterns: ${maliciousContent.patterns.join(', ')}`
+    );
+  }
+
+  // Validate image data if provided
+  if (publishData.images && publishData.images.length > 0) {
+    for (const image of publishData.images) {
+      const imageValidation = validateImageData(image);
+      if (!imageValidation.valid) {
+        throw new ApiError(
+          'IMAGE_VALIDATION_ERROR',
+          'Image validation failed',
+          400,
+          imageValidation.errors.join(', ')
+        );
+      }
       }
     }
 
@@ -184,27 +155,14 @@ export default async function handler(
 
       res.status(201).json(successResponse);
     } else {
-      createErrorResponse(res, {
-        code: result.error?.code || 'PUBLISH_FAILED',
-        message: result.error?.message || 'Failed to publish post',
-        details: result.error?.details || 'Unknown error occurred',
-        statusCode: result.statusCode || 500
-      }, requestId);
+      throw new ApiError(
+        result.error?.code || 'PUBLISH_FAILED',
+        result.error?.message || 'Failed to publish post',
+        result.statusCode || 500,
+        result.error?.details || 'Unknown error occurred'
+      );
     }
-  } catch (error) {
-    const processingTime = Date.now() - startTime;
-    
-    secureLog('error', 'Unexpected error in publish endpoint', {
-      requestId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      processingTime
-    });
+}
 
-    createErrorResponse(res, {
-      code: 'INTERNAL_ERROR',
-      message: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error occurred',
-      statusCode: 500
-    }, requestId);
-  }
-} 
+// Export the handler wrapped with error handling
+export default ErrorHandler.asyncWrapper(publishHandler); 
