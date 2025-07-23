@@ -107,8 +107,6 @@ export default async function handler(
       excerpt: publishData.post.excerpt || '',
       status: publishData.post.status || 'draft',
       author: publishData.post.author || 1,
-      categories: publishData.post.categories || [],
-      tags: publishData.post.tags || [],
       featured_media: publishData.post.featured_media || 0,
       comment_status: publishData.post.comment_status || 'open',
       ping_status: publishData.post.ping_status || 'open',
@@ -135,8 +133,17 @@ export default async function handler(
       yoastFields = postService.generateDefaultYoastFields(postData);
     }
 
-    // Create post with Yoast integration
-    const result = await postService.createPostWithYoast(postData, yoastFields);
+    // Prepare categories and tags
+    const categoryNames = publishData.post.categories || [];
+    const tagNames = publishData.post.tags || [];
+
+    // Create post with Yoast and taxonomy integration
+    const result = await postService.createPostWithYoastAndTaxonomy(
+      postData,
+      yoastFields,
+      categoryNames,
+      tagNames
+    );
 
     if (result.success && result.data) {
       const processingTime = Date.now() - startTime;
@@ -152,23 +159,27 @@ export default async function handler(
           modified_at: result.data.modified,
           author: result.data.author,
           featured_media: result.data.featured_media,
-          categories: result.data.categories,
-          tags: result.data.tags,
+          categories: result.data.categories || [],
+          tags: result.data.tags || [],
           yoast_applied: yoastFields ? Object.keys(yoastFields).length > 0 : false,
           yoast_warning: (result.data as any).yoastWarning,
+          taxonomy_processing_time_ms: (result.data as any).taxonomy_processing_time_ms,
           processing_time_ms: processingTime,
           request_id: requestId
         }
       };
 
-      secureLog('info', 'Post published successfully with Yoast integration', {
+      secureLog('info', 'Post published successfully with Yoast and taxonomy integration', {
         requestId,
         postId: result.data.id,
         postTitle: result.data.title.rendered,
         postStatus: result.data.status,
         processingTime,
+        categoryCount: result.data.categories?.length || 0,
+        tagCount: result.data.tags?.length || 0,
         yoastFieldsApplied: yoastFields ? Object.keys(yoastFields) : [],
-        yoastWarning: (result.data as any).yoastWarning
+        yoastWarning: (result.data as any).yoastWarning,
+        taxonomyProcessingTime: (result.data as any).taxonomy_processing_time_ms
       });
 
       res.status(201).json(successResponse);

@@ -1,6 +1,7 @@
 import { WordPressClient, createWordPressClient } from './wordpress';
 import { getEnvVars, secureLog } from './env';
 import { createYoastService, YoastService } from './wordpress-yoast';
+import { createWordPressTaxonomyService, WordPressTaxonomyService } from './wordpress-taxonomy';
 import { 
   WordPressError, 
   ValidationError, 
@@ -51,16 +52,18 @@ export interface PostCreationResult {
 }
 
 /**
- * WordPress post creation service with Yoast integration
+ * WordPress post creation service with Yoast and taxonomy integration
  */
 export class WordPressPostService {
   private client: WordPressClient;
   private yoastService: YoastService;
+  private taxonomyService: WordPressTaxonomyService;
   private config: PostCreationConfig;
 
   constructor(client: WordPressClient, config?: Partial<PostCreationConfig>) {
     this.client = client;
     this.yoastService = createYoastService(client);
+    this.taxonomyService = createWordPressTaxonomyService(client);
     this.config = {
       defaultStatus: 'draft',
       allowComments: true,
@@ -672,6 +675,237 @@ export class WordPressPostService {
     }
 
     return yoastFields;
+  }
+
+  /**
+   * Create post with categories and tags
+   */
+  async createPostWithTaxonomy(
+    postData: WordPressPostData,
+    categoryNames?: string[],
+    tagNames?: string[],
+    options?: PostCreationOptions
+  ): Promise<WordPressPostResponse> {
+    try {
+      const startTime = Date.now();
+      const requestId = `post_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      secureLog('info', 'Creating post with taxonomy', {
+        requestId,
+        title: postData.title.substring(0, 50) + '...',
+        categoryCount: categoryNames?.length || 0,
+        tagCount: tagNames?.length || 0
+      });
+
+      // Process categories if provided
+      let categoryIds: number[] = [];
+      if (categoryNames && categoryNames.length > 0) {
+        const categoryResult = await this.taxonomyService.getOrCreateCategories(categoryNames);
+        if (!categoryResult.success) {
+          return {
+            success: false,
+            error: {
+              code: categoryResult.error?.code || 'CATEGORY_PROCESSING_ERROR',
+              message: categoryResult.error?.message || 'Failed to process categories',
+              details: categoryResult.error?.details || 'Unknown error'
+            },
+            statusCode: categoryResult.statusCode || 500
+          };
+        }
+        categoryIds = categoryResult.data.categoryIds;
+      }
+
+      // Process tags if provided
+      let tagIds: number[] = [];
+      if (tagNames && tagNames.length > 0) {
+        const tagResult = await this.taxonomyService.getOrCreateTags(tagNames);
+        if (!tagResult.success) {
+          return {
+            success: false,
+            error: {
+              code: tagResult.error?.code || 'TAG_PROCESSING_ERROR',
+              message: tagResult.error?.message || 'Failed to process tags',
+              details: tagResult.error?.details || 'Unknown error'
+            },
+            statusCode: tagResult.statusCode || 500
+          };
+        }
+        tagIds = tagResult.data.tagIds;
+      }
+
+      // Create post with taxonomy
+      const postResult = await this.createPost(postData, {
+        ...options,
+        categories: categoryIds,
+        tags: tagIds
+      });
+
+      if (postResult.success && postResult.data) {
+        const processingTime = Date.now() - startTime;
+
+        secureLog('info', 'Post created successfully with taxonomy', {
+          requestId,
+          postId: postResult.data.id,
+          postTitle: postResult.data.title.rendered,
+          categoryCount: categoryIds.length,
+          tagCount: tagIds.length,
+          processingTime
+        });
+
+        return {
+          success: true,
+          data: {
+            ...postResult.data,
+            categories: categoryIds,
+            tags: tagIds,
+            taxonomy_processing_time_ms: processingTime
+          },
+          statusCode: 201
+        };
+      } else {
+        return postResult;
+      }
+    } catch (error) {
+      secureLog('error', 'Error creating post with taxonomy', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        postData: { title: postData.title.substring(0, 50) + '...' }
+      });
+
+      return {
+        success: false,
+        error: {
+          code: 'POST_CREATION_ERROR',
+          message: 'Error creating post with taxonomy',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        },
+        statusCode: 500
+      };
+    }
+  }
+
+  /**
+   * Create post with Yoast and taxonomy integration
+   */
+  async createPostWithYoastAndTaxonomy(
+    postData: WordPressPostData,
+    yoastFields?: YoastMetaFields,
+    categoryNames?: string[],
+    tagNames?: string[],
+    options?: PostCreationOptions
+  ): Promise<WordPressPostResponse> {
+    try {
+      const startTime = Date.now();
+      const requestId = `post_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      secureLog('info', 'Creating post with Yoast and taxonomy', {
+        requestId,
+        title: postData.title.substring(0, 50) + '...',
+        hasYoastFields: !!yoastFields,
+        categoryCount: categoryNames?.length || 0,
+        tagCount: tagNames?.length || 0
+      });
+
+      // Process categories if provided
+      let categoryIds: number[] = [];
+      if (categoryNames && categoryNames.length > 0) {
+        const categoryResult = await this.taxonomyService.getOrCreateCategories(categoryNames);
+        if (!categoryResult.success) {
+          return {
+            success: false,
+            error: {
+              code: categoryResult.error?.code || 'CATEGORY_PROCESSING_ERROR',
+              message: categoryResult.error?.message || 'Failed to process categories',
+              details: categoryResult.error?.details || 'Unknown error'
+            },
+            statusCode: categoryResult.statusCode || 500
+          };
+        }
+        categoryIds = categoryResult.data.categoryIds;
+      }
+
+      // Process tags if provided
+      let tagIds: number[] = [];
+      if (tagNames && tagNames.length > 0) {
+        const tagResult = await this.taxonomyService.getOrCreateTags(tagNames);
+        if (!tagResult.success) {
+          return {
+            success: false,
+            error: {
+              code: tagResult.error?.code || 'TAG_PROCESSING_ERROR',
+              message: tagResult.error?.message || 'Failed to process tags',
+              details: tagResult.error?.details || 'Unknown error'
+            },
+            statusCode: tagResult.statusCode || 500
+          };
+        }
+        tagIds = tagResult.data.tagIds;
+      }
+
+      // Create post with taxonomy
+      const postResult = await this.createPost(postData, {
+        ...options,
+        categories: categoryIds,
+        tags: tagIds
+      });
+
+      if (!postResult.success || !postResult.data) {
+        return postResult;
+      }
+
+      // Apply Yoast fields if provided
+      let yoastWarning = null;
+      if (yoastFields) {
+        const yoastResult = await this.yoastService.applyYoastFields(postResult.data.id, yoastFields);
+        if (!yoastResult.success) {
+          yoastWarning = `Yoast fields could not be applied: ${yoastResult.error?.message}`;
+          secureLog('warn', 'Yoast fields application failed', {
+            requestId,
+            postId: postResult.data.id,
+            error: yoastResult.error?.details
+          });
+        }
+      }
+
+      const processingTime = Date.now() - startTime;
+
+      secureLog('info', 'Post created successfully with Yoast and taxonomy', {
+        requestId,
+        postId: postResult.data.id,
+        postTitle: postResult.data.title.rendered,
+        categoryCount: categoryIds.length,
+        tagCount: tagIds.length,
+        yoastApplied: !!yoastFields,
+        yoastWarning,
+        processingTime
+      });
+
+      return {
+        success: true,
+        data: {
+          ...postResult.data,
+          categories: categoryIds,
+          tags: tagIds,
+          yoastWarning,
+          taxonomy_processing_time_ms: processingTime
+        },
+        statusCode: 201
+      };
+    } catch (error) {
+      secureLog('error', 'Error creating post with Yoast and taxonomy', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        postData: { title: postData.title.substring(0, 50) + '...' }
+      });
+
+      return {
+        success: false,
+        error: {
+          code: 'POST_CREATION_ERROR',
+          message: 'Error creating post with Yoast and taxonomy',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        },
+        statusCode: 500
+      };
+    }
   }
 }
 
