@@ -1,0 +1,393 @@
+name: PostCrafter CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '18'
+  TEST_API_URL: 'http://localhost:3000'
+  TEST_WORDPRESS_URL: 'https://test-wp.postcrafter.com'
+  TEST_API_KEY: 'test-ci-api-key'
+
+jobs:
+  lint:
+    name: 🔍 Lint & Type Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: vercel-api/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./vercel-api
+      run: npm ci
+    
+    - name: Run ESLint
+      working-directory: ./vercel-api
+      run: npm run lint
+    
+    - name: Run TypeScript type check
+      working-directory: ./vercel-api
+      run: npm run type-check
+    
+    - name: Check code formatting
+      working-directory: ./vercel-api
+      run: npm run format:check
+
+  unit-tests:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: vercel-api/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./vercel-api
+      run: npm ci
+    
+    - name: Run unit tests
+      working-directory: ./vercel-api
+      run: npm run test:unit
+      env:
+        CI: true
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./vercel-api/coverage/coverage-final.json
+        flags: unit
+        name: unit-tests
+
+  integration-tests:
+    name: 🔗 Integration Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    services:
+      wordpress:
+        image: wordpress:latest
+        env:
+          WORDPRESS_DB_HOST: mysql
+          WORDPRESS_DB_USER: wordpress
+          WORDPRESS_DB_PASSWORD: wordpress
+          WORDPRESS_DB_NAME: wordpress
+        ports:
+          - 8080:80
+        options: --health-cmd "curl -f http://localhost:80" --health-interval 30s --health-timeout 10s --health-retries 5
+      
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: wordpress
+          MYSQL_USER: wordpress
+          MYSQL_PASSWORD: wordpress
+        ports:
+          - 3306:3306
+        options: --health-cmd "mysqladmin ping" --health-interval 30s --health-timeout 10s --health-retries 5
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: vercel-api/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./vercel-api
+      run: npm ci
+    
+    - name: Wait for WordPress
+      run: |
+        timeout 300 bash -c 'until curl -f http://localhost:8080; do sleep 5; done'
+    
+    - name: Setup WordPress for testing
+      run: |
+        # Install WP-CLI
+        curl -O https://raw.githubusercontent.com/wp-cli/wp-cli/v2.8.1/utils/wp-completion.bash
+        curl -O https://raw.githubusercontent.com/wp-cli/wp-cli/v2.8.1/utils/wp-cli.phar
+        chmod +x wp-cli.phar
+        sudo mv wp-cli.phar /usr/local/bin/wp
+        
+        # Configure WordPress
+        wp core install \
+          --url=http://localhost:8080 \
+          --title="Test Site" \
+          --admin_user=admin \
+          --admin_password=admin \
+          --admin_email=admin@test.com \
+          --path=/var/www/html \
+          --allow-root
+        
+        # Install Yoast SEO plugin (mock for testing)
+        wp plugin install wordpress-seo --activate --path=/var/www/html --allow-root || true
+    
+    - name: Start test API server
+      working-directory: ./vercel-api
+      run: |
+        npm run build
+        npm run start &
+        sleep 10
+      env:
+        NODE_ENV: test
+        TEST_API_URL: ${{ env.TEST_API_URL }}
+        TEST_WORDPRESS_URL: http://localhost:8080
+        TEST_API_KEY: ${{ env.TEST_API_KEY }}
+    
+    - name: Run integration tests
+      working-directory: ./vercel-api
+      run: npm run test:integration
+      env:
+        CI: true
+        TEST_API_URL: ${{ env.TEST_API_URL }}
+        TEST_WORDPRESS_URL: http://localhost:8080
+        TEST_API_KEY: ${{ env.TEST_API_KEY }}
+    
+    - name: Upload integration test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: integration-test-results
+        path: vercel-api/test-results/
+
+  e2e-tests:
+    name: 🚀 End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    
+    services:
+      wordpress:
+        image: wordpress:latest
+        env:
+          WORDPRESS_DB_HOST: mysql
+          WORDPRESS_DB_USER: wordpress
+          WORDPRESS_DB_PASSWORD: wordpress
+          WORDPRESS_DB_NAME: wordpress
+        ports:
+          - 8080:80
+        options: --health-cmd "curl -f http://localhost:80" --health-interval 30s --health-timeout 10s --health-retries 5
+      
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: wordpress
+          MYSQL_USER: wordpress
+          MYSQL_PASSWORD: wordpress
+        ports:
+          - 3306:3306
+        options: --health-cmd "mysqladmin ping" --health-interval 30s --health-timeout 10s --health-retries 5
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: vercel-api/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./vercel-api
+      run: npm ci
+    
+    - name: Wait for WordPress
+      run: |
+        timeout 300 bash -c 'until curl -f http://localhost:8080; do sleep 5; done'
+    
+    - name: Setup WordPress with mu-plugins
+      run: |
+        # Install WP-CLI
+        curl -O https://raw.githubusercontent.com/wp-cli/wp-cli/v2.8.1/utils/wp-cli.phar
+        chmod +x wp-cli.phar
+        sudo mv wp-cli.phar /usr/local/bin/wp
+        
+        # Configure WordPress
+        wp core install \
+          --url=http://localhost:8080 \
+          --title="PostCrafter Test Site" \
+          --admin_user=admin \
+          --admin_password=admin \
+          --admin_email=admin@postcrafter.test \
+          --path=/var/www/html \
+          --allow-root
+        
+        # Install and activate Yoast SEO
+        wp plugin install wordpress-seo --activate --path=/var/www/html --allow-root || true
+        
+        # Copy mu-plugin
+        sudo mkdir -p /var/www/html/wp-content/mu-plugins
+        sudo cp -r ./wp-content/mu-plugins/* /var/www/html/wp-content/mu-plugins/
+        sudo chown -R www-data:www-data /var/www/html/wp-content/mu-plugins
+    
+    - name: Start test API server
+      working-directory: ./vercel-api
+      run: |
+        npm run build
+        npm run start &
+        sleep 15
+        
+        # Verify API is running
+        curl -f http://localhost:3000/api/health || exit 1
+      env:
+        NODE_ENV: test
+        TEST_API_URL: ${{ env.TEST_API_URL }}
+        TEST_WORDPRESS_URL: http://localhost:8080
+        TEST_API_KEY: ${{ env.TEST_API_KEY }}
+    
+    - name: Run E2E test suite
+      working-directory: ./vercel-api
+      run: npm run test:e2e
+      env:
+        CI: true
+        TEST_API_URL: ${{ env.TEST_API_URL }}
+        TEST_WORDPRESS_URL: http://localhost:8080
+        TEST_API_KEY: ${{ env.TEST_API_KEY }}
+    
+    - name: Upload E2E test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: e2e-test-results
+        path: vercel-api/test-results/
+    
+    - name: Upload test report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: e2e-test-report
+        path: |
+          vercel-api/test-results/e2e-test-report.html
+          vercel-api/test-results/e2e-test-report.json
+
+  performance-tests:
+    name: ⚡ Performance Tests
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: vercel-api/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./vercel-api
+      run: npm ci
+    
+    - name: Run performance benchmarks
+      working-directory: ./vercel-api
+      run: npm run test:performance
+      env:
+        CI: true
+        TEST_API_URL: ${{ env.TEST_API_URL }}
+        TEST_WORDPRESS_URL: ${{ env.TEST_WORDPRESS_URL }}
+        TEST_API_KEY: ${{ env.TEST_API_KEY }}
+    
+    - name: Upload performance results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-test-results
+        path: vercel-api/test-results/performance-*.json
+
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, e2e-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: vercel-api/package-lock.json
+    
+    - name: Install Vercel CLI
+      run: npm install --global vercel@latest
+    
+    - name: Deploy to Vercel Staging
+      working-directory: ./vercel-api
+      run: vercel deploy --token=${{ secrets.VERCEL_TOKEN }}
+      env:
+        VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  deploy-production:
+    name: 🎉 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, e2e-tests, performance-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: vercel-api/package-lock.json
+    
+    - name: Install Vercel CLI
+      run: npm install --global vercel@latest
+    
+    - name: Deploy to Vercel Production
+      working-directory: ./vercel-api
+      run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+      env:
+        VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  notification:
+    name: 📱 Notify Results
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, e2e-tests]
+    if: always()
+    
+    steps:
+    - name: Notify on success
+      if: ${{ needs.unit-tests.result == 'success' && needs.integration-tests.result == 'success' && needs.e2e-tests.result == 'success' }}
+      run: |
+        echo "✅ All tests passed successfully!"
+        echo "Branch: ${{ github.ref }}"
+        echo "Commit: ${{ github.sha }}"
+    
+    - name: Notify on failure
+      if: ${{ needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' || needs.e2e-tests.result == 'failure' }}
+      run: |
+        echo "❌ Tests failed!"
+        echo "Unit Tests: ${{ needs.unit-tests.result }}"
+        echo "Integration Tests: ${{ needs.integration-tests.result }}"
+        echo "E2E Tests: ${{ needs.e2e-tests.result }}"
+        exit 1
