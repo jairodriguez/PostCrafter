@@ -1,0 +1,356 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "PostCrafter - WordPress Publisher",
+  "name_for_model": "postcrafter_wordpress",
+  "description_for_human": "Create and publish WordPress posts with draft/publish control, SEO optimization, and image handling directly from ChatGPT.",
+  "description_for_model": "A comprehensive WordPress post creation tool that allows users to create posts with full control over publication status (draft, publish, private), SEO metadata, categories, tags, and image uploads. The tool provides intelligent status recommendations based on content quality and type.",
+  "auth": {
+    "type": "api_key",
+    "api_key": "X-API-Key"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://your-vercel-deployment.vercel.app/openapi-spec.yaml"
+  },
+  "logo_url": "https://your-domain.com/postcrafter-logo.png",
+  "contact_email": "support@postcrafter.com",
+  "legal_info_url": "https://your-domain.com/legal",
+  "privacy_policy_url": "https://your-domain.com/privacy",
+  
+  "conversation_starters": [
+    "Create a draft blog post about sustainable technology trends",
+    "Publish an article about remote work productivity tips",
+    "Write a private post for team meeting notes",
+    "Create a comprehensive guide and save as draft for review"
+  ],
+  
+  "ui_components": {
+    "status_selection": {
+      "type": "radio_group",
+      "label": "Post Status",
+      "description": "Choose how to handle your post",
+      "required": true,
+      "default": "draft",
+      "options": [
+        {
+          "value": "draft",
+          "label": "💾 Save as Draft",
+          "description": "Save for review and editing before publishing",
+          "icon": "📝",
+          "color": "#f59e0b",
+          "recommended_for": ["long_form_content", "needs_review", "incomplete_content"],
+          "help_text": "Perfect for content that needs review, editing, or isn't ready for publication"
+        },
+        {
+          "value": "publish",
+          "label": "🚀 Publish Immediately",
+          "description": "Make the post live and publicly visible",
+          "icon": "✅",
+          "color": "#10b981",
+          "recommended_for": ["complete_content", "time_sensitive", "announcements"],
+          "help_text": "Use when content is complete and ready for immediate publication"
+        },
+        {
+          "value": "private",
+          "label": "🔒 Save as Private",
+          "description": "Visible only to authorized users",
+          "icon": "🔐",
+          "color": "#6366f1",
+          "recommended_for": ["internal_docs", "team_content", "sensitive_info"],
+          "help_text": "Ideal for internal documentation, team notes, or sensitive content"
+        }
+      ]
+    },
+    
+    "content_quality_indicator": {
+      "type": "quality_meter",
+      "label": "Content Readiness",
+      "description": "AI assessment of content completeness for publication",
+      "auto_analyze": true,
+      "criteria": [
+        {
+          "name": "completeness",
+          "weight": 30,
+          "description": "Content has introduction, body, and conclusion"
+        },
+        {
+          "name": "length",
+          "weight": 20,
+          "description": "Appropriate length for content type"
+        },
+        {
+          "name": "seo_readiness",
+          "weight": 25,
+          "description": "Has title, meta description, and relevant keywords"
+        },
+        {
+          "name": "structure",
+          "weight": 15,
+          "description": "Well-structured with headings and paragraphs"
+        },
+        {
+          "name": "images",
+          "weight": 10,
+          "description": "Includes relevant images or media"
+        }
+      ],
+      "recommendations": {
+        "high_quality": {
+          "score_range": [80, 100],
+          "message": "✅ Content looks ready for publication!",
+          "suggested_status": "publish",
+          "color": "#10b981"
+        },
+        "medium_quality": {
+          "score_range": [60, 79],
+          "message": "⚠️ Consider reviewing before publishing",
+          "suggested_status": "draft",
+          "color": "#f59e0b"
+        },
+        "needs_work": {
+          "score_range": [0, 59],
+          "message": "📝 Content needs more development",
+          "suggested_status": "draft",
+          "color": "#ef4444"
+        }
+      }
+    },
+    
+    "status_workflow_hints": {
+      "type": "contextual_hints",
+      "triggers": [
+        {
+          "condition": "content_length < 300",
+          "hint": "💡 Short content works well as drafts for later expansion",
+          "suggested_status": "draft"
+        },
+        {
+          "condition": "contains_time_sensitive_keywords",
+          "hint": "⏰ Time-sensitive content should be published immediately",
+          "suggested_status": "publish",
+          "keywords": ["breaking", "urgent", "today", "now", "immediate", "announcement"]
+        },
+        {
+          "condition": "contains_internal_keywords",
+          "hint": "🏢 Internal content is best kept private",
+          "suggested_status": "private",
+          "keywords": ["internal", "team", "confidential", "private", "meeting", "memo"]
+        },
+        {
+          "condition": "has_seo_fields",
+          "hint": "🎯 Content with SEO optimization is ready for publication",
+          "suggested_status": "publish"
+        },
+        {
+          "condition": "missing_images && content_type === 'tutorial'",
+          "hint": "📸 Tutorials usually benefit from images - consider draft status",
+          "suggested_status": "draft"
+        }
+      ]
+    },
+    
+    "visual_status_indicators": {
+      "type": "status_badges",
+      "show_in_listings": true,
+      "styles": {
+        "draft": {
+          "badge": "📝 DRAFT",
+          "color": "#f59e0b",
+          "background": "#fef3c7",
+          "border": "#f59e0b",
+          "description": "Saved but not published"
+        },
+        "publish": {
+          "badge": "✅ LIVE",
+          "color": "#10b981",
+          "background": "#d1fae5",
+          "border": "#10b981",
+          "description": "Published and publicly visible"
+        },
+        "private": {
+          "badge": "🔒 PRIVATE",
+          "color": "#6366f1",
+          "background": "#e0e7ff",
+          "border": "#6366f1",
+          "description": "Private - authorized access only"
+        }
+      }
+    }
+  },
+  
+  "intelligent_prompting": {
+    "status_detection": {
+      "enabled": true,
+      "patterns": [
+        {
+          "intent": "draft",
+          "phrases": ["draft", "save for later", "review first", "not ready", "work in progress", "wip"],
+          "confidence_threshold": 0.7
+        },
+        {
+          "intent": "publish",
+          "phrases": ["publish", "go live", "make public", "post now", "share immediately", "release"],
+          "confidence_threshold": 0.8
+        },
+        {
+          "intent": "private",
+          "phrases": ["private", "internal", "team only", "confidential", "restricted access"],
+          "confidence_threshold": 0.9
+        }
+      ]
+    },
+    
+    "smart_suggestions": {
+      "enabled": true,
+      "rules": [
+        {
+          "condition": "user_asks_for_blog_post",
+          "suggestion": "I'll create a blog post for you. Would you like me to save it as a draft for review first, or publish it immediately?",
+          "default_status": "draft"
+        },
+        {
+          "condition": "user_mentions_urgent_or_breaking",
+          "suggestion": "This seems time-sensitive. I recommend publishing immediately to get the information out quickly.",
+          "default_status": "publish"
+        },
+        {
+          "condition": "user_mentions_team_or_internal",
+          "suggestion": "This appears to be internal content. I'll set it as private so only authorized users can see it.",
+          "default_status": "private"
+        },
+        {
+          "condition": "content_incomplete_or_placeholder",
+          "suggestion": "The content seems to need more development. I'll save it as a draft so you can complete it later.",
+          "default_status": "draft"
+        }
+      ]
+    }
+  },
+  
+  "user_feedback": {
+    "status_confirmation": {
+      "enabled": true,
+      "templates": {
+        "draft": "📝 Post saved as draft! You can review and edit it in your WordPress admin before publishing.",
+        "publish": "🚀 Post published successfully! It's now live and publicly visible at: {post_url}",
+        "private": "🔒 Private post created! It's accessible only to authorized users at: {post_url}"
+      }
+    },
+    
+    "status_change_suggestions": {
+      "enabled": true,
+      "show_after_creation": true,
+      "options": [
+        "📊 View post statistics",
+        "✏️ Edit post content",
+        "🔄 Change post status",
+        "📱 Share on social media",
+        "🎯 Optimize for SEO"
+      ]
+    }
+  },
+  
+  "workflow_integration": {
+    "draft_workflow": {
+      "enabled": true,
+      "steps": [
+        {
+          "action": "create_draft",
+          "description": "Save content as draft"
+        },
+        {
+          "action": "suggest_review",
+          "description": "Suggest content review checklist"
+        },
+        {
+          "action": "offer_seo_optimization",
+          "description": "Offer SEO field completion"
+        },
+        {
+          "action": "schedule_publication",
+          "description": "Optionally schedule for later publication"
+        }
+      ]
+    },
+    
+    "publish_workflow": {
+      "enabled": true,
+      "steps": [
+        {
+          "action": "validate_content",
+          "description": "Check content quality and completeness"
+        },
+        {
+          "action": "optimize_seo",
+          "description": "Ensure SEO fields are populated"
+        },
+        {
+          "action": "publish_post",
+          "description": "Make post live"
+        },
+        {
+          "action": "suggest_promotion",
+          "description": "Suggest social media sharing"
+        }
+      ]
+    }
+  },
+  
+  "accessibility": {
+    "keyboard_navigation": true,
+    "screen_reader_support": true,
+    "high_contrast_mode": true,
+    "status_aria_labels": {
+      "draft": "Post saved as draft, not published",
+      "publish": "Post published and publicly visible",
+      "private": "Post set to private, restricted access"
+    }
+  },
+  
+  "error_handling": {
+    "status_validation_errors": {
+      "invalid_status": "Please select a valid post status: draft, publish, or private",
+      "permission_denied": "You don't have permission to set posts to this status",
+      "wordpress_error": "WordPress couldn't save the post with the selected status. Please try again."
+    },
+    
+    "recovery_suggestions": {
+      "api_error": "There was an issue creating your post. Would you like me to save it as a draft instead?",
+      "network_error": "Connection issue detected. I'll save this as a draft so your content isn't lost.",
+      "validation_error": "Some fields need attention. I'll save as draft so you can review and fix them."
+    }
+  },
+  
+  "advanced_features": {
+    "bulk_status_operations": {
+      "enabled": false,
+      "description": "Batch operations for multiple posts (premium feature)"
+    },
+    
+    "scheduled_publishing": {
+      "enabled": false,
+      "description": "Schedule posts for future publication (premium feature)"
+    },
+    
+    "approval_workflows": {
+      "enabled": false,
+      "description": "Multi-step approval process for publishing (enterprise feature)"
+    }
+  },
+  
+  "integration_settings": {
+    "wordpress_compatibility": {
+      "min_version": "5.0",
+      "required_plugins": ["rest-api"],
+      "optional_plugins": ["yoast-seo", "rankmath"],
+      "supported_themes": "all"
+    },
+    
+    "api_requirements": {
+      "authentication": "api_key",
+      "rate_limits": "100 requests per hour",
+      "timeout": "30 seconds",
+      "retry_logic": "exponential_backoff"
+    }
+  }
+}
