@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="styles/dashboard.css">
     <link rel="stylesheet" href="styles/components.css">
     <link rel="stylesheet" href="styles/responsive.css">
+    <link rel="stylesheet" href="styles/filtering.css">
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
@@ -204,13 +205,59 @@
                     </p>
                 </div>
                 <div class="page-actions">
+                    <!-- Real-time Connection Status -->
+                    <div class="connection-status" id="connection-status">
+                        <span class="status-dot status-connecting"></span>
+                        <span class="status-text">Connecting...</span>
+                    </div>
+                    
+                    <!-- Quick Filters -->
+                    <div class="quick-filters" id="quick-filters">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="errors">Errors</button>
+                        <button class="filter-btn" data-filter="success">Success</button>
+                    </div>
+                    
+                    <!-- Date Range Filter -->
+                    <div class="filter-dropdown" id="date-range-filter">
+                        <button id="date-range-btn" class="btn btn-secondary">
+                            <i data-feather="calendar"></i>
+                            <span id="date-range-text">Last 24 Hours</span>
+                        </button>
+                        <div class="dropdown-content" id="date-range-dropdown">
+                            <div class="filter-section">
+                                <h4 class="filter-title">Time Range</h4>
+                                <div class="preset-buttons">
+                                    <button class="preset-btn" data-preset="1h">1H</button>
+                                    <button class="preset-btn" data-preset="6h">6H</button>
+                                    <button class="preset-btn active" data-preset="24h">24H</button>
+                                    <button class="preset-btn" data-preset="7d">7D</button>
+                                    <button class="preset-btn" data-preset="30d">30D</button>
+                                    <button class="preset-btn" data-preset="custom">Custom</button>
+                                </div>
+                                <div class="custom-date-range" id="custom-date-range" style="display: none;">
+                                    <div class="date-input-group">
+                                        <label for="start-date">Start Date:</label>
+                                        <input type="datetime-local" id="start-date" name="start-date">
+                                    </div>
+                                    <div class="date-input-group">
+                                        <label for="end-date">End Date:</label>
+                                        <input type="datetime-local" id="end-date" name="end-date">
+                                    </div>
+                                    <button class="btn btn-primary" id="apply-custom-range">Apply</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Export and Refresh Actions -->
                     <button id="export-btn" class="btn btn-secondary">
                         <i data-feather="download"></i>
                         Export Data
                     </button>
-                    <button id="date-range-btn" class="btn btn-secondary">
-                        <i data-feather="calendar"></i>
-                        Last 24 Hours
+                    <button id="refresh-btn" class="btn btn-secondary">
+                        <i data-feather="refresh-cw"></i>
+                        Refresh
                     </button>
                 </div>
             </div>
@@ -219,6 +266,115 @@
             <div class="dashboard-content">
                 <!-- Overview Section -->
                 <section id="overview-section" class="content-section active">
+                    <!-- Advanced Filters Panel -->
+                    <div class="filters-panel" id="filters-panel">
+                        <div class="filters-header">
+                            <h3 class="filters-title">
+                                <i data-feather="filter"></i>
+                                Filters & Controls
+                            </h3>
+                            <button class="filters-toggle" id="filters-toggle">
+                                <i data-feather="chevron-down"></i>
+                            </button>
+                        </div>
+                        <div class="filters-content" id="filters-content">
+                            <div class="filters-row">
+                                <!-- Metrics Filters -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Metrics Type:</label>
+                                    <select id="metrics-type-filter" class="filter-select">
+                                        <option value="all">All Metrics</option>
+                                        <option value="api_call">API Calls</option>
+                                        <option value="publish_success">Successful Publishes</option>
+                                        <option value="publish_error">Publish Errors</option>
+                                        <option value="validation_error">Validation Errors</option>
+                                        <option value="auth_error">Auth Errors</option>
+                                        <option value="user_activity">User Activity</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Endpoint Filters -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Endpoint:</label>
+                                    <select id="endpoint-filter" class="filter-select">
+                                        <option value="all">All Endpoints</option>
+                                        <option value="/api/publish">/api/publish</option>
+                                        <option value="/api/metrics">/api/metrics</option>
+                                        <option value="/api/health">/api/health</option>
+                                        <option value="/api/realtime">/api/realtime</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Status Code Filters -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Status Code:</label>
+                                    <select id="status-filter" class="filter-select">
+                                        <option value="all">All Status</option>
+                                        <option value="2xx">Success (2xx)</option>
+                                        <option value="4xx">Client Error (4xx)</option>
+                                        <option value="5xx">Server Error (5xx)</option>
+                                        <option value="200">200 OK</option>
+                                        <option value="400">400 Bad Request</option>
+                                        <option value="401">401 Unauthorized</option>
+                                        <option value="429">429 Rate Limited</option>
+                                        <option value="500">500 Internal Error</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Real-time Settings -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Real-time Updates:</label>
+                                    <div class="toggle-group">
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="realtime-toggle" checked>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                        <span class="toggle-label">Auto-refresh</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="filters-row">
+                                <!-- Refresh Interval -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Refresh Interval:</label>
+                                    <select id="refresh-interval" class="filter-select">
+                                        <option value="10000">10 seconds</option>
+                                        <option value="30000" selected>30 seconds</option>
+                                        <option value="60000">1 minute</option>
+                                        <option value="300000">5 minutes</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Display Options -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Show:</label>
+                                    <div class="checkbox-group">
+                                        <label class="checkbox-item">
+                                            <input type="checkbox" id="show-details" checked>
+                                            <span class="checkbox-label">Detailed View</span>
+                                        </label>
+                                        <label class="checkbox-item">
+                                            <input type="checkbox" id="show-timestamps" checked>
+                                            <span class="checkbox-label">Timestamps</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Filter Presets -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Presets:</label>
+                                    <div class="preset-buttons">
+                                        <button class="preset-btn" data-preset="errors-only">Errors Only</button>
+                                        <button class="preset-btn" data-preset="high-traffic">High Traffic</button>
+                                        <button class="preset-btn" data-preset="recent-activity">Recent</button>
+                                        <button class="preset-btn" data-preset="clear-all">Clear All</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Summary Cards -->
                     <div class="summary-grid" id="summary-cards">
                         <!-- Summary cards will be dynamically inserted here -->
@@ -443,6 +599,9 @@
     <script type="module" src="scripts/navigation.js"></script>
     <script type="module" src="scripts/theme.js"></script>
     <script type="module" src="scripts/data-manager.js"></script>
+    <script type="module" src="scripts/real-time-updates.js"></script>
+    <script type="module" src="scripts/filtering-system.js"></script>
+    <script type="module" src="scripts/dashboard-integration.js"></script>
     
     <script>
         // Initialize Feather Icons
