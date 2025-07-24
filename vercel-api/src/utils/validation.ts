@@ -1,447 +1,764 @@
-import { z } from 'zod';
-import { ValidationResult, ValidationError } from '../types';
-import SecurityMonitoring from './monitoring';
+/**
+ * Input validation utility functions
+ * Provides reusable validation functions for common data validation tasks
+ */
+
+import { logger } from './logger';
 
 /**
- * Security patterns for detecting malicious content
+ * Validation result interface
  */
-const SECURITY_PATTERNS = {
-  // XSS patterns
-  xssScript: /<script[^>]*>.*?<\/script>/gi,
-  xssEventHandlers: /on\w+\s*=/gi,
-  xssJavaScript: /javascript:/gi,
-  xssDataProtocol: /data:text\/html/gi,
-  xssVbscript: /vbscript:/gi,
-  
-  // SQL injection patterns
-  sqlInjection: /(\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b)/gi,
-  sqlComment: /--/g,
-  sqlQuote: /'|"/g,
-  
-  // Command injection patterns
-  commandInjection: /(\b(cmd|powershell|bash|sh|exec|system|eval)\b)/gi,
-  
-  // Path traversal patterns
-  pathTraversal: /\.\.\/|\.\.\\/gi,
-  
-  // HTML tag patterns
-  htmlTags: /<[^>]*>/gi,
-  
-  // Suspicious URL patterns
-  suspiciousUrl: /(file|ftp|gopher|mailto|telnet):/gi,
-} as const;
-
-/**
- * Content type validation
- */
-const ALLOWED_MIME_TYPES = [
-  'image/jpeg',
-  'image/jpg', 
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/svg+xml',
-] as const;
-
-/**
- * Sanitize HTML content to prevent XSS attacks
- */
-export function sanitizeHtml(content: string): string {
-  if (!content) return content;
-  
-  let sanitized = content;
-  
-  // Remove script tags and event handlers
-  sanitized = sanitized.replace(SECURITY_PATTERNS.xssScript, '');
-  sanitized = sanitized.replace(SECURITY_PATTERNS.xssEventHandlers, '');
-  sanitized = sanitized.replace(SECURITY_PATTERNS.xssJavaScript, '');
-  sanitized = sanitized.replace(SECURITY_PATTERNS.xssDataProtocol, '');
-  sanitized = sanitized.replace(SECURITY_PATTERNS.xssVbscript, '');
-  
-  // Remove HTML tags (basic sanitization)
-  sanitized = sanitized.replace(SECURITY_PATTERNS.htmlTags, '');
-  
-  // Encode special characters
-  sanitized = sanitized
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
-  
-  return sanitized;
+export interface ValidationResult {
+  isValid: boolean;
+  error?: string;
+  value?: any;
 }
 
 /**
- * Sanitize markdown content
+ * Validation options for strings
  */
-export function sanitizeMarkdown(content: string): string {
-  if (!content) return content;
-  
-  let sanitized = content;
-  
-  // Remove dangerous patterns
-  sanitized = sanitized.replace(SECURITY_PATTERNS.xssScript, '');
-  sanitized = sanitized.replace(SECURITY_PATTERNS.xssEventHandlers, '');
-  sanitized = sanitized.replace(SECURITY_PATTERNS.xssJavaScript, '');
-  sanitized = sanitized.replace(SECURITY_PATTERNS.xssDataProtocol, '');
-  sanitized = sanitized.replace(SECURITY_PATTERNS.xssVbscript, '');
-  
-  // Remove command injection patterns
-  sanitized = sanitized.replace(SECURITY_PATTERNS.commandInjection, '');
-  
-  return sanitized;
+export interface StringValidationOptions {
+  minLength?: number;
+  maxLength?: number;
+  allowEmpty?: boolean;
+  pattern?: RegExp;
+  trim?: boolean;
+  customValidator?: (value: string) => boolean;
 }
 
 /**
- * Validate and sanitize URL
+ * Validation options for numbers
  */
-export function validateAndSanitizeUrl(url: string): { valid: boolean; sanitized?: string; error?: string } {
-  if (!url) {
-    return { valid: false, error: 'URL is required' };
-  }
-  
-  // Check for suspicious protocols
-  if (SECURITY_PATTERNS.suspiciousUrl.test(url)) {
-    return { valid: false, error: 'URL protocol not allowed' };
-  }
-  
-  // Check for path traversal
-  if (SECURITY_PATTERNS.pathTraversal.test(url)) {
-    return { valid: false, error: 'Path traversal detected in URL' };
-  }
-  
-  try {
-    const urlObj = new URL(url);
-    
-    // Only allow HTTP and HTTPS
-    if (!['http:', 'https:'].includes(urlObj.protocol)) {
-      return { valid: false, error: 'Only HTTP and HTTPS protocols are allowed' };
-    }
-    
-    // Validate hostname
-    if (!urlObj.hostname || urlObj.hostname.length === 0) {
-      return { valid: false, error: 'Invalid hostname' };
-    }
-    
-    return { valid: true, sanitized: urlObj.toString() };
-  } catch (error) {
-    return { valid: false, error: 'Invalid URL format' };
-  }
+export interface NumberValidationOptions {
+  min?: number;
+  max?: number;
+  integer?: boolean;
+  positive?: boolean;
+  allowZero?: boolean;
 }
 
 /**
- * Validate image data
+ * Validation options for URLs
  */
-export function validateImageData(imageData: any): { valid: boolean; sanitized?: any; error?: string } {
-  if (!imageData) {
-    return { valid: false, error: 'Image data is required' };
-  }
-  
-  const sanitized: any = {};
-  
-  // Validate URL if present
-  if (imageData.url) {
-    const urlValidation = validateAndSanitizeUrl(imageData.url);
-    if (!urlValidation.valid) {
-      return { valid: false, error: `Invalid image URL: ${urlValidation.error}` };
-    }
-    sanitized.url = urlValidation.sanitized;
-  }
-  
-  // Validate base64 if present
-  if (imageData.base64) {
-    if (typeof imageData.base64 !== 'string') {
-      return { valid: false, error: 'Base64 data must be a string' };
-    }
-    
-    // Check if it's valid base64
-    if (!/^data:image\/[a-zA-Z]+;base64,/.test(imageData.base64)) {
-      return { valid: false, error: 'Invalid base64 image format' };
-    }
-    
-    // Check size (max 10MB)
-    const base64Data = imageData.base64.split(',')[1];
-    const sizeInBytes = Math.ceil((base64Data.length * 3) / 4);
-    const sizeInMB = sizeInBytes / (1024 * 1024);
-    
-    if (sizeInMB > 10) {
-      return { valid: false, error: 'Image size exceeds 10MB limit' };
-    }
-    
-    sanitized.base64 = imageData.base64;
-  }
-  
-  // Validate MIME type if present
-  if (imageData.mime_type) {
-    if (!ALLOWED_MIME_TYPES.includes(imageData.mime_type as any)) {
-      return { valid: false, error: 'Unsupported image MIME type' };
-    }
-    sanitized.mime_type = imageData.mime_type;
-  }
-  
-  // Sanitize text fields
-  if (imageData.alt_text) {
-    sanitized.alt_text = sanitizeHtml(imageData.alt_text);
-  }
-  
-  if (imageData.caption) {
-    sanitized.caption = sanitizeHtml(imageData.caption);
-  }
-  
-  if (imageData.filename) {
-    // Validate filename (no path traversal, reasonable length)
-    if (SECURITY_PATTERNS.pathTraversal.test(imageData.filename)) {
-      return { valid: false, error: 'Invalid filename' };
-    }
-    if (imageData.filename.length > 255) {
-      return { valid: false, error: 'Filename too long' };
-    }
-    sanitized.filename = imageData.filename;
-  }
-  
-  // Boolean fields
-  if (typeof imageData.featured === 'boolean') {
-    sanitized.featured = imageData.featured;
-  }
-  
-  return { valid: true, sanitized };
+export interface UrlValidationOptions {
+  allowedProtocols?: string[];
+  allowedDomains?: string[];
+  blockedDomains?: string[];
+  requireTLD?: boolean;
+  allowLocalhost?: boolean;
+  allowIP?: boolean;
 }
 
 /**
- * Detect malicious content in text
+ * Validation options for emails
  */
-export function detectMaliciousContent(text: string, sourceIP?: string, userAgent?: string, apiKey?: string): { malicious: boolean; patterns: string[] } {
-  if (!text) {
-    return { malicious: false, patterns: [] };
-  }
-  
-  const detectedPatterns: string[] = [];
-  
-  // Check for XSS patterns
-  if (SECURITY_PATTERNS.xssScript.test(text)) {
-    detectedPatterns.push('XSS script tag');
-  }
-  if (SECURITY_PATTERNS.xssEventHandlers.test(text)) {
-    detectedPatterns.push('XSS event handler');
-  }
-  if (SECURITY_PATTERNS.xssJavaScript.test(text)) {
-    detectedPatterns.push('XSS javascript protocol');
-  }
-  if (SECURITY_PATTERNS.xssDataProtocol.test(text)) {
-    detectedPatterns.push('XSS data protocol');
-  }
-  
-  // Check for SQL injection patterns
-  if (SECURITY_PATTERNS.sqlInjection.test(text)) {
-    detectedPatterns.push('SQL injection attempt');
-  }
-  
-  // Check for command injection patterns
-  if (SECURITY_PATTERNS.commandInjection.test(text)) {
-    detectedPatterns.push('Command injection attempt');
-  }
-  
-  // Check for path traversal patterns
-  if (SECURITY_PATTERNS.pathTraversal.test(text)) {
-    detectedPatterns.push('Path traversal attempt');
-  }
-  
-  // Check for suspicious URL patterns
-  if (SECURITY_PATTERNS.suspiciousUrl.test(text)) {
-    detectedPatterns.push('Suspicious URL protocol');
+export interface EmailValidationOptions {
+  allowedDomains?: string[];
+  blockedDomains?: string[];
+  requireTLD?: boolean;
+  maxLength?: number;
+}
+
+/**
+ * Common email validation pattern (RFC 5322 compliant)
+ */
+const EMAIL_PATTERN = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+/**
+ * Common URL validation pattern
+ */
+const URL_PATTERN = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+
+/**
+ * IPv4 pattern
+ */
+const IPV4_PATTERN = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+
+/**
+ * IPv6 pattern
+ */
+const IPV6_PATTERN = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+
+/**
+ * Validate string input with comprehensive options
+ */
+export function validateString(value: any, options: StringValidationOptions = {}): ValidationResult {
+  const {
+    minLength = 0,
+    maxLength = Infinity,
+    allowEmpty = true,
+    pattern,
+    trim = true,
+    customValidator
+  } = options;
+
+  // Type check
+  if (typeof value !== 'string') {
+    return {
+      isValid: false,
+      error: `Expected string, got ${typeof value}`
+    };
   }
 
-  const isMalicious = detectedPatterns.length > 0;
+  let processedValue = trim ? value.trim() : value;
 
-  // Record malicious content detection for monitoring
-  if (isMalicious && sourceIP) {
-    SecurityMonitoring.recordMaliciousContent(
-      sourceIP,
-      userAgent,
-      apiKey,
-      detectedPatterns.join(', '),
-      { contentLength: text.length, patterns: detectedPatterns }
-    );
+  // Empty check
+  if (!allowEmpty && processedValue.length === 0) {
+    return {
+      isValid: false,
+      error: 'String cannot be empty'
+    };
+  }
+
+  // Length validation
+  if (processedValue.length < minLength) {
+    return {
+      isValid: false,
+      error: `String must be at least ${minLength} characters long`
+    };
+  }
+
+  if (processedValue.length > maxLength) {
+    return {
+      isValid: false,
+      error: `String must be no more than ${maxLength} characters long`
+    };
+  }
+
+  // Pattern validation
+  if (pattern && !pattern.test(processedValue)) {
+    return {
+      isValid: false,
+      error: 'String does not match required pattern'
+    };
+  }
+
+  // Custom validation
+  if (customValidator && !customValidator(processedValue)) {
+    return {
+      isValid: false,
+      error: 'String failed custom validation'
+    };
   }
 
   return {
-    malicious: isMalicious,
-    patterns: detectedPatterns,
+    isValid: true,
+    value: processedValue
   };
 }
 
-  /**
- * Validate request headers
-   */
-export function validateRequestHeaders(headers: any): { valid: boolean; errors: string[] } {
-    const errors: string[] = [];
-  
-  // Check content type
-  const contentType = headers['content-type'];
-  if (!contentType) {
-    errors.push('Content-Type header is required');
-  } else if (!contentType.includes('application/json')) {
-    errors.push('Content-Type must be application/json');
-  }
-  
-  // Check content length
-  const contentLength = headers['content-length'];
-  if (contentLength) {
-    const size = parseInt(contentLength, 10);
-    if (isNaN(size) || size > 10 * 1024 * 1024) { // 10MB limit
-      errors.push('Request body too large (max 10MB)');
-    }
-  }
-  
-  // Check user agent
-  const userAgent = headers['user-agent'];
-  if (!userAgent) {
-    errors.push('User-Agent header is required');
-    }
+/**
+ * Validate email address
+ */
+export function validateEmail(value: any, options: EmailValidationOptions = {}): ValidationResult {
+  const {
+    allowedDomains,
+    blockedDomains,
+    requireTLD = true,
+    maxLength = 320 // RFC 5321 limit
+  } = options;
 
+  // Basic string validation
+  const stringResult = validateString(value, {
+    minLength: 3,
+    maxLength,
+    allowEmpty: false,
+    trim: true
+  });
+
+  if (!stringResult.isValid) {
+    return stringResult;
+  }
+
+  const email = stringResult.value!.toLowerCase();
+
+  // Pattern validation
+  if (!EMAIL_PATTERN.test(email)) {
     return {
-      valid: errors.length === 0,
-      errors,
+      isValid: false,
+      error: 'Invalid email format'
     };
   }
 
-  /**
- * Comprehensive request validation middleware
- */
-export function validateRequest(
-  body: any,
-  headers: any,
-  maxBodySize: number = 10 * 1024 * 1024 // 10MB default
-): ValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-  let sanitizedData: any = null;
-  
-  try {
-    // Validate headers
-    const headerValidation = validateRequestHeaders(headers);
-    if (!headerValidation.valid) {
-      errors.push(...headerValidation.errors);
-    }
-    
-    // Check body size
-    if (body && typeof body === 'string') {
-      const bodySize = Buffer.byteLength(body, 'utf8');
-      if (bodySize > maxBodySize) {
-        errors.push(`Request body too large (${bodySize} bytes, max ${maxBodySize} bytes)`);
-      }
-    }
-    
-    // Check for malicious content in body
-    if (body) {
-      const bodyString = typeof body === 'string' ? body : JSON.stringify(body);
-      const maliciousCheck = detectMaliciousContent(bodyString);
-      
-      if (maliciousCheck.malicious) {
-        errors.push(`Malicious content detected: ${maliciousCheck.patterns.join(', ')}`);
-      }
-    }
-    
-    // If no critical errors, attempt to sanitize
-    if (errors.length === 0 && body) {
-      sanitizedData = sanitizeRequestData(body);
-    }
-    
-  } catch (error) {
-    errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+  // Extract domain
+  const domain = email.split('@')[1];
 
+  // TLD validation
+  if (requireTLD && !domain.includes('.')) {
     return {
-      valid: errors.length === 0,
-      errors,
-      warnings,
-    sanitizedData,
+      isValid: false,
+      error: 'Email must have a valid top-level domain'
     };
   }
 
-  /**
- * Sanitize request data recursively
- */
-function sanitizeRequestData(data: any): any {
-  if (typeof data === 'string') {
-    return sanitizeHtml(data);
+  // Domain allowlist
+  if (allowedDomains && !allowedDomains.includes(domain)) {
+    return {
+      isValid: false,
+      error: 'Email domain not allowed'
+    };
   }
-  
-  if (Array.isArray(data)) {
-    return data.map(item => sanitizeRequestData(item));
+
+  // Domain blocklist
+  if (blockedDomains && blockedDomains.includes(domain)) {
+    return {
+      isValid: false,
+      error: 'Email domain is blocked'
+    };
   }
-  
-  if (typeof data === 'object' && data !== null) {
-    const sanitized: any = {};
-    for (const [key, value] of Object.entries(data)) {
-      sanitized[key] = sanitizeRequestData(value);
-    }
-    return sanitized;
-  }
-  
-  return data;
+
+  return {
+    isValid: true,
+    value: email
+  };
 }
 
 /**
- * Enhanced Zod schema with security validation
+ * Validate URL
  */
-export const securePublishRequestSchema = z.object({
-  post: z.object({
-    title: z.string()
-      .min(1, 'Title is required')
-      .max(200, 'Title too long')
-      .transform(sanitizeHtml)
-      .refine((val) => !detectMaliciousContent(val).malicious, {
-        message: 'Title contains malicious content',
-      }),
-    content: z.string()
-      .min(1, 'Content is required')
-      .max(50000, 'Content too long')
-      .transform(sanitizeMarkdown)
-      .refine((val) => !detectMaliciousContent(val).malicious, {
-        message: 'Content contains malicious content',
-      }),
-    excerpt: z.string()
-      .max(500, 'Excerpt too long')
-      .transform(sanitizeHtml)
-      .optional(),
-    status: z.enum(['draft', 'publish', 'private']).optional().default('draft'),
-    categories: z.array(z.string().max(100).transform(sanitizeHtml)).optional(),
-    tags: z.array(z.string().max(100).transform(sanitizeHtml)).optional(),
-    featured_media: z.number().positive().optional(),
-    yoast_meta: z.object({
-      meta_title: z.string().max(60).transform(sanitizeHtml).optional(),
-      meta_description: z.string().max(160).transform(sanitizeHtml).optional(),
-      focus_keywords: z.string().max(200).transform(sanitizeHtml).optional(),
-      canonical: z.string().url().optional(),
-      primary_category: z.number().positive().optional(),
-      meta_robots_noindex: z.string().max(20).optional(),
-      meta_robots_nofollow: z.string().max(20).optional(),
-    }).optional(),
-    images: z.array(z.object({
-      url: z.string().url().optional(),
-      base64: z.string().optional(),
-      alt_text: z.string().max(255).transform(sanitizeHtml).optional(),
-      caption: z.string().max(500).transform(sanitizeHtml).optional(),
-      featured: z.boolean().optional(),
-      filename: z.string().max(255).optional(),
-      mime_type: z.enum(ALLOWED_MIME_TYPES).optional(),
-    })).optional(),
-  }),
-  options: z.object({
-    publish_status: z.enum(['draft', 'publish']).optional(),
-    include_images: z.boolean().optional().default(true),
-    optimize_images: z.boolean().optional().default(false),
-    validate_content: z.boolean().optional().default(true),
-  }).optional(),
-}).refine((data) => {
-  // Additional cross-field validation
-  if (data.post.images && data.post.images.length > 10) {
-    return false;
+export function validateUrl(value: any, options: UrlValidationOptions = {}): ValidationResult {
+  const {
+    allowedProtocols = ['http', 'https'],
+    allowedDomains,
+    blockedDomains,
+    requireTLD = true,
+    allowLocalhost = false,
+    allowIP = false
+  } = options;
+
+  // Basic string validation
+  const stringResult = validateString(value, {
+    minLength: 7, // http://a
+    maxLength: 2048, // Common browser limit
+    allowEmpty: false,
+    trim: true
+  });
+
+  if (!stringResult.isValid) {
+    return stringResult;
   }
-  return true;
-}, {
-  message: 'Too many images (max 10)',
-  path: ['post', 'images'],
-}); 
+
+  const url = stringResult.value!;
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch (error) {
+    return {
+      isValid: false,
+      error: 'Invalid URL format'
+    };
+  }
+
+  // Protocol validation
+  const protocol = parsedUrl.protocol.slice(0, -1); // Remove trailing ':'
+  if (!allowedProtocols.includes(protocol)) {
+    return {
+      isValid: false,
+      error: `Protocol '${protocol}' not allowed`
+    };
+  }
+
+  const hostname = parsedUrl.hostname.toLowerCase();
+
+  // IP address validation
+  if (IPV4_PATTERN.test(hostname) || IPV6_PATTERN.test(hostname)) {
+    if (!allowIP) {
+      return {
+        isValid: false,
+        error: 'IP addresses not allowed'
+      };
+    }
+  }
+
+  // Localhost validation
+  if ((hostname === 'localhost' || hostname.startsWith('127.') || hostname === '::1')) {
+    if (!allowLocalhost) {
+      return {
+        isValid: false,
+        error: 'Localhost URLs not allowed'
+      };
+    }
+  }
+
+  // TLD validation (skip for localhost and IPs)
+  if (requireTLD && !allowLocalhost && !IPV4_PATTERN.test(hostname) && !IPV6_PATTERN.test(hostname)) {
+    if (!hostname.includes('.')) {
+      return {
+        isValid: false,
+        error: 'URL must have a valid top-level domain'
+      };
+    }
+  }
+
+  // Domain allowlist
+  if (allowedDomains && !allowedDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain))) {
+    return {
+      isValid: false,
+      error: 'Domain not allowed'
+    };
+  }
+
+  // Domain blocklist
+  if (blockedDomains && blockedDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain))) {
+    return {
+      isValid: false,
+      error: 'Domain is blocked'
+    };
+  }
+
+  return {
+    isValid: true,
+    value: url
+  };
+}
+
+/**
+ * Validate number
+ */
+export function validateNumber(value: any, options: NumberValidationOptions = {}): ValidationResult {
+  const {
+    min = -Infinity,
+    max = Infinity,
+    integer = false,
+    positive = false,
+    allowZero = true
+  } = options;
+
+  let numValue: number;
+
+  // Type conversion and validation
+  if (typeof value === 'number') {
+    numValue = value;
+  } else if (typeof value === 'string') {
+    numValue = Number(value);
+  } else {
+    return {
+      isValid: false,
+      error: `Expected number or numeric string, got ${typeof value}`
+    };
+  }
+
+  // NaN check
+  if (isNaN(numValue)) {
+    return {
+      isValid: false,
+      error: 'Invalid number'
+    };
+  }
+
+  // Infinity check
+  if (!isFinite(numValue)) {
+    return {
+      isValid: false,
+      error: 'Number must be finite'
+    };
+  }
+
+  // Integer check
+  if (integer && !Number.isInteger(numValue)) {
+    return {
+      isValid: false,
+      error: 'Number must be an integer'
+    };
+  }
+
+  // Positive check
+  if (positive && numValue < 0) {
+    return {
+      isValid: false,
+      error: 'Number must be positive'
+    };
+  }
+
+  // Zero check
+  if (!allowZero && numValue === 0) {
+    return {
+      isValid: false,
+      error: 'Number cannot be zero'
+    };
+  }
+
+  // Range validation
+  if (numValue < min) {
+    return {
+      isValid: false,
+      error: `Number must be at least ${min}`
+    };
+  }
+
+  if (numValue > max) {
+    return {
+      isValid: false,
+      error: `Number must be no more than ${max}`
+    };
+  }
+
+  return {
+    isValid: true,
+    value: numValue
+  };
+}
+
+/**
+ * Validate JSON string
+ */
+export function isValidJson(value: any): ValidationResult {
+  if (typeof value !== 'string') {
+    return {
+      isValid: false,
+      error: `Expected string, got ${typeof value}`
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return {
+      isValid: true,
+      value: parsed
+    };
+  } catch (error) {
+    return {
+      isValid: false,
+      error: 'Invalid JSON format'
+    };
+  }
+}
+
+/**
+ * Validate image file extensions
+ */
+export function validateImageExtension(filename: string): ValidationResult {
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+  
+  if (typeof filename !== 'string') {
+    return {
+      isValid: false,
+      error: 'Filename must be a string'
+    };
+  }
+
+  const extension = filename.toLowerCase().substring(filename.lastIndexOf('.'));
+  
+  if (!allowedExtensions.includes(extension)) {
+    return {
+      isValid: false,
+      error: `Invalid image extension. Allowed: ${allowedExtensions.join(', ')}`
+    };
+  }
+
+  return {
+    isValid: true,
+    value: extension
+  };
+}
+
+/**
+ * Validate MIME type for images
+ */
+export function validateImageMimeType(mimeType: string): ValidationResult {
+  const allowedMimeTypes = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/gif',
+    'image/bmp',
+    'image/webp',
+    'image/svg+xml'
+  ];
+
+  if (typeof mimeType !== 'string') {
+    return {
+      isValid: false,
+      error: 'MIME type must be a string'
+    };
+  }
+
+  const normalizedMimeType = mimeType.toLowerCase().trim();
+
+  if (!allowedMimeTypes.includes(normalizedMimeType)) {
+    return {
+      isValid: false,
+      error: `Invalid image MIME type. Allowed: ${allowedMimeTypes.join(', ')}`
+    };
+  }
+
+  return {
+    isValid: true,
+    value: normalizedMimeType
+  };
+}
+
+/**
+ * Validate file size
+ */
+export function validateFileSize(size: number, maxSizeBytes: number = 10 * 1024 * 1024): ValidationResult {
+  const numberResult = validateNumber(size, {
+    min: 0,
+    integer: true,
+    positive: true,
+    allowZero: false
+  });
+
+  if (!numberResult.isValid) {
+    return {
+      isValid: false,
+      error: `Invalid file size: ${numberResult.error}`
+    };
+  }
+
+  if (size > maxSizeBytes) {
+    const maxSizeMB = (maxSizeBytes / (1024 * 1024)).toFixed(2);
+    return {
+      isValid: false,
+      error: `File size too large. Maximum allowed: ${maxSizeMB}MB`
+    };
+  }
+
+  return {
+    isValid: true,
+    value: size
+  };
+}
+
+/**
+ * Validate hexadecimal color
+ */
+export function validateHexColor(value: any): ValidationResult {
+  const stringResult = validateString(value, {
+    allowEmpty: false,
+    trim: true,
+    pattern: /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/
+  });
+
+  if (!stringResult.isValid) {
+    return {
+      isValid: false,
+      error: 'Invalid hex color format (expected #RRGGBB or #RGB)'
+    };
+  }
+
+  return {
+    isValid: true,
+    value: stringResult.value!.toUpperCase()
+  };
+}
+
+/**
+ * Validate slug (URL-friendly string)
+ */
+export function validateSlug(value: any, maxLength: number = 50): ValidationResult {
+  const stringResult = validateString(value, {
+    minLength: 1,
+    maxLength,
+    allowEmpty: false,
+    trim: true,
+    pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+  });
+
+  if (!stringResult.isValid) {
+    return {
+      isValid: false,
+      error: 'Invalid slug format (use lowercase letters, numbers, and hyphens only)'
+    };
+  }
+
+  return stringResult;
+}
+
+/**
+ * Validate boolean value (including string representations)
+ */
+export function validateBoolean(value: any): ValidationResult {
+  if (typeof value === 'boolean') {
+    return {
+      isValid: true,
+      value
+    };
+  }
+
+  if (typeof value === 'string') {
+    const lowerValue = value.toLowerCase().trim();
+    
+    if (['true', '1', 'yes', 'on'].includes(lowerValue)) {
+      return {
+        isValid: true,
+        value: true
+      };
+    }
+    
+    if (['false', '0', 'no', 'off'].includes(lowerValue)) {
+      return {
+        isValid: true,
+        value: false
+      };
+    }
+  }
+
+  if (typeof value === 'number') {
+    return {
+      isValid: true,
+      value: Boolean(value)
+    };
+  }
+
+  return {
+    isValid: false,
+    error: 'Invalid boolean value'
+  };
+}
+
+/**
+ * Validate array with element validation
+ */
+export function validateArray<T>(
+  value: any,
+  elementValidator: (item: any) => ValidationResult,
+  options: { minLength?: number; maxLength?: number; allowEmpty?: boolean } = {}
+): ValidationResult {
+  const { minLength = 0, maxLength = Infinity, allowEmpty = true } = options;
+
+  if (!Array.isArray(value)) {
+    return {
+      isValid: false,
+      error: `Expected array, got ${typeof value}`
+    };
+  }
+
+  if (!allowEmpty && value.length === 0) {
+    return {
+      isValid: false,
+      error: 'Array cannot be empty'
+    };
+  }
+
+  if (value.length < minLength) {
+    return {
+      isValid: false,
+      error: `Array must have at least ${minLength} elements`
+    };
+  }
+
+  if (value.length > maxLength) {
+    return {
+      isValid: false,
+      error: `Array must have no more than ${maxLength} elements`
+    };
+  }
+
+  const validatedElements: T[] = [];
+  for (let i = 0; i < value.length; i++) {
+    const elementResult = elementValidator(value[i]);
+    if (!elementResult.isValid) {
+      return {
+        isValid: false,
+        error: `Invalid element at index ${i}: ${elementResult.error}`
+      };
+    }
+    validatedElements.push(elementResult.value);
+  }
+
+  return {
+    isValid: true,
+    value: validatedElements
+  };
+}
+
+/**
+ * Validate date string or Date object
+ */
+export function validateDate(value: any, options: { future?: boolean; past?: boolean } = {}): ValidationResult {
+  const { future, past } = options;
+
+  let date: Date;
+
+  if (value instanceof Date) {
+    date = value;
+  } else if (typeof value === 'string') {
+    date = new Date(value);
+  } else if (typeof value === 'number') {
+    date = new Date(value);
+  } else {
+    return {
+      isValid: false,
+      error: `Expected Date, string, or number, got ${typeof value}`
+    };
+  }
+
+  if (isNaN(date.getTime())) {
+    return {
+      isValid: false,
+      error: 'Invalid date'
+    };
+  }
+
+  const now = new Date();
+
+  if (future && date <= now) {
+    return {
+      isValid: false,
+      error: 'Date must be in the future'
+    };
+  }
+
+  if (past && date >= now) {
+    return {
+      isValid: false,
+      error: 'Date must be in the past'
+    };
+  }
+
+  return {
+    isValid: true,
+    value: date
+  };
+}
+
+/**
+ * Sanitize string to prevent basic XSS
+ */
+export function sanitizeString(value: string): string {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value
+    .replace(/[<>]/g, '') // Remove basic HTML brackets
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, '') // Remove event handlers
+    .trim();
+}
+
+/**
+ * Validation utilities object for easy import
+ */
+export const validationUtils = {
+  validateString,
+  validateEmail,
+  validateUrl,
+  validateNumber,
+  isValidJson,
+  validateImageExtension,
+  validateImageMimeType,
+  validateFileSize,
+  validateHexColor,
+  validateSlug,
+  validateBoolean,
+  validateArray,
+  validateDate,
+  sanitizeString
+};
+
+/**
+ * Log validation error for debugging
+ */
+export function logValidationError(field: string, error: string, requestId?: string): void {
+  logger.warn('Validation error', {
+    field,
+    error,
+    requestId,
+    component: 'validation'
+  });
+}
+
+export default validationUtils; 

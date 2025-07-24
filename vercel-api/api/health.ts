@@ -1,100 +1,99 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { 
-  getEnvVars, 
-  validateEnvVarsSilently, 
-  isProductionReady, 
-  getSecureEnvSummary,
-  getSecurityAuditInfo,
-  getWordPressConfig, 
-  getRateLimitConfig, 
-  getCorsConfig, 
-  getLoggingConfig 
-} from '@/utils/env';
+import { applicationMonitor } from '../src/utils/application-monitor';
+import { requestResponseLogger } from '../src/middleware/request-response-logger';
+import ErrorHandler from '../src/middleware/error-handler';
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-): Promise<void> {
-  // Only allow GET requests
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    res.status(405).json({
-      success: false,
-      error: {
-        code: 'METHOD_NOT_ALLOWED',
-        message: `Method ${req.method} not allowed`,
-      },
-    });
-    return;
-  }
+/**
+ * Health check endpoint handler
+ */
+async function healthHandler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  const startTime = Date.now();
+  const requestId = `health_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+
+  // Set request ID for error correlation
+  ErrorHandler.setRequestId(requestId);
+
+  // Log incoming request (but exclude from health check paths to avoid noise)
+  requestResponseLogger.updateConfig({ excludePaths: ['/health', '/api/health'] });
 
   try {
-    // Validate environment variables
-    const envValidation = validateEnvVarsSilently();
-    const productionCheck = isProductionReady();
-    const securityAudit = getSecurityAuditInfo();
-    
-    // Get configuration objects
-    const wordpressConfig = getWordPressConfig();
-    const rateLimitConfig = getRateLimitConfig();
-    const corsConfig = getCorsConfig();
-    const loggingConfig = getLoggingConfig();
+    // Get query parameters
+    const { detailed = 'false', metrics = 'false', alerts = 'false' } = req.query;
+    const includeDetailed = detailed === 'true';
+    const includeMetrics = metrics === 'true';
+    const includeAlerts = alerts === 'true';
 
-    // Basic health check response
-    res.status(200).json({
-      success: true,
-      data: {
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        environment: {
-          nodeEnv: getEnvVars().NODE_ENV,
-          productionReady: productionCheck.ready,
-          issues: productionCheck.issues,
-        },
-        version: '1.0.0',
-        services: {
-          wordpress: {
-            url: wordpressConfig.url ? 'configured' : 'not configured',
-            timeout: wordpressConfig.timeout,
-          },
-          rateLimiting: {
-            windowMs: rateLimitConfig.windowMs,
-            maxRequests: rateLimitConfig.maxRequests,
-          },
-          cors: {
-            origins: corsConfig.origins,
-            methods: corsConfig.methods,
-          },
-          logging: {
-            level: loggingConfig.level,
-            debugEnabled: loggingConfig.enableDebug,
-          },
-        },
-        validation: {
-          valid: envValidation.valid,
-          errors: envValidation.errors,
-        },
-        security: {
-          productionReady: securityAudit.productionReady,
-          productionIssues: securityAudit.productionIssues,
-          jwtSecretStrength: securityAudit.securityMeasures.jwtSecretStrength,
-          corsWildcard: securityAudit.securityMeasures.corsWildcard,
-          debugLogging: securityAudit.securityMeasures.debugLogging,
-        },
-        // Include secure environment summary (with masked sensitive data)
-        config: getSecureEnvSummary(),
-      },
-    });
-  } catch (error) {
-    console.error('Health check error:', error);
+    // Get overall health status
+    const overallHealth = applicationMonitor.getOverallHealth();
     
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'HEALTH_CHECK_FAILED',
-        message: 'Health check failed',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-    });
+    // Base response
+    const response: any = {
+      status: overallHealth.status,
+      message: overallHealth.message,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      version: process.env.npm_package_version || '1.0.0',
+      environment: process.env.NODE_ENV || 'development'
+    };
+
+    // Add detailed health checks if requested
+    if (includeDetailed) {
+      response.services = applicationMonitor.getAllHealthChecks();
+    }
+
+    // Add performance metrics if requested
+    if (includeMetrics) {
+      response.metrics = applicationMonitor.getPerformanceMetrics();
+    }
+
+    // Add alerts if requested
+    if (includeAlerts) {
+      response.alerts = {
+        active: applicationMonitor.getActiveAlerts(),
+        total: applicationMonitor.getAllAlerts().length
+      };
+    }
+
+    // Record the health check request
+    const processingTime = Date.now() - startTime;
+    applicationMonitor.recordRequest(true, processingTime);
+
+    // Set appropriate HTTP status based on health
+    let statusCode = 200;
+    switch (overallHealth.status) {
+      case 'healthy':
+        statusCode = 200;
+        break;
+      case 'degraded':
+        statusCode = 200; // Still OK, but with warnings
+        break;
+      case 'unhealthy':
+        statusCode = 503; // Service Unavailable
+        break;
+      case 'critical':
+        statusCode = 503; // Service Unavailable
+        break;
+    }
+
+    // Set cache headers
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    res.status(statusCode).json(response);
+
+    // Log response
+    requestResponseLogger.logResponse(req, res, requestId, response);
+
+  } catch (error) {
+    // Record failed health check
+    const processingTime = Date.now() - startTime;
+    applicationMonitor.recordRequest(false, processingTime);
+
+    // Let error handler take care of this
+    throw error;
   }
-} 
+}
+
+// Export the handler wrapped with error handling
+export default ErrorHandler.asyncWrapper(healthHandler); 

@@ -3,6 +3,7 @@ import { getEnvVars, secureLog } from './env';
 import { createYoastService, YoastService } from './wordpress-yoast';
 import { createWordPressTaxonomyService, WordPressTaxonomyService } from './wordpress-taxonomy';
 import { wordPressValidationService, WordPressValidationService } from './wordpress-validation';
+import { wordPressErrorHandler } from './wordpress-api-error-handler';
 import { 
   WordPressApiError, 
   ValidationError, 
@@ -62,7 +63,6 @@ export class WordPressPostService {
    * Get default post creation configuration
    */
   private getDefaultConfig(): PostCreationConfig {
-    const env = getEnvVars();
     
     return {
       defaultStatus: 'draft',

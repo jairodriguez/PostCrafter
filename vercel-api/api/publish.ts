@@ -11,101 +11,118 @@ import {
 } from '../src/utils/validation';
 import { secureLog } from '../src/utils/env';
 import { createWordPressPostService } from '../src/utils/wordpress-posts';
+import { 
+  createWordPressPostStatusIntegrationService 
+} from '../src/services/wordpress-post-status-integration';
+import { 
+  PostStatus,
+  validatePostStatus,
+  getStatusLabel,
+  getStatusDescription
+} from '../src/types/post-status';
+import ErrorHandler from '../src/middleware/error-handler';
+import { requestResponseLogger } from '../src/middleware/request-response-logger';
+import { applicationMonitor } from '../src/utils/application-monitor';
 
-// Helper function to create error response
-function createErrorResponse(
-  res: VercelResponse,
-  error: ApiError,
-  requestId?: string
-): void {
-  const errorResponse: PublishResponse = {
-    success: false,
-    error: {
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      requestId
-    }
-  };
-
-  res.status(error.statusCode || 500).json(errorResponse);
-}
-
-export default async function handler(
+async function publishHandler(
   req: AuthenticatedRequest,
   res: VercelResponse
 ): Promise<void> {
   const startTime = Date.now();
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  try {
-    // Apply middleware (CORS, security headers, rate limiting, authentication)
-    applyMiddleware(req, res, () => {
-      // Middleware will handle the request
-    });
+  // Set request ID for error correlation
+  ErrorHandler.setRequestId(requestId);
+  
+  // Log incoming request
+  requestResponseLogger.logRequest(req, requestId);
 
-    // Only allow POST requests
-    if (req.method !== 'POST') {
-      res.setHeader('Allow', ['POST']);
-      createErrorResponse(res, {
-        code: 'METHOD_NOT_ALLOWED',
-        message: `Method ${req.method} not allowed`,
-        statusCode: 405
-      }, requestId);
-      return;
-    }
+  // Apply middleware (CORS, security headers, rate limiting, authentication)
+  applyMiddleware(req, res, () => {
+    // Middleware will handle the request
+  });
 
-    // Validate request body
-    const validationResult = validateRequest(req, securePublishRequestSchema);
-    if (!validationResult.valid) {
-      createErrorResponse(res, {
-        code: 'VALIDATION_ERROR',
-        message: 'Request validation failed',
-        details: validationResult.errors.join(', '),
-        statusCode: 400
-      }, requestId);
-      return;
-    }
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
+    throw new ApiError('METHOD_NOT_ALLOWED', 'Method not allowed', 405);
+  }
 
-    const publishData: PublishRequest = validationResult.data;
+  // Enhanced validation schema with status parameter
+  const enhancedPublishRequestSchema = securePublishRequestSchema.extend({
+    status: z.enum(['draft', 'publish', 'private']).default('draft').optional(),
+    status_metadata: z.object({
+      reason: z.string().max(500).optional(),
+      changed_by: z.string().max(255).optional()
+    }).optional()
+  });
 
-    // Check for malicious content
-    const maliciousContent = detectMaliciousContent(publishData);
-    if (maliciousContent.detected) {
-      createErrorResponse(res, {
-        code: 'SECURITY_VIOLATION',
-        message: 'Malicious content detected',
-        details: `Detected patterns: ${maliciousContent.patterns.join(', ')}`,
-        statusCode: 400
-      }, requestId);
-      return;
-    }
+  // Validate request body
+  const validationResult = validateRequest(req, enhancedPublishRequestSchema);
+  if (!validationResult.valid) {
+    throw ErrorHandler.formatValidationError(validationResult.errors);
+  }
 
-    // Validate image data if provided
-    if (publishData.images && publishData.images.length > 0) {
-      for (const image of publishData.images) {
-        const imageValidation = validateImageData(image);
-        if (!imageValidation.valid) {
-          createErrorResponse(res, {
-            code: 'IMAGE_VALIDATION_ERROR',
-            message: 'Image validation failed',
-            details: imageValidation.errors.join(', '),
-            statusCode: 400
-          }, requestId);
-          return;
-        }
+  const publishData: PublishRequest & { 
+    status?: PostStatus; 
+    status_metadata?: { reason?: string; changed_by?: string } 
+  } = validationResult.data;
+
+  // Validate status parameter if provided
+  const postStatus: PostStatus = publishData.status || 'draft';
+  const statusValidation = validatePostStatus(postStatus);
+  if (!statusValidation.isValid) {
+    throw new ApiError(
+      'STATUS_VALIDATION_ERROR',
+      'Invalid post status',
+      400,
+      statusValidation.error
+    );
+  }
+
+  // Check for malicious content
+  const maliciousContent = detectMaliciousContent(publishData);
+  if (maliciousContent.detected) {
+    throw new ApiError(
+      'SECURITY_VIOLATION', 
+      'Malicious content detected', 
+      400, 
+      `Detected patterns: ${maliciousContent.patterns.join(', ')}`
+    );
+  }
+
+  // Validate image data if provided
+  if (publishData.images && publishData.images.length > 0) {
+    for (const image of publishData.images) {
+      const imageValidation = validateImageData(image);
+      if (!imageValidation.valid) {
+        throw new ApiError(
+          'IMAGE_VALIDATION_ERROR',
+          'Image validation failed',
+          400,
+          imageValidation.errors.join(', ')
+        );
+      }
       }
     }
 
-    // Create WordPress post service
+    // Create WordPress post service and status integration service
     const postService = createWordPressPostService();
+    const statusService = createWordPressPostStatusIntegrationService({
+      wordpressUrl: process.env.WORDPRESS_URL!,
+      username: process.env.WORDPRESS_USERNAME!,
+      password: process.env.WORDPRESS_APP_PASSWORD!,
+      enableStatusHistory: true,
+      enableStatusValidation: true,
+      enableMetadataTracking: true
+    });
 
-    // Prepare post data
+    // Prepare post data with validated status
     const postData = {
       title: publishData.post.title,
       content: publishData.post.content,
       excerpt: publishData.post.excerpt || '',
-      status: publishData.post.status || 'draft',
+      status: postStatus, // Use validated status
       author: publishData.post.author || 1,
       featured_media: publishData.post.featured_media || 0,
       comment_status: publishData.post.comment_status || 'open',
@@ -137,35 +154,60 @@ export default async function handler(
     const categoryNames = publishData.post.categories || [];
     const tagNames = publishData.post.tags || [];
 
-    // Create post with Yoast and taxonomy integration
-    const result = await postService.createPostWithYoastAndTaxonomy(
-      postData,
-      yoastFields,
-      categoryNames,
-      tagNames
+    // Create post with enhanced status handling
+    const enhancedPostData = {
+      ...postData,
+      status_change_reason: publishData.status_metadata?.reason || `Post created with status: ${postStatus}`,
+      status_changed_by: publishData.status_metadata?.changed_by || 'api_user'
+    };
+
+    // Use status integration service for enhanced status handling
+    const result = await statusService.createPostWithStatus(
+      enhancedPostData,
+      { 
+        yoast: yoastFields,
+        categories: categoryNames,
+        tags: tagNames,
+        includeImages: true,
+        optimizeImages: true,
+        validateContent: true,
+        generateExcerpt: false
+      },
+      requestId
     );
 
-    if (result.success && result.data) {
+    if (result.success && result.postId) {
       const processingTime = Date.now() - startTime;
 
-      const successResponse: PublishResponse = {
+      const successResponse: PublishResponse & {
+        status_metadata?: any;
+        status_display?: any;
+      } = {
         success: true,
         data: {
-          post_id: result.data.id,
-          post_url: result.data.link,
-          post_title: result.data.title.rendered,
-          post_status: result.data.status,
-          created_at: result.data.date,
-          modified_at: result.data.modified,
-          author: result.data.author,
-          featured_media: result.data.featured_media,
-          categories: result.data.categories || [],
-          tags: result.data.tags || [],
+          post_id: result.postId,
+          post_url: result.postUrl || '',
+          post_title: result.postData?.title?.rendered || enhancedPostData.title,
+          post_status: postStatus,
+          created_at: new Date().toISOString(),
+          modified_at: new Date().toISOString(),
+          author: enhancedPostData.author,
+          featured_media: result.featuredImageId || enhancedPostData.featured_media,
+          categories: categoryNames,
+          tags: tagNames,
           yoast_applied: yoastFields ? Object.keys(yoastFields).length > 0 : false,
-          yoast_warning: (result.data as any).yoastWarning,
-          taxonomy_processing_time_ms: (result.data as any).taxonomy_processing_time_ms,
           processing_time_ms: processingTime,
           request_id: requestId
+        },
+        status_metadata: result.statusMetadata,
+        status_display: {
+          label: getStatusLabel(postStatus),
+          description: getStatusDescription(postStatus),
+          message: postStatus === 'draft' 
+            ? '📝 Post saved as draft! You can review and edit it before publishing.'
+            : postStatus === 'publish'
+            ? '🚀 Post published successfully! It\'s now live and publicly visible.'
+            : '🔒 Private post created! It\'s accessible only to authorized users.'
         }
       };
 
@@ -183,28 +225,26 @@ export default async function handler(
       });
 
       res.status(201).json(successResponse);
+      
+      // Record successful request and WordPress API call
+      const processingTime = Date.now() - startTime;
+      applicationMonitor.recordRequest(true, processingTime);
+      applicationMonitor.recordWordPressApiCall(true);
+      
+      // Log successful response
+      requestResponseLogger.logResponse(req, res, requestId, successResponse);
     } else {
-      createErrorResponse(res, {
-        code: result.error?.code || 'PUBLISH_FAILED',
-        message: result.error?.message || 'Failed to publish post',
-        details: result.error?.details || 'Unknown error occurred',
-        statusCode: result.statusCode || 500
-      }, requestId);
+      // Record failed WordPress API call
+      applicationMonitor.recordWordPressApiCall(false);
+      
+      throw new ApiError(
+        result.error?.code || 'PUBLISH_FAILED',
+        result.error?.message || 'Failed to publish post',
+        result.statusCode || 500,
+        result.error?.details || 'Unknown error occurred'
+      );
     }
-  } catch (error) {
-    const processingTime = Date.now() - startTime;
-    
-    secureLog('error', 'Unexpected error in publish endpoint', {
-      requestId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      processingTime
-    });
+}
 
-    createErrorResponse(res, {
-      code: 'INTERNAL_ERROR',
-      message: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error occurred',
-      statusCode: 500
-    }, requestId);
-  }
-} 
+// Export the handler wrapped with error handling
+export default ErrorHandler.asyncWrapper(publishHandler); 

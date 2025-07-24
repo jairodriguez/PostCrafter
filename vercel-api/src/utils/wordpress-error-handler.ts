@@ -553,13 +553,13 @@ export class WordPressErrorHandler {
       error: {
         code: error.code,
         message: error.message,
-        details: error.details,
+        details: error.details || undefined,
         statusCode: error.statusCode,
-        wordPressCode: error.wordPressCode,
+        wordPressCode: error.wordPressCode || undefined,
         retryable: error.retryable,
         context,
         timestamp: new Date().toISOString(),
-        requestId: context.requestId
+        requestId: context.requestId || undefined
       }
     };
   }
@@ -603,14 +603,24 @@ export class WordPressErrorHandler {
     state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
     errorCount: number;
     lastErrorTime: number;
-    openTime?: number;
+    openTime?: number | undefined;
   } {
-    return {
+    const result: {
+      state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+      errorCount: number;
+      lastErrorTime: number;
+      openTime?: number | undefined;
+    } = {
       state: this.circuitBreakerState,
       errorCount: this.errorCount,
-      lastErrorTime: this.lastErrorTime,
-      openTime: this.circuitBreakerState === 'OPEN' ? this.circuitBreakerOpenTime : undefined
+      lastErrorTime: this.lastErrorTime
     };
+    
+    if (this.circuitBreakerState === 'OPEN') {
+      result.openTime = this.circuitBreakerOpenTime;
+    }
+    
+    return result;
   }
 
   /**

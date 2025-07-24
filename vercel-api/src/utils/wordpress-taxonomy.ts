@@ -1,8 +1,6 @@
 import { WordPressClient, createWordPressClient } from './wordpress';
-import { getEnvVars, secureLog } from './env';
+import { secureLog } from './env';
 import { 
-  WordPressApiError,
-  ValidationError, 
   CategoryData, 
   TagData, 
   TaxonomyTerm, 
