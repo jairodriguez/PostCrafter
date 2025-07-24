@@ -1,3 +1,5 @@
+import { PostStatus, PostWithStatus, PostStatusMetadata } from './post-status';
+
 // Environment variables interface
 export interface EnvVars {
   WORDPRESS_URL: string;
@@ -38,7 +40,7 @@ export interface WordPressPost {
   title: string;
   content: string;
   excerpt?: string;
-  status?: 'draft' | 'publish' | 'private';
+  status?: PostStatus;
   categories?: string[];
   tags?: string[];
   featured_media?: number;
@@ -49,7 +51,7 @@ export interface WordPressPostData {
   title: string;
   content: string;
   excerpt?: string;
-  status?: 'draft' | 'publish' | 'private' | 'pending';
+  status?: PostStatus;
   author?: number;
   slug?: string;
   featured_media?: number;
@@ -105,10 +107,11 @@ export interface PublishRequest {
   post: PostData;
   yoast?: YoastMeta;
   options?: {
-    publish_status?: 'draft' | 'publish';
+    publish_status?: PostStatus;
     include_images?: boolean;
     optimize_images?: boolean;
     validate_content?: boolean;
+    status_metadata?: PostStatusMetadata;
   };
 }
 
@@ -118,12 +121,13 @@ export interface PublishResponse {
   data?: {
     post_id: number;
     post_url: string;
-    status: 'draft' | 'publish' | 'failed';
+    status: PostStatus | 'failed';
     message: string;
     timestamp: string;
     featured_image_id?: number;
     yoast_meta?: YoastMeta;
     processing_time_ms?: number;
+    status_metadata?: PostStatusMetadata;
   };
   error?: ApiErrorResponse;
 }

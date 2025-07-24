@@ -670,7 +670,7 @@ export const commonSchemas = {
       required: false,
       pattern: /^(draft|publish|private)$/,
       defaultValue: 'draft',
-      description: 'Post status'
+      description: 'Post status - determines if post is saved as draft, published, or private'
     }
   },
 
