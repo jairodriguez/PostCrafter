@@ -23,6 +23,7 @@ require_once dirname(__FILE__) . '/test-getter-setter.php';
 require_once dirname(__FILE__) . '/test-validation.php';
 require_once dirname(__FILE__) . '/test-rankmath-detection.php';
 require_once dirname(__FILE__) . '/test-rankmath-field-mapping.php';
+require_once dirname(__FILE__) . '/test-rest-api-extensions.php';
 
 /**
  * Test Runner Class
@@ -59,6 +60,7 @@ class PostCrafter_Test_Runner {
         $this->run_rankmath_detection_tests();
         $this->run_rankmath_field_mapping_tests();
         $this->run_rest_api_tests();
+        $this->run_rest_api_extensions_tests();
         $this->run_getter_setter_tests();
         $this->run_validation_tests();
         
@@ -174,6 +176,29 @@ class PostCrafter_Test_Runner {
             $this->extract_test_results('REST API', $output);
         } else {
             echo "<p style='color: orange;'>⚠️ REST API test class not found</p>\n";
+        }
+        
+        echo "</div>\n";
+    }
+    
+    /**
+     * Run REST API extensions tests
+     */
+    private function run_rest_api_extensions_tests() {
+        echo "<div class='suite'>\n";
+        echo "<h2>🌐 REST API Extensions Tests</h2>\n";
+        
+        if (class_exists('PostCrafter_REST_API_Extensions_Tests')) {
+            ob_start();
+            $api_extensions_tests = new PostCrafter_REST_API_Extensions_Tests();
+            $api_extensions_tests->run_all_tests();
+            $output = ob_get_clean();
+            echo $output;
+            
+            // Extract results for summary
+            $this->extract_test_results('REST API Extensions', $output);
+        } else {
+            echo "<p style='color: orange;'>⚠️ REST API extensions test class not found</p>\n";
         }
         
         echo "</div>\n";
