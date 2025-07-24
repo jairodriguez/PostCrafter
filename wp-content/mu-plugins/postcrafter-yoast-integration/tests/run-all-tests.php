@@ -22,6 +22,7 @@ require_once dirname(__FILE__) . '/test-rest-api.php';
 require_once dirname(__FILE__) . '/test-getter-setter.php';
 require_once dirname(__FILE__) . '/test-validation.php';
 require_once dirname(__FILE__) . '/test-rankmath-detection.php';
+require_once dirname(__FILE__) . '/test-rankmath-field-mapping.php';
 
 /**
  * Test Runner Class
@@ -56,6 +57,7 @@ class PostCrafter_Test_Runner {
         // Run individual test suites
         $this->run_compatibility_tests();
         $this->run_rankmath_detection_tests();
+        $this->run_rankmath_field_mapping_tests();
         $this->run_rest_api_tests();
         $this->run_getter_setter_tests();
         $this->run_validation_tests();
@@ -126,6 +128,29 @@ class PostCrafter_Test_Runner {
             $this->extract_test_results('RankMath Detection', $output);
         } else {
             echo "<p style='color: orange;'>⚠️ RankMath detection test class not found</p>\n";
+        }
+        
+        echo "</div>\n";
+    }
+    
+    /**
+     * Run RankMath field mapping tests
+     */
+    private function run_rankmath_field_mapping_tests() {
+        echo "<div class='suite'>\n";
+        echo "<h2>🗺️ RankMath Field Mapping Tests</h2>\n";
+        
+        if (class_exists('PostCrafter_RankMath_Field_Mapping_Tests')) {
+            ob_start();
+            $field_mapping_tests = new PostCrafter_RankMath_Field_Mapping_Tests();
+            $field_mapping_tests->run_all_tests();
+            $output = ob_get_clean();
+            echo $output;
+            
+            // Extract results for summary
+            $this->extract_test_results('RankMath Field Mapping', $output);
+        } else {
+            echo "<p style='color: orange;'>⚠️ RankMath field mapping test class not found</p>\n";
         }
         
         echo "</div>\n";

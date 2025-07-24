@@ -115,8 +115,7 @@ class PostCrafter_SEO_Integration {
         }
         
         if ($this->detector->is_plugin_active_and_supported('rankmath')) {
-            // RankMath field handler will be created in next subtask
-            // For now, we'll use a placeholder
+            new PostCrafter_RankMath_Field_Handler();
         }
         
         // Initialize REST API handler
