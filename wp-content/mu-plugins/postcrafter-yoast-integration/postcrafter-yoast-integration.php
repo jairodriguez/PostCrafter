@@ -11,6 +11,30 @@
  * This plugin exposes SEO meta fields (meta title, meta description, focus keywords)
  * via WordPress REST API for write access, enabling PostCrafter to publish SEO-optimized
  * content directly from ChatGPT to WordPress. Now supports both Yoast SEO and RankMath SEO.
+ * 
+ * Key Features:
+ * - Automatic SEO plugin detection (Yoast SEO, RankMath SEO)
+ * - Universal API for consistent field access across plugins
+ * - Bidirectional data conversion between Yoast and RankMath
+ * - REST API extensions for remote SEO management
+ * - WordPress admin integration for settings and status
+ * - Comprehensive caching and performance optimization
+ * - Detailed migration reporting and data validation
+ * 
+ * Supported Plugins:
+ * - Yoast SEO (3.0+)
+ * - RankMath SEO (1.0.40+)
+ * 
+ * WordPress Requirements:
+ * - WordPress 5.0+
+ * - PHP 7.4+
+ * - REST API enabled
+ * 
+ * @package PostCrafter
+ * @version 1.1.0
+ * @since 1.0.0 Initial Yoast SEO integration
+ * @since 1.1.0 Added RankMath SEO support and universal API
+ * @link https://github.com/postcrafter/seo-integration
  */
 
 // Prevent direct access

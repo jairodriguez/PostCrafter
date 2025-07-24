@@ -25,6 +25,7 @@ require_once dirname(__FILE__) . '/test-rankmath-detection.php';
 require_once dirname(__FILE__) . '/test-rankmath-field-mapping.php';
 require_once dirname(__FILE__) . '/test-rest-api-extensions.php';
 require_once dirname(__FILE__) . '/test-data-conversion.php';
+require_once dirname(__FILE__) . '/test-e2e-integration.php';
 
 /**
  * Test Runner Class
@@ -63,6 +64,7 @@ class PostCrafter_Test_Runner {
         $this->run_rest_api_tests();
         $this->run_rest_api_extensions_tests();
         $this->run_data_conversion_tests();
+        $this->run_e2e_integration_tests();
         $this->run_getter_setter_tests();
         $this->run_validation_tests();
         
@@ -224,6 +226,29 @@ class PostCrafter_Test_Runner {
             $this->extract_test_results('Data Conversion', $output);
         } else {
             echo "<p style='color: orange;'>⚠️ Data conversion test class not found</p>\n";
+        }
+        
+        echo "</div>\n";
+    }
+    
+    /**
+     * Run end-to-end integration tests
+     */
+    private function run_e2e_integration_tests() {
+        echo "<div class='suite'>\n";
+        echo "<h2>🔄 End-to-End Integration Tests</h2>\n";
+        
+        if (class_exists('PostCrafter_E2E_Integration_Tests')) {
+            ob_start();
+            $e2e_tests = new PostCrafter_E2E_Integration_Tests();
+            $e2e_tests->run_all_tests();
+            $output = ob_get_clean();
+            echo $output;
+            
+            // Extract results for summary
+            $this->extract_test_results('E2E Integration', $output);
+        } else {
+            echo "<p style='color: orange;'>⚠️ E2E integration test class not found</p>\n";
         }
         
         echo "</div>\n";
