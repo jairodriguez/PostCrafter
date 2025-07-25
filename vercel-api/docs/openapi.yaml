@@ -1,0 +1,743 @@
+openapi: 3.0.3
+info:
+  title: PostCrafter API
+  description: |
+    AI-generated, SEO-optimized articles published directly from ChatGPT to WordPress.
+    
+    PostCrafter provides a seamless integration between ChatGPT and WordPress, allowing users to:
+    - Publish posts directly from ChatGPT conversations
+    - Automatically optimize content for SEO using Yoast meta fields
+    - Upload and manage images with alt text
+    - Create categories and tags on the fly
+    - Handle both draft and published content
+    
+    This API serves as the bridge between ChatGPT's GPT Actions and your WordPress site.
+  version: "1.0.0"
+  contact:
+    name: PostCrafter Support
+    url: https://github.com/postcrafter/api
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://your-domain.vercel.app/api
+    description: Production server
+  - url: https://preview-deployment.vercel.app/api  
+    description: Preview server
+  - url: http://localhost:3000/api
+    description: Development server
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+paths:
+  /publish:
+    post:
+      summary: Publish post to WordPress
+      description: |
+        Creates and publishes a post to WordPress with optional SEO metadata, categories, tags, and images.
+        
+        This endpoint handles the complete post creation workflow including:
+        - Post content validation and sanitization
+        - SEO metadata via Yoast fields
+        - Category and tag creation/assignment
+        - Image upload and featured image assignment
+        - Content security validation
+        
+        The endpoint supports both draft and immediate publishing modes.
+      operationId: publishPost
+      tags:
+        - Publishing
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishRequest'
+            examples:
+              basic_post:
+                summary: Basic post with minimal data
+                value:
+                  post:
+                    title: "My First Post"
+                    content: "This is the content of my first post."
+                    status: "draft"
+              full_post:
+                summary: Complete post with SEO and images
+                value:
+                  post:
+                    title: "Complete Guide to API Development"
+                    content: |
+                      # API Development Best Practices
+                      
+                      This comprehensive guide covers everything you need to know about building robust APIs.
+                      
+                      ## Table of Contents
+                      1. Design Principles
+                      2. Security Considerations
+                      3. Documentation
+                      
+                      Let's dive into the details...
+                    excerpt: "A comprehensive guide covering API development best practices, security, and documentation."
+                    status: "publish"
+                    categories: ["Technology", "Development", "APIs"]
+                    tags: ["API", "REST", "Best Practices", "Security"]
+                    yoast_meta:
+                      meta_title: "Complete API Development Guide 2024"
+                      meta_description: "Learn API development best practices, security considerations, and documentation strategies in this comprehensive 2024 guide."
+                      focus_keywords: "API development, REST API, API security"
+                      canonical: "https://example.com/api-development-guide"
+                    images:
+                      - url: "https://example.com/api-diagram.png"
+                        alt_text: "API architecture diagram showing client-server communication"
+                        caption: "Modern API architecture overview"
+                        featured: true
+                  options:
+                    include_images: true
+                    optimize_images: true
+                    validate_content: true
+      responses:
+        '201':
+          description: Post successfully created and published
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishResponse'
+              examples:
+                success_response:
+                  summary: Successful post creation
+                  value:
+                    success: true
+                    data:
+                      post_id: 123
+                      post_url: "https://your-site.com/2024/01/15/complete-guide-to-api-development/"
+                      post_title: "Complete Guide to API Development"
+                      post_status: "publish"
+                      created_at: "2024-01-15T10:30:00Z"
+                      modified_at: "2024-01-15T10:30:00Z"
+                      author: 1
+                      featured_media: 456
+                      categories: [1, 2, 3]
+                      tags: [10, 11, 12, 13]
+                      yoast_applied: true
+                      processing_time_ms: 1250
+                      request_id: "req_1705312200_abc123"
+        '400':
+          description: Bad request - validation error or malformed data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation_error:
+                  summary: Validation error example
+                  value:
+                    success: false
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Request validation failed"
+                      details: "Title is required, Content contains malicious content"
+                      request_id: "req_1705312200_abc123"
+                malicious_content:
+                  summary: Security violation example
+                  value:
+                    success: false
+                    error:
+                      code: "SECURITY_VIOLATION" 
+                      message: "Malicious content detected"
+                      details: "Detected patterns: script tags, javascript protocol"
+                      request_id: "req_1705312200_abc123"
+        '401':
+          description: Unauthorized - invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_api_key:
+                  summary: Missing API key
+                  value:
+                    success: false
+                    error:
+                      code: "AUTHENTICATION_ERROR"
+                      message: "API key is required"
+                      details: "Missing x-api-key header"
+                invalid_api_key:
+                  summary: Invalid API key
+                  value:
+                    success: false
+                    error:
+                      code: "AUTHENTICATION_ERROR"
+                      message: "Invalid API key"
+                      details: "The provided API key is not valid"
+        '429':
+          description: Too many requests - rate limit exceeded
+          headers:
+            X-RateLimit-Limit:
+              description: The rate limit ceiling for the given request
+              schema:
+                type: integer
+                example: 100
+            X-RateLimit-Remaining:
+              description: The number of requests left for the time window
+              schema:
+                type: integer
+                example: 0
+            X-RateLimit-Reset:
+              description: The time when the rate limit resets (Unix timestamp)
+              schema:
+                type: integer
+                example: 1705312800
+            Retry-After:
+              description: Number of seconds to wait before making a new request
+              schema:
+                type: integer
+                example: 60
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                rate_limit_exceeded:
+                  summary: Rate limit exceeded
+                  value:
+                    success: false
+                    error:
+                      code: "RATE_LIMIT_ERROR"
+                      message: "Rate limit exceeded"
+                      details: "Maximum 100 requests per hour exceeded"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                wordpress_error:
+                  summary: WordPress API error
+                  value:
+                    success: false
+                    error:
+                      code: "WORDPRESS_API_ERROR"
+                      message: "Failed to create post in WordPress"
+                      details: "Connection timeout to WordPress API"
+                      request_id: "req_1705312200_abc123"
+                internal_error:
+                  summary: Generic internal error
+                  value:
+                    success: false
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "Internal server error"
+                      details: "An unexpected error occurred"
+                      request_id: "req_1705312200_abc123"
+
+  /health:
+    get:
+      summary: Health check endpoint
+      description: |
+        Returns the health status of the API and its dependencies.
+        
+        This endpoint can be used for:
+        - Monitoring service availability
+        - Verifying WordPress connection
+        - Checking environment configuration
+        - Load balancer health checks
+      operationId: healthCheck
+      tags:
+        - System
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-01-15T10:30:00Z"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  environment:
+                    type: string
+                    enum: [development, staging, production]
+                    example: production
+                  dependencies:
+                    type: object
+                    properties:
+                      wordpress:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            enum: [connected, error, timeout]
+                            example: connected
+                          response_time_ms:
+                            type: integer
+                            example: 150
+                      database:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            enum: [connected, error]
+                            example: connected
+                required:
+                  - status
+                  - timestamp
+                  - version
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: unhealthy
+                  timestamp:
+                    type: string
+                    format: date-time
+                  error:
+                    type: string
+                    example: "WordPress connection failed"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: |
+        API key authentication using custom header. This is the preferred method for GPT Actions.
+        
+        **For GPT Actions in ChatGPT:**
+        Use this method when configuring authentication in ChatGPT's GPT Action settings.
+        The API key will be automatically included in all requests as the `x-api-key` header.
+        
+        **Example:**
+        ```
+        x-api-key: pc_sk_live_1234567890abcdef
+        ```
+        
+        **API Key Format:**
+        - Prefix: `pc_sk_` (PostCrafter Secret Key)
+        - Environment: `live_` for production, `test_` for development  
+        - Identifier: 16-character alphanumeric string
+        
+        **Security Notes:**
+        - Keep your API key secret and secure
+        - Use environment-specific keys (test vs live)
+        - Rotate keys regularly for security
+        - Monitor API usage for unusual activity
+    
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API_KEY
+      description: |
+        Bearer token authentication using Authorization header. Alternative to x-api-key header.
+        
+        **For direct API calls:**
+        Include the Authorization header with Bearer token format using your API key.
+        
+        **Example:**
+        ```
+        Authorization: Bearer pc_sk_live_1234567890abcdef
+        ```
+        
+        **Usage:**
+        This method can be used interchangeably with x-api-key header authentication.
+        The API accepts both formats and will validate the key regardless of method used.
+        
+        **Compatibility:**
+        - Works with all standard HTTP clients
+        - Compatible with API testing tools (Postman, Insomnia, etc.)
+        - Suitable for server-to-server integrations
+        
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: |
+        Basic authentication for testing and development purposes only.
+        
+        **⚠️ Development Only:**
+        This method is intended for local development and testing environments.
+        Do not use Basic auth in production environments.
+        
+        **Format:**
+        Username: your-api-key
+        Password: (leave empty)
+        
+        **Example:**
+        ```
+        Authorization: Basic cGNfc2tfbGl2ZV8xMjM0NTY3ODkwYWJjZGVmOg==
+        ```
+        
+        **Security Warning:**
+        Basic authentication transmits credentials in base64 encoding, which is easily decoded.
+        Always use HTTPS when using this authentication method.
+
+  schemas:
+    PublishRequest:
+      type: object
+      required:
+        - post
+      properties:
+        post:
+          $ref: '#/components/schemas/PostData'
+        options:
+          $ref: '#/components/schemas/PublishOptions'
+      example:
+        post:
+          title: "Example Post Title"
+          content: "This is the post content with **markdown** formatting."
+          status: "publish"
+        options:
+          include_images: true
+          validate_content: true
+
+    PostData:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: The post title (will be sanitized)
+          example: "10 Best Practices for API Security"
+        content:
+          type: string
+          minLength: 1
+          maxLength: 50000
+          description: |
+            The post content. Supports HTML and Markdown formatting.
+            Content will be automatically sanitized for security.
+          example: |
+            # API Security Best Practices
+            
+            Security is crucial when building APIs. Here are the top 10 practices:
+            
+            1. **Use HTTPS everywhere**
+            2. **Implement proper authentication**
+            3. **Validate all inputs**
+        excerpt:
+          type: string
+          maxLength: 500
+          description: Short excerpt or summary of the post
+          example: "Learn the essential security practices every API developer should implement to protect their applications and users."
+        status:
+          type: string
+          enum: [draft, publish, private]
+          default: draft
+          description: Publication status of the post
+          example: publish
+        categories:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+          maxItems: 10
+          description: Category names (will be created if they don't exist)
+          example: ["Technology", "Security", "Development"]
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+          maxItems: 20
+          description: Tag names (will be created if they don't exist)
+          example: ["API", "Security", "Best Practices", "HTTPS"]
+        featured_media:
+          type: integer
+          minimum: 1
+          description: WordPress media ID for the featured image
+          example: 123
+        yoast_meta:
+          $ref: '#/components/schemas/YoastMeta'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageData'
+          maxItems: 10
+          description: Images to upload and attach to the post
+
+    YoastMeta:
+      type: object
+      description: |
+        Yoast SEO metadata fields for search engine optimization.
+        All fields are optional and will be auto-generated if not provided.
+      properties:
+        meta_title:
+          type: string
+          maxLength: 60
+          description: SEO title (optimal length 50-60 characters)
+          example: "API Security Guide 2024 | Best Practices & Tips"
+        meta_description:
+          type: string
+          maxLength: 160
+          description: SEO meta description (optimal length 120-160 characters)
+          example: "Comprehensive guide to API security best practices. Learn authentication, input validation, HTTPS implementation, and more security tips for developers."
+        focus_keywords:
+          type: string
+          maxLength: 200
+          description: Focus keywords for SEO (comma-separated)
+          example: "API security, authentication, HTTPS, input validation"
+        canonical:
+          type: string
+          format: uri
+          description: Canonical URL for the post
+          example: "https://example.com/api-security-best-practices"
+        primary_category:
+          type: integer
+          minimum: 1
+          description: WordPress category ID for the primary category
+          example: 5
+        meta_robots_noindex:
+          type: string
+          maxLength: 20
+          enum: ["0", "1", ""]
+          description: Robots noindex directive (0 = index, 1 = noindex)
+          example: "0"
+        meta_robots_nofollow:
+          type: string
+          maxLength: 20
+          enum: ["0", "1", ""]
+          description: Robots nofollow directive (0 = follow, 1 = nofollow)
+          example: "0"
+
+    ImageData:
+      type: object
+      description: |
+        Image data for upload. Provide either URL or base64 data.
+        Images will be uploaded to WordPress media library.
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL of the image to download and upload
+          example: "https://example.com/images/api-security-diagram.png"
+        base64:
+          type: string
+          description: Base64-encoded image data (alternative to URL)
+          example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+        alt_text:
+          type: string
+          maxLength: 255
+          description: Alternative text for accessibility
+          example: "Diagram showing API security layers including authentication, authorization, and encryption"
+        caption:
+          type: string
+          maxLength: 500
+          description: Image caption
+          example: "Modern API security architecture with multiple protection layers"
+        featured:
+          type: boolean
+          default: false
+          description: Whether this image should be set as the featured image
+          example: true
+        filename:
+          type: string
+          maxLength: 255
+          description: Custom filename for the uploaded image
+          example: "api-security-diagram.png"
+        mime_type:
+          type: string
+          enum: [image/jpeg, image/jpg, image/png, image/gif, image/webp, image/svg+xml]
+          description: MIME type of the image
+          example: "image/png"
+
+    PublishOptions:
+      type: object
+      description: Additional options for post publishing
+      properties:
+        publish_status:
+          type: string
+          enum: [draft, publish]
+          description: Override post status (alternative to post.status)
+          example: publish
+        include_images:
+          type: boolean
+          default: true
+          description: Whether to process and upload images
+          example: true
+        optimize_images:
+          type: boolean
+          default: false
+          description: Whether to optimize images before upload
+          example: true
+        validate_content:
+          type: boolean
+          default: true
+          description: Whether to validate and sanitize content
+          example: true
+
+    PublishResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          description: Whether the operation was successful
+          example: true
+        data:
+          $ref: '#/components/schemas/PublishResponseData'
+        error:
+          $ref: '#/components/schemas/ErrorDetails'
+
+    PublishResponseData:
+      type: object
+      description: Response data when post is successfully created
+      required:
+        - post_id
+        - post_url
+        - post_title
+        - post_status
+      properties:
+        post_id:
+          type: integer
+          description: WordPress post ID
+          example: 123
+        post_url:
+          type: string
+          format: uri
+          description: Public URL of the created post
+          example: "https://your-site.com/2024/01/15/api-security-best-practices/"
+        post_title:
+          type: string
+          description: The final title of the created post
+          example: "10 Best Practices for API Security"
+        post_status:
+          type: string
+          enum: [draft, publish, private]
+          description: Final status of the created post
+          example: publish
+        created_at:
+          type: string
+          format: date-time
+          description: When the post was created
+          example: "2024-01-15T10:30:00Z"
+        modified_at:
+          type: string
+          format: date-time
+          description: When the post was last modified
+          example: "2024-01-15T10:30:00Z"
+        author:
+          type: integer
+          description: WordPress user ID of the post author
+          example: 1
+        featured_media:
+          type: integer
+          description: WordPress media ID of the featured image (0 if none)
+          example: 456
+        categories:
+          type: array
+          items:
+            type: integer
+          description: Array of WordPress category IDs assigned to the post
+          example: [1, 2, 3]
+        tags:
+          type: array
+          items:
+            type: integer
+          description: Array of WordPress tag IDs assigned to the post
+          example: [10, 11, 12, 13]
+        yoast_applied:
+          type: boolean
+          description: Whether Yoast SEO fields were successfully applied
+          example: true
+        yoast_warning:
+          type: string
+          description: Warning message if there were issues with Yoast fields
+          example: "Some Yoast fields could not be applied due to plugin version"
+        taxonomy_processing_time_ms:
+          type: integer
+          description: Time taken to process categories and tags (milliseconds)
+          example: 250
+        processing_time_ms:
+          type: integer
+          description: Total time taken to process the request (milliseconds)
+          example: 1250
+        request_id:
+          type: string
+          description: Unique identifier for this request (for debugging)
+          example: "req_1705312200_abc123"
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          description: Always false for error responses
+          example: false
+        error:
+          $ref: '#/components/schemas/ErrorDetails'
+
+    ErrorDetails:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+          enum:
+            - VALIDATION_ERROR
+            - AUTHENTICATION_ERROR
+            - AUTHORIZATION_ERROR
+            - SECURITY_VIOLATION
+            - RATE_LIMIT_ERROR
+            - WORDPRESS_API_ERROR
+            - INTERNAL_ERROR
+            - METHOD_NOT_ALLOWED
+            - IMAGE_VALIDATION_ERROR
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Request validation failed"
+        details:
+          type: string
+          description: Additional details about the error
+          example: "Title is required, Content contains malicious content"
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+          example: "2024-01-15T10:30:00Z"
+        request_id:
+          type: string
+          description: Unique identifier for the failed request
+          example: "req_1705312200_abc123"
+
+tags:
+  - name: Publishing
+    description: Post publishing operations
+  - name: System
+    description: System monitoring and health checks
+
+externalDocs:
+  description: PostCrafter Documentation
+  url: https://github.com/postcrafter/docs

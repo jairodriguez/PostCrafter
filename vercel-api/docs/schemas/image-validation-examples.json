@@ -1,0 +1,444 @@
+{
+  "validExamples": [
+    {
+      "name": "Basic URL Image",
+      "description": "Simple image with URL and alt text",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Example image for testing"
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with minimal required fields"
+    },
+    {
+      "name": "Complete URL Image",
+      "description": "URL image with all metadata fields",
+      "data": {
+        "url": "https://example.com/api-architecture-diagram.png",
+        "alt_text": "API architecture diagram showing client-server communication patterns",
+        "caption": "Modern API architecture with microservices, load balancing, and database layers",
+        "title": "API Architecture Overview",
+        "featured": true,
+        "filename": "api-architecture-2024.png",
+        "mime_type": "image/png",
+        "width": 1200,
+        "height": 800,
+        "optimize": true,
+        "quality": 85,
+        "max_width": 1000,
+        "max_height": 700
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with all optional fields properly set"
+    },
+    {
+      "name": "Base64 Image",
+      "description": "Small base64-encoded PNG image",
+      "data": {
+        "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+        "alt_text": "Single red pixel for testing",
+        "filename": "red-pixel.png",
+        "mime_type": "image/png",
+        "width": 1,
+        "height": 1
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with valid base64 data"
+    },
+    {
+      "name": "Featured Image with Optimization",
+      "description": "Featured image with optimization settings",
+      "data": {
+        "url": "https://cdn.example.com/hero-image.jpg",
+        "alt_text": "Hero image for blog post header",
+        "caption": "Stunning landscape photography for article header",
+        "featured": true,
+        "optimize": true,
+        "quality": 80,
+        "max_width": 1920,
+        "max_height": 1080,
+        "convert_to": "webp"
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with optimization and conversion settings"
+    },
+    {
+      "name": "SVG Image",
+      "description": "SVG image with proper MIME type",
+      "data": {
+        "url": "https://example.com/icon.svg",
+        "alt_text": "Custom application icon",
+        "mime_type": "image/svg+xml",
+        "filename": "app-icon.svg",
+        "optimize": false
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with SVG format and no optimization"
+    },
+    {
+      "name": "WebP Image with Quality",
+      "description": "WebP image with quality settings",
+      "data": {
+        "url": "https://example.com/modern-photo.webp",
+        "alt_text": "Modern photography in WebP format",
+        "mime_type": "image/webp",
+        "quality": 90,
+        "optimize": true
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with WebP format and quality settings"
+    },
+    {
+      "name": "Large JPEG with Dimensions",
+      "description": "Large JPEG image with full dimension data",
+      "data": {
+        "url": "https://example.com/high-res-photo.jpg",
+        "alt_text": "High-resolution photograph for detailed viewing",
+        "caption": "Professional photography with excellent detail and composition",
+        "mime_type": "image/jpeg",
+        "width": 3840,
+        "height": 2160,
+        "size_bytes": 2097152,
+        "quality": 95,
+        "optimize": true,
+        "max_width": 1920,
+        "max_height": 1080
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with large dimensions and file size"
+    }
+  ],
+  "invalidExamples": [
+    {
+      "name": "Missing URL and Base64",
+      "description": "Image with neither URL nor base64 data",
+      "data": {
+        "alt_text": "Image with no source"
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Image must have either a URL or base64 data, but not both"],
+      "notes": "Should fail due to missing image source"
+    },
+    {
+      "name": "Both URL and Base64",
+      "description": "Image with both URL and base64 data",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+        "alt_text": "Image with both sources"
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Image must have either a URL or base64 data, but not both"],
+      "notes": "Should fail due to having both URL and base64"
+    },
+    {
+      "name": "Invalid URL Format",
+      "description": "Image with malformed URL",
+      "data": {
+        "url": "not-a-valid-url",
+        "alt_text": "Image with invalid URL"
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Image URL must be a valid HTTP/HTTPS URL"],
+      "notes": "Should fail due to invalid URL format"
+    },
+    {
+      "name": "Non-HTTP URL",
+      "description": "Image with non-HTTP protocol",
+      "data": {
+        "url": "ftp://example.com/image.jpg",
+        "alt_text": "Image with FTP URL"
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Image URL must use HTTP or HTTPS protocol"],
+      "notes": "Should fail due to non-HTTP protocol"
+    },
+    {
+      "name": "URL Too Long",
+      "description": "Image with extremely long URL",
+      "data": {
+        "url": "https://example.com/this-is-a-very-long-url-path-that-exceeds-the-maximum-allowed-length-for-image-urls-in-the-postcrafter-api-validation-schema-and-should-cause-the-validation-to-fail-when-testing-the-url-length-constraints/image.jpg",
+        "alt_text": "Image with very long URL"
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Image URL must be 2000 characters or less"],
+      "notes": "Should fail due to URL length exceeding limit"
+    },
+    {
+      "name": "Invalid Base64 Format",
+      "description": "Image with malformed base64 data",
+      "data": {
+        "base64": "invalid-base64-data",
+        "alt_text": "Image with invalid base64"
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Base64 data must be a valid data URI with supported image MIME type"],
+      "notes": "Should fail due to invalid base64 format"
+    },
+    {
+      "name": "Unsupported Base64 MIME Type",
+      "description": "Base64 image with unsupported MIME type",
+      "data": {
+        "base64": "data:image/bmp;base64,Qk02AAAAAAAAADYAAAAoAAAAAQAAAAEAAAABACAAAAAAAAAAAADEDgAAxA4AAAAAAAAAAAAA////AA==",
+        "alt_text": "BMP image which is not supported"
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Base64 data must be a valid data URI with supported image MIME type"],
+      "notes": "Should fail due to unsupported BMP format"
+    },
+    {
+      "name": "Empty Alt Text",
+      "description": "Image with empty alt text",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": ""
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Alt text cannot be empty"],
+      "notes": "Should fail due to empty alt text"
+    },
+    {
+      "name": "Whitespace Only Alt Text",
+      "description": "Image with whitespace-only alt text",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "   \n\t   "
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Alt text cannot be only whitespace"],
+      "notes": "Should fail due to whitespace-only alt text"
+    },
+    {
+      "name": "Alt Text Too Long",
+      "description": "Image with alt text exceeding 255 characters",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "This alt text is extremely long and exceeds the maximum allowed length of 255 characters. It keeps going and going with more descriptive text to demonstrate what happens when alt text is way too verbose and detailed for practical use in web accessibility. This continues with even more text to ensure we definitely exceed the 255 character limit that is enforced by the schema validation rules for alternative text fields."
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Alt text must be 255 characters or less"],
+      "notes": "Should fail due to alt text length"
+    },
+    {
+      "name": "Caption Too Long",
+      "description": "Image with caption exceeding 500 characters",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Valid alt text",
+        "caption": "This caption is extremely long and exceeds the maximum allowed length of 500 characters. It contains way too much descriptive text and detailed information that would be excessive for a typical image caption. Captions should be concise and provide essential context, not lengthy descriptions that overwhelm the reader. This example demonstrates what happens when caption text goes far beyond reasonable limits and becomes unwieldy for practical use in content management systems. We continue adding more text here to absolutely ensure that this caption exceeds the 500 character limit that is specified in the image data schema validation rules and should cause the validation to fail when tested against the schema requirements."
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Caption must be 500 characters or less"],
+      "notes": "Should fail due to caption length"
+    },
+    {
+      "name": "Invalid Filename Format",
+      "description": "Image with invalid filename characters",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Valid alt text",
+        "filename": "invalid/filename*with<special>chars.jpg"
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Filename must be valid with alphanumeric characters, dots, hyphens, underscores, and a file extension"],
+      "notes": "Should fail due to invalid filename characters"
+    },
+    {
+      "name": "Filename Without Extension",
+      "description": "Image with filename missing extension",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Valid alt text",
+        "filename": "image-without-extension"
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Filename must be valid with alphanumeric characters, dots, hyphens, underscores, and a file extension"],
+      "notes": "Should fail due to missing file extension"
+    },
+    {
+      "name": "Invalid MIME Type",
+      "description": "Image with unsupported MIME type",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Valid alt text",
+        "mime_type": "image/bmp"
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["MIME type must be one of the supported image formats"],
+      "notes": "Should fail due to unsupported MIME type"
+    },
+    {
+      "name": "Negative Width",
+      "description": "Image with negative width value",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Valid alt text",
+        "width": -100
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Image width must be at least 1 pixel"],
+      "notes": "Should fail due to negative width"
+    },
+    {
+      "name": "Zero Height",
+      "description": "Image with zero height value",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Valid alt text",
+        "height": 0
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Image height must be at least 1 pixel"],
+      "notes": "Should fail due to zero height"
+    },
+    {
+      "name": "Excessive Dimensions",
+      "description": "Image with dimensions exceeding limits",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Valid alt text",
+        "width": 15000,
+        "height": 15000
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Image width cannot exceed 10,000 pixels", "Image height cannot exceed 10,000 pixels"],
+      "notes": "Should fail due to excessive dimensions"
+    },
+    {
+      "name": "Invalid Quality Value",
+      "description": "Image with quality value outside valid range",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Valid alt text",
+        "quality": 150
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Quality cannot exceed 100"],
+      "notes": "Should fail due to quality value exceeding maximum"
+    },
+    {
+      "name": "Zero Quality",
+      "description": "Image with zero quality value",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Valid alt text",
+        "quality": 0
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Quality must be at least 1"],
+      "notes": "Should fail due to zero quality value"
+    },
+    {
+      "name": "Invalid Convert Format",
+      "description": "Image with unsupported conversion format",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Valid alt text",
+        "convert_to": "bmp"
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Convert format must be one of: jpeg, png, webp"],
+      "notes": "Should fail due to unsupported conversion format"
+    },
+    {
+      "name": "File Size Too Large",
+      "description": "Image with file size exceeding 10MB limit",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Valid alt text",
+        "size_bytes": 15728640
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["File size cannot exceed 10MB"],
+      "notes": "Should fail due to file size exceeding limit"
+    }
+  ],
+  "edgeCases": [
+    {
+      "name": "Minimum Valid URL Image",
+      "description": "Image with shortest valid URL and alt text",
+      "data": {
+        "url": "https://a.co/i.jpg",
+        "alt_text": "x"
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with minimal valid values"
+    },
+    {
+      "name": "Maximum Dimensions",
+      "description": "Image with maximum allowed dimensions",
+      "data": {
+        "url": "https://example.com/huge-image.png",
+        "alt_text": "Image with maximum allowed dimensions",
+        "width": 10000,
+        "height": 10000
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with maximum allowed dimensions"
+    },
+    {
+      "name": "Maximum File Size",
+      "description": "Image with maximum allowed file size",
+      "data": {
+        "url": "https://example.com/large-file.jpg",
+        "alt_text": "Large file at size limit",
+        "size_bytes": 10485760
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with maximum allowed file size (10MB)"
+    },
+    {
+      "name": "Unicode in Alt Text",
+      "description": "Image with Unicode characters in alt text",
+      "data": {
+        "url": "https://example.com/unicode-test.png",
+        "alt_text": "图片描述 with émojis 🖼️ and spëcial çharacters"
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should handle Unicode characters in alt text"
+    },
+    {
+      "name": "Long Valid Filename",
+      "description": "Image with long but valid filename",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Image with long filename",
+        "filename": "very-long-but-valid-filename-that-describes-the-image-content-in-detail-2024-version-final.jpg"
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with long but valid filename"
+    },
+    {
+      "name": "Quality Boundary Values",
+      "description": "Image with quality at boundary values",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Image with boundary quality values",
+        "quality": 1
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with minimum quality value"
+    },
+    {
+      "name": "Mixed Case MIME Type",
+      "description": "Image with mixed case in MIME type",
+      "data": {
+        "url": "https://example.com/image.jpg",
+        "alt_text": "Image with case-sensitive MIME type",
+        "mime_type": "image/JPEG"
+      },
+      "expectedValidation": "FAIL",
+      "notes": "Should fail as MIME types are case-sensitive"
+    },
+    {
+      "name": "Base64 with Different MIME",
+      "description": "Base64 image with JPEG data but PNG MIME type in data URI",
+      "data": {
+        "base64": "data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxAAPwCdABmX/9k=",
+        "alt_text": "Mismatched MIME type test"
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass as schema only validates data URI format, not actual image content"
+    }
+  ]
+}

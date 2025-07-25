@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="PostCrafter Monitoring and Analytics Dashboard">
+    <title>PostCrafter Dashboard</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.css">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/dashboard.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/responsive.css">
+    <link rel="stylesheet" href="styles/filtering.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+</head>
+<body class="dashboard-body" data-theme="light">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <div class="loading-text">Loading PostCrafter Dashboard...</div>
+        </div>
+    </div>
+
+    <!-- Dashboard Container -->
+    <div id="dashboard-container" class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle Sidebar">
+                    <i data-feather="menu"></i>
+                </button>
+                <div class="header-brand">
+                    <div class="brand-logo">
+                        <i data-feather="bar-chart-2"></i>
+                    </div>
+                    <div class="brand-text">
+                        <h1 class="brand-title">PostCrafter</h1>
+                        <span class="brand-subtitle">Analytics Dashboard</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-center">
+                <div class="status-indicator" id="connection-status">
+                    <div class="status-dot status-connected"></div>
+                    <span class="status-text">Connected</span>
+                </div>
+                <div class="last-updated" id="last-updated">
+                    Last updated: <span id="last-updated-time">--</span>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <button id="refresh-btn" class="header-btn" title="Refresh Data" aria-label="Refresh Data">
+                    <i data-feather="refresh-cw"></i>
+                </button>
+                <button id="theme-toggle" class="header-btn" title="Toggle Theme" aria-label="Toggle Theme">
+                    <i data-feather="moon"></i>
+                </button>
+                <button id="settings-btn" class="header-btn" title="Settings" aria-label="Settings">
+                    <i data-feather="settings"></i>
+                </button>
+                <div class="user-menu">
+                    <button id="user-menu-btn" class="user-menu-btn" aria-label="User Menu">
+                        <div class="user-avatar">
+                            <i data-feather="user"></i>
+                        </div>
+                        <span class="user-name">Admin</span>
+                        <i data-feather="chevron-down" class="user-menu-icon"></i>
+                    </button>
+                    <div id="user-dropdown" class="user-dropdown">
+                        <a href="#" class="dropdown-item">
+                            <i data-feather="user"></i>
+                            Profile
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i data-feather="settings"></i>
+                            Settings
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item">
+                            <i data-feather="log-out"></i>
+                            Sign Out
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar Navigation -->
+        <aside class="dashboard-sidebar" id="dashboard-sidebar">
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <h3 class="nav-section-title">Dashboard</h3>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="#overview" class="nav-link active" data-section="overview">
+                                <i data-feather="home"></i>
+                                <span class="nav-text">Overview</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#api-usage" class="nav-link" data-section="api-usage">
+                                <i data-feather="activity"></i>
+                                <span class="nav-text">API Usage</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#publishes" class="nav-link" data-section="publishes">
+                                <i data-feather="edit"></i>
+                                <span class="nav-text">Publishes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#errors" class="nav-link" data-section="errors">
+                                <i data-feather="alert-triangle"></i>
+                                <span class="nav-text">Errors</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#activity" class="nav-link" data-section="activity">
+                                <i data-feather="clock"></i>
+                                <span class="nav-text">Activity</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3 class="nav-section-title">Analytics</h3>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="#performance" class="nav-link" data-section="performance">
+                                <i data-feather="trending-up"></i>
+                                <span class="nav-text">Performance</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#users" class="nav-link" data-section="users">
+                                <i data-feather="users"></i>
+                                <span class="nav-text">Users</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#reports" class="nav-link" data-section="reports">
+                                <i data-feather="file-text"></i>
+                                <span class="nav-text">Reports</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3 class="nav-section-title">System</h3>
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="#health" class="nav-link" data-section="health">
+                                <i data-feather="heart"></i>
+                                <span class="nav-text">Health</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#logs" class="nav-link" data-section="logs">
+                                <i data-feather="file-text"></i>
+                                <span class="nav-text">Logs</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <div class="sidebar-help">
+                    <button class="help-btn">
+                        <i data-feather="help-circle"></i>
+                        <span>Help & Support</span>
+                    </button>
+                </div>
+                <div class="sidebar-version">
+                    Version 1.0.0
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="page-title-wrapper">
+                    <h2 class="page-title" id="page-title">Overview</h2>
+                    <p class="page-description" id="page-description">
+                        Monitor your PostCrafter API performance and usage statistics
+                    </p>
+                </div>
+                <div class="page-actions">
+                    <!-- Real-time Connection Status -->
+                    <div class="connection-status" id="connection-status">
+                        <span class="status-dot status-connecting"></span>
+                        <span class="status-text">Connecting...</span>
+                    </div>
+                    
+                    <!-- Quick Filters -->
+                    <div class="quick-filters" id="quick-filters">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="errors">Errors</button>
+                        <button class="filter-btn" data-filter="success">Success</button>
+                    </div>
+                    
+                    <!-- Date Range Filter -->
+                    <div class="filter-dropdown" id="date-range-filter">
+                        <button id="date-range-btn" class="btn btn-secondary">
+                            <i data-feather="calendar"></i>
+                            <span id="date-range-text">Last 24 Hours</span>
+                        </button>
+                        <div class="dropdown-content" id="date-range-dropdown">
+                            <div class="filter-section">
+                                <h4 class="filter-title">Time Range</h4>
+                                <div class="preset-buttons">
+                                    <button class="preset-btn" data-preset="1h">1H</button>
+                                    <button class="preset-btn" data-preset="6h">6H</button>
+                                    <button class="preset-btn active" data-preset="24h">24H</button>
+                                    <button class="preset-btn" data-preset="7d">7D</button>
+                                    <button class="preset-btn" data-preset="30d">30D</button>
+                                    <button class="preset-btn" data-preset="custom">Custom</button>
+                                </div>
+                                <div class="custom-date-range" id="custom-date-range" style="display: none;">
+                                    <div class="date-input-group">
+                                        <label for="start-date">Start Date:</label>
+                                        <input type="datetime-local" id="start-date" name="start-date">
+                                    </div>
+                                    <div class="date-input-group">
+                                        <label for="end-date">End Date:</label>
+                                        <input type="datetime-local" id="end-date" name="end-date">
+                                    </div>
+                                    <button class="btn btn-primary" id="apply-custom-range">Apply</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Export and Refresh Actions -->
+                    <button id="export-btn" class="btn btn-secondary">
+                        <i data-feather="download"></i>
+                        Export Data
+                    </button>
+                    <button id="refresh-btn" class="btn btn-secondary">
+                        <i data-feather="refresh-cw"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Sections -->
+            <div class="dashboard-content">
+                <!-- Overview Section -->
+                <section id="overview-section" class="content-section active">
+                    <!-- Advanced Filters Panel -->
+                    <div class="filters-panel" id="filters-panel">
+                        <div class="filters-header">
+                            <h3 class="filters-title">
+                                <i data-feather="filter"></i>
+                                Filters & Controls
+                            </h3>
+                            <button class="filters-toggle" id="filters-toggle">
+                                <i data-feather="chevron-down"></i>
+                            </button>
+                        </div>
+                        <div class="filters-content" id="filters-content">
+                            <div class="filters-row">
+                                <!-- Metrics Filters -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Metrics Type:</label>
+                                    <select id="metrics-type-filter" class="filter-select">
+                                        <option value="all">All Metrics</option>
+                                        <option value="api_call">API Calls</option>
+                                        <option value="publish_success">Successful Publishes</option>
+                                        <option value="publish_error">Publish Errors</option>
+                                        <option value="validation_error">Validation Errors</option>
+                                        <option value="auth_error">Auth Errors</option>
+                                        <option value="user_activity">User Activity</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Endpoint Filters -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Endpoint:</label>
+                                    <select id="endpoint-filter" class="filter-select">
+                                        <option value="all">All Endpoints</option>
+                                        <option value="/api/publish">/api/publish</option>
+                                        <option value="/api/metrics">/api/metrics</option>
+                                        <option value="/api/health">/api/health</option>
+                                        <option value="/api/realtime">/api/realtime</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Status Code Filters -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Status Code:</label>
+                                    <select id="status-filter" class="filter-select">
+                                        <option value="all">All Status</option>
+                                        <option value="2xx">Success (2xx)</option>
+                                        <option value="4xx">Client Error (4xx)</option>
+                                        <option value="5xx">Server Error (5xx)</option>
+                                        <option value="200">200 OK</option>
+                                        <option value="400">400 Bad Request</option>
+                                        <option value="401">401 Unauthorized</option>
+                                        <option value="429">429 Rate Limited</option>
+                                        <option value="500">500 Internal Error</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Real-time Settings -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Real-time Updates:</label>
+                                    <div class="toggle-group">
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="realtime-toggle" checked>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                        <span class="toggle-label">Auto-refresh</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="filters-row">
+                                <!-- Refresh Interval -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Refresh Interval:</label>
+                                    <select id="refresh-interval" class="filter-select">
+                                        <option value="10000">10 seconds</option>
+                                        <option value="30000" selected>30 seconds</option>
+                                        <option value="60000">1 minute</option>
+                                        <option value="300000">5 minutes</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Display Options -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Show:</label>
+                                    <div class="checkbox-group">
+                                        <label class="checkbox-item">
+                                            <input type="checkbox" id="show-details" checked>
+                                            <span class="checkbox-label">Detailed View</span>
+                                        </label>
+                                        <label class="checkbox-item">
+                                            <input type="checkbox" id="show-timestamps" checked>
+                                            <span class="checkbox-label">Timestamps</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Filter Presets -->
+                                <div class="filter-group">
+                                    <label class="filter-label">Presets:</label>
+                                    <div class="preset-buttons">
+                                        <button class="preset-btn" data-preset="errors-only">Errors Only</button>
+                                        <button class="preset-btn" data-preset="high-traffic">High Traffic</button>
+                                        <button class="preset-btn" data-preset="recent-activity">Recent</button>
+                                        <button class="preset-btn" data-preset="clear-all">Clear All</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Summary Cards -->
+                    <div class="summary-grid" id="summary-cards">
+                        <!-- Summary cards will be dynamically inserted here -->
+                    </div>
+                    
+                    <!-- Charts Grid -->
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <h3 class="chart-title">API Usage Over Time</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-control-btn" data-period="1h">1H</button>
+                                    <button class="chart-control-btn active" data-period="24h">24H</button>
+                                    <button class="chart-control-btn" data-period="7d">7D</button>
+                                    <button class="chart-control-btn" data-period="30d">30D</button>
+                                </div>
+                            </div>
+                            <div class="chart-content">
+                                <canvas id="api-usage-chart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <h3 class="chart-title">Response Time Trends</h3>
+                                <div class="chart-legend" id="response-time-legend">
+                                    <!-- Legend will be populated dynamically -->
+                                </div>
+                            </div>
+                            <div class="chart-content">
+                                <canvas id="response-time-chart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <h3 class="chart-title">Top API Endpoints</h3>
+                                <div class="chart-controls">
+                                    <button class="chart-control-btn" data-sort="desc">Most Used</button>
+                                    <button class="chart-control-btn" data-sort="asc">Least Used</button>
+                                </div>
+                            </div>
+                            <div class="chart-content">
+                                <canvas id="top-endpoints-chart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <div class="chart-header">
+                                <h3 class="chart-title">Error Distribution</h3>
+                                <div class="chart-info">
+                                    <span class="chart-info-text">Last 24 hours</span>
+                                </div>
+                            </div>
+                            <div class="chart-content">
+                                <canvas id="error-distribution-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Activity Section -->
+                    <div class="activity-section">
+                        <div class="activity-container">
+                            <div class="activity-header">
+                                <h3 class="activity-title">Recent Activity</h3>
+                                <div class="activity-controls">
+                                    <button class="activity-filter-btn active" data-filter="all">All</button>
+                                    <button class="activity-filter-btn" data-filter="success">Success</button>
+                                    <button class="activity-filter-btn" data-filter="error">Errors</button>
+                                </div>
+                            </div>
+                            <div class="activity-content" id="recent-activity">
+                                <!-- Activity log will be inserted here -->
+                            </div>
+                        </div>
+                        
+                        <div class="stats-sidebar">
+                            <div class="stats-card">
+                                <h4 class="stats-title">Quick Stats</h4>
+                                <div class="stats-list">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Requests/min</span>
+                                        <span class="stat-value" id="requests-per-minute">--</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Active Users</span>
+                                        <span class="stat-value" id="active-users">--</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Success Rate</span>
+                                        <span class="stat-value" id="success-rate-mini">--</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Avg Response</span>
+                                        <span class="stat-value" id="avg-response-mini">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stats-card">
+                                <h4 class="stats-title">System Status</h4>
+                                <div class="status-list">
+                                    <div class="status-item">
+                                        <div class="status-indicator-dot status-connected"></div>
+                                        <span class="status-label">API Server</span>
+                                    </div>
+                                    <div class="status-item">
+                                        <div class="status-indicator-dot status-connected"></div>
+                                        <span class="status-label">WordPress</span>
+                                    </div>
+                                    <div class="status-item">
+                                        <div class="status-indicator-dot status-connected"></div>
+                                        <span class="status-label">Database</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- API Usage Section -->
+                <section id="api-usage-section" class="content-section">
+                    <div class="section-content">
+                        <h3>API Usage Analytics</h3>
+                        <p>Detailed analysis of API endpoint usage, request patterns, and performance metrics.</p>
+                        <!-- API Usage specific content will be added here -->
+                    </div>
+                </section>
+
+                <!-- Publishes Section -->
+                <section id="publishes-section" class="content-section">
+                    <div class="section-content">
+                        <h3>Publishing Analytics</h3>
+                        <p>Track successful publishes, publishing trends, and content performance.</p>
+                        <!-- Publishes specific content will be added here -->
+                    </div>
+                </section>
+
+                <!-- Errors Section -->
+                <section id="errors-section" class="content-section">
+                    <div class="section-content">
+                        <h3>Error Analysis</h3>
+                        <p>Monitor errors, analyze error patterns, and track resolution status.</p>
+                        <!-- Errors specific content will be added here -->
+                    </div>
+                </section>
+
+                <!-- Activity Section -->
+                <section id="activity-section" class="content-section">
+                    <div class="section-content">
+                        <h3>Activity Monitoring</h3>
+                        <p>Real-time activity feed and detailed event tracking.</p>
+                        <!-- Activity specific content will be added here -->
+                    </div>
+                </section>
+
+                <!-- Performance Section -->
+                <section id="performance-section" class="content-section">
+                    <div class="section-content">
+                        <h3>Performance Metrics</h3>
+                        <p>Analyze response times, throughput, and system performance.</p>
+                        <!-- Performance specific content will be added here -->
+                    </div>
+                </section>
+
+                <!-- Users Section -->
+                <section id="users-section" class="content-section">
+                    <div class="section-content">
+                        <h3>User Analytics</h3>
+                        <p>Track user activity, usage patterns, and engagement metrics.</p>
+                        <!-- Users specific content will be added here -->
+                    </div>
+                </section>
+
+                <!-- Reports Section -->
+                <section id="reports-section" class="content-section">
+                    <div class="section-content">
+                        <h3>Reports & Export</h3>
+                        <p>Generate and export detailed reports for analysis and sharing.</p>
+                        <!-- Reports specific content will be added here -->
+                    </div>
+                </section>
+
+                <!-- Health Section -->
+                <section id="health-section" class="content-section">
+                    <div class="section-content">
+                        <h3>System Health</h3>
+                        <p>Monitor system health, uptime, and service status.</p>
+                        <!-- Health specific content will be added here -->
+                    </div>
+                </section>
+
+                <!-- Logs Section -->
+                <section id="logs-section" class="content-section">
+                    <div class="section-content">
+                        <h3>System Logs</h3>
+                        <p>View and search through system logs and audit trails.</p>
+                        <!-- Logs specific content will be added here -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Overlays -->
+    <div id="modal-overlay" class="modal-overlay">
+        <!-- Modals will be inserted here dynamically -->
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container">
+        <!-- Toast notifications will be inserted here -->
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
+    <!-- Dashboard Scripts -->
+    <script type="module" src="scripts/dashboard.js"></script>
+    <script type="module" src="scripts/navigation.js"></script>
+    <script type="module" src="scripts/theme.js"></script>
+    <script type="module" src="scripts/data-manager.js"></script>
+    <script type="module" src="scripts/real-time-updates.js"></script>
+    <script type="module" src="scripts/filtering-system.js"></script>
+    <script type="module" src="scripts/dashboard-integration.js"></script>
+    
+    <script>
+        // Initialize Feather Icons
+        feather.replace();
+        
+        // Remove loading screen once everything is loaded
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loading-screen').style.display = 'none';
+            }, 500);
+        });
+    </script>
+</body>
+</html>

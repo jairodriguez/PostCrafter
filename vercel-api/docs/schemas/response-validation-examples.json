@@ -1,0 +1,738 @@
+{
+  "validExamples": [
+    {
+      "name": "Complete Success Response",
+      "description": "Full success response with all optional fields",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/2024/01/15/api-development-guide/",
+          "post_title": "Complete Guide to API Development",
+          "post_status": "publish",
+          "created_at": "2024-01-15T10:30:00Z",
+          "modified_at": "2024-01-15T10:30:00Z",
+          "author": 1,
+          "featured_media": 456,
+          "categories": [1, 2, 3],
+          "tags": [10, 11, 12, 13],
+          "yoast_applied": true,
+          "images_uploaded": 2,
+          "image_ids": [456, 457],
+          "taxonomy_processing_time_ms": 250,
+          "image_processing_time_ms": 1500,
+          "processing_time_ms": 2750,
+          "request_id": "req_1705312200_abc123"
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with all fields properly formatted"
+    },
+    {
+      "name": "Minimal Success Response",
+      "description": "Success response with only required fields",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 124,
+          "post_url": "https://example.com/minimal-post/",
+          "post_title": "Minimal Post",
+          "post_status": "draft"
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with only required data fields"
+    },
+    {
+      "name": "Draft Post Success",
+      "description": "Success response for draft post creation",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 125,
+          "post_url": "https://myblog.com/drafts/working-draft/",
+          "post_title": "Working Draft Post",
+          "post_status": "draft",
+          "created_at": "2024-01-15T11:00:00Z",
+          "author": 2,
+          "featured_media": 0,
+          "categories": [1],
+          "tags": [],
+          "yoast_applied": false,
+          "yoast_warning": "Yoast plugin not detected, SEO fields ignored",
+          "images_uploaded": 0,
+          "image_ids": [],
+          "processing_time_ms": 500,
+          "request_id": "req_1705312800_def456",
+          "warnings": ["Yoast plugin not active"]
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with draft status and warnings"
+    },
+    {
+      "name": "Private Post Success",
+      "description": "Success response for private post creation",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 126,
+          "post_url": "https://example.com/private/internal-notes/",
+          "post_title": "Internal Team Notes",
+          "post_status": "private",
+          "created_at": "2024-01-15T12:00:00Z",
+          "modified_at": "2024-01-15T12:00:00Z",
+          "author": 3,
+          "featured_media": 789,
+          "categories": [5],
+          "tags": [20, 21],
+          "yoast_applied": true,
+          "images_uploaded": 1,
+          "image_ids": [789],
+          "processing_time_ms": 1200,
+          "request_id": "req_1705316400_xyz789"
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with private status"
+    },
+    {
+      "name": "Validation Error Response",
+      "description": "Error response for validation failure",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "Request validation failed",
+          "details": "Title is required and must be between 1 and 200 characters",
+          "field": "title",
+          "timestamp": "2024-01-15T10:30:00Z",
+          "request_id": "req_1705312200_abc123",
+          "help_url": "https://docs.postcrafter.com/errors/validation"
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass as valid error response format"
+    },
+    {
+      "name": "Authentication Error Response",
+      "description": "Error response for authentication failure",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "AUTHENTICATION_ERROR",
+          "message": "Authentication required",
+          "details": "Missing x-api-key header or invalid API key",
+          "timestamp": "2024-01-15T10:35:00Z",
+          "request_id": "req_1705312500_ghi789",
+          "help_url": "https://docs.postcrafter.com/errors/authentication"
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass as valid authentication error"
+    },
+    {
+      "name": "Rate Limit Error Response",
+      "description": "Error response with retry_after field",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "RATE_LIMIT_ERROR",
+          "message": "Rate limit exceeded",
+          "details": "Maximum 100 requests per hour exceeded",
+          "timestamp": "2024-01-15T10:40:00Z",
+          "request_id": "req_1705312800_jkl012",
+          "retry_after": 3600,
+          "help_url": "https://docs.postcrafter.com/errors/rate-limit"
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with retry_after field for rate limiting"
+    },
+    {
+      "name": "WordPress API Error Response",
+      "description": "Error response for WordPress connection issues",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "WORDPRESS_API_ERROR",
+          "message": "WordPress API connection failed",
+          "details": "Connection timeout to WordPress API after 30 seconds",
+          "timestamp": "2024-01-15T10:45:00Z",
+          "request_id": "req_1705313100_mno345",
+          "help_url": "https://docs.postcrafter.com/errors/wordpress-connection"
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass as valid WordPress API error"
+    },
+    {
+      "name": "Minimal Error Response",
+      "description": "Error response with only required fields",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "INTERNAL_ERROR",
+          "message": "An internal error occurred"
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with minimal error fields"
+    },
+    {
+      "name": "Success with Maximum Values",
+      "description": "Success response testing maximum allowed values",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 999999,
+          "post_url": "https://very-long-domain-name-for-testing-purposes.example.com/very/long/path/to/test/url/length/limits/in/the/response/schema/validation/rules/2024/01/15/extremely-long-post-title-that-tests-maximum-length-validation/",
+          "post_title": "This very long post title approaches the maximum character limit of 200 characters to test validation rules for the response schema and ensure proper handling of edge cases in title validation",
+          "post_status": "publish",
+          "created_at": "2024-01-15T23:59:59.999Z",
+          "modified_at": "2024-01-15T23:59:59.999Z",
+          "author": 999999,
+          "featured_media": 999999,
+          "categories": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          "tags": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+          "yoast_applied": true,
+          "images_uploaded": 100,
+          "image_ids": [1, 2, 3, 4, 5],
+          "taxonomy_processing_time_ms": 10000,
+          "image_processing_time_ms": 60000,
+          "processing_time_ms": 120000,
+          "request_id": "req_1705363199_zzzzzz"
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with maximum allowed values"
+    }
+  ],
+  "invalidExamples": [
+    {
+      "name": "Missing Success Field",
+      "description": "Response missing required success field",
+      "data": {
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Missing required property: success"],
+      "notes": "Should fail due to missing success field"
+    },
+    {
+      "name": "Invalid Success Value in Success Response",
+      "description": "Success response with success=false",
+      "data": {
+        "success": false,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Success must be true for success responses"],
+      "notes": "Should fail when success is false but data is provided"
+    },
+    {
+      "name": "Invalid Success Value in Error Response",
+      "description": "Error response with success=true",
+      "data": {
+        "success": true,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "Test error"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Success must be false for error responses"],
+      "notes": "Should fail when success is true but error is provided"
+    },
+    {
+      "name": "Missing Data in Success Response",
+      "description": "Success response missing data field",
+      "data": {
+        "success": true
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Missing required property: data"],
+      "notes": "Should fail due to missing data field in success response"
+    },
+    {
+      "name": "Missing Error in Error Response",
+      "description": "Error response missing error field",
+      "data": {
+        "success": false
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Missing required property: error"],
+      "notes": "Should fail due to missing error field in error response"
+    },
+    {
+      "name": "Missing Required Data Fields",
+      "description": "Success response missing required data fields",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Missing required properties: post_title, post_status"],
+      "notes": "Should fail due to missing required data fields"
+    },
+    {
+      "name": "Invalid Post ID",
+      "description": "Success response with invalid post ID",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 0,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Post ID must be at least 1"],
+      "notes": "Should fail due to invalid post ID (0)"
+    },
+    {
+      "name": "Invalid Post URL",
+      "description": "Success response with malformed URL",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "not-a-valid-url",
+          "post_title": "Test Post",
+          "post_status": "publish"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Post URL must be a valid URI"],
+      "notes": "Should fail due to malformed URL"
+    },
+    {
+      "name": "Non-HTTP URL",
+      "description": "Success response with non-HTTP URL",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "ftp://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Post URL must use HTTP or HTTPS protocol"],
+      "notes": "Should fail due to non-HTTP protocol"
+    },
+    {
+      "name": "Empty Post Title",
+      "description": "Success response with empty title",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "",
+          "post_status": "publish"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Post title must be at least 1 character"],
+      "notes": "Should fail due to empty title"
+    },
+    {
+      "name": "Title Too Long",
+      "description": "Success response with title exceeding 200 characters",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "This is an extremely long post title that exceeds the maximum allowed length of 200 characters for post titles in the response schema validation and should cause the validation to fail when tested against the schema requirements because it is way too long for practical use and exceeds the established limits for title fields",
+          "post_status": "publish"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Post title must be 200 characters or less"],
+      "notes": "Should fail due to title length"
+    },
+    {
+      "name": "Invalid Post Status",
+      "description": "Success response with invalid status",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "invalid_status"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Post status must be one of: draft, publish, private, pending"],
+      "notes": "Should fail due to invalid post status"
+    },
+    {
+      "name": "Invalid Date Format",
+      "description": "Success response with malformed date",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish",
+          "created_at": "2024-01-15 10:30:00"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Created date must be in ISO 8601 format"],
+      "notes": "Should fail due to invalid date format"
+    },
+    {
+      "name": "Negative Author ID",
+      "description": "Success response with invalid author ID",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish",
+          "author": -1
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Author ID must be at least 1"],
+      "notes": "Should fail due to negative author ID"
+    },
+    {
+      "name": "Negative Featured Media",
+      "description": "Success response with invalid featured media ID",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish",
+          "featured_media": -1
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Featured media ID must be at least 0"],
+      "notes": "Should fail due to negative featured media ID"
+    },
+    {
+      "name": "Too Many Categories",
+      "description": "Success response with too many categories",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish",
+          "categories": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Categories array must have 10 or fewer items"],
+      "notes": "Should fail due to too many categories"
+    },
+    {
+      "name": "Too Many Tags",
+      "description": "Success response with too many tags",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish",
+          "tags": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Tags array must have 20 or fewer items"],
+      "notes": "Should fail due to too many tags"
+    },
+    {
+      "name": "Invalid Category ID",
+      "description": "Success response with invalid category ID",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish",
+          "categories": [1, 0, 3]
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Category IDs must be at least 1"],
+      "notes": "Should fail due to invalid category ID"
+    },
+    {
+      "name": "Invalid Request ID Format",
+      "description": "Success response with malformed request ID",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish",
+          "request_id": "invalid-request-id"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Request ID must match pattern: req_[numbers]_[alphanumeric]"],
+      "notes": "Should fail due to invalid request ID format"
+    },
+    {
+      "name": "Missing Error Code",
+      "description": "Error response missing required error code",
+      "data": {
+        "success": false,
+        "error": {
+          "message": "Test error message"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Missing required property: code"],
+      "notes": "Should fail due to missing error code"
+    },
+    {
+      "name": "Invalid Error Code",
+      "description": "Error response with invalid error code",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "INVALID_ERROR_CODE",
+          "message": "Test error message"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Error code must be one of the predefined values"],
+      "notes": "Should fail due to invalid error code"
+    },
+    {
+      "name": "Empty Error Message",
+      "description": "Error response with empty message",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": ""
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Error message must be at least 1 character"],
+      "notes": "Should fail due to empty error message"
+    },
+    {
+      "name": "Error Message Too Long",
+      "description": "Error response with message exceeding 500 characters",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "This is an extremely long error message that exceeds the maximum allowed length of 500 characters for error messages in the response schema validation rules and should cause the validation to fail when tested against the schema requirements because it contains way too much text for a typical error message and goes on and on with unnecessary details that would overwhelm users and provide poor user experience in error handling scenarios where concise and clear messaging is essential for proper error communication and user understanding of what went wrong in the API request processing."
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Error message must be 500 characters or less"],
+      "notes": "Should fail due to error message length"
+    },
+    {
+      "name": "Invalid Error Timestamp",
+      "description": "Error response with malformed timestamp",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "Test error",
+          "timestamp": "2024-01-15 10:30:00"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Error timestamp must be in ISO 8601 format"],
+      "notes": "Should fail due to invalid timestamp format"
+    },
+    {
+      "name": "Negative Retry After",
+      "description": "Error response with negative retry_after value",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "RATE_LIMIT_ERROR",
+          "message": "Rate limit exceeded",
+          "retry_after": -60
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Retry after must be at least 0"],
+      "notes": "Should fail due to negative retry_after value"
+    },
+    {
+      "name": "Invalid Help URL",
+      "description": "Error response with malformed help URL",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "Test error",
+          "help_url": "not-a-valid-url"
+        }
+      },
+      "expectedValidation": "FAIL",
+      "expectedErrors": ["Help URL must be a valid URI"],
+      "notes": "Should fail due to malformed help URL"
+    }
+  ],
+  "edgeCases": [
+    {
+      "name": "Exactly 200 Character Title",
+      "description": "Success response with title at character limit",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "This title is exactly 200 characters long to test the maximum length validation rule for post titles in the response schema and ensure that the boundary value works correctly without errors",
+          "post_status": "publish"
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with exactly 200 character title"
+    },
+    {
+      "name": "Zero Featured Media",
+      "description": "Success response with no featured image",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish",
+          "featured_media": 0
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with featured_media set to 0"
+    },
+    {
+      "name": "Empty Arrays",
+      "description": "Success response with empty category and tag arrays",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish",
+          "categories": [],
+          "tags": [],
+          "image_ids": [],
+          "warnings": []
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with empty arrays"
+    },
+    {
+      "name": "Maximum Array Sizes",
+      "description": "Success response with maximum allowed array sizes",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish",
+          "categories": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          "tags": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with maximum allowed array sizes"
+    },
+    {
+      "name": "Zero Processing Times",
+      "description": "Success response with zero processing times",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish",
+          "taxonomy_processing_time_ms": 0,
+          "image_processing_time_ms": 0,
+          "processing_time_ms": 0
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with zero processing times"
+    },
+    {
+      "name": "Zero Retry After",
+      "description": "Error response with zero retry_after",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "RATE_LIMIT_ERROR",
+          "message": "Rate limit exceeded",
+          "retry_after": 0
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with retry_after set to 0"
+    },
+    {
+      "name": "Exactly 500 Character Error Message",
+      "description": "Error response with message at character limit",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "This error message is exactly 500 characters long to test the maximum length validation rule for error messages in the response schema and ensure that the boundary value works correctly without causing validation errors while still being within the acceptable limits for error message content that provides sufficient detail for debugging and user feedback purposes while maintaining reasonable message length constraints that prevent excessively verbose error text from overwhelming users."
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with exactly 500 character error message"
+    },
+    {
+      "name": "Timezone in Date",
+      "description": "Success response with timezone offset in date",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/test/",
+          "post_title": "Test Post",
+          "post_status": "publish",
+          "created_at": "2024-01-15T10:30:00-05:00",
+          "modified_at": "2024-01-15T10:30:00+02:00"
+        }
+      },
+      "expectedValidation": "PASS",
+      "notes": "Should pass with timezone offsets in dates"
+    }
+  ]
+}

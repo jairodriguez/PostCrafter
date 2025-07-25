@@ -1,0 +1,478 @@
+{
+  "$id": "https://postcrafter.com/schemas/response.json",
+  "title": "PostCrafter API Response Schema",
+  "description": "Comprehensive schema for validating API responses from PostCrafter endpoints",
+  "oneOf": [
+    {
+      "$ref": "#/definitions/SuccessResponse"
+    },
+    {
+      "$ref": "#/definitions/ErrorResponse"
+    }
+  ],
+  "definitions": {
+    "SuccessResponse": {
+      "type": "object",
+      "title": "Success Response",
+      "description": "Response format for successful API operations",
+      "required": ["success", "data"],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": true,
+          "title": "Success Flag",
+          "description": "Always true for successful responses"
+        },
+        "data": {
+          "$ref": "#/definitions/ResponseData"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "title": "Error Response",
+      "description": "Response format for failed API operations",
+      "required": ["success", "error"],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "const": false,
+          "title": "Success Flag",
+          "description": "Always false for error responses"
+        },
+        "error": {
+          "$ref": "#/definitions/ErrorDetails"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ResponseData": {
+      "type": "object",
+      "title": "Response Data",
+      "description": "Successful operation response data",
+      "required": ["post_id", "post_url", "post_title", "post_status"],
+      "properties": {
+        "post_id": {
+          "type": "integer",
+          "title": "WordPress Post ID",
+          "description": "The unique WordPress post ID of the created post",
+          "minimum": 1,
+          "examples": [123, 456, 789, 1001]
+        },
+        "post_url": {
+          "type": "string",
+          "title": "Post URL",
+          "description": "The public URL of the created post",
+          "format": "uri",
+          "pattern": "^https?://",
+          "examples": [
+            "https://example.com/2024/01/15/api-development-guide/",
+            "https://myblog.com/wordpress-security-best-practices/",
+            "https://techblog.com/modern-web-development-trends/"
+          ]
+        },
+        "post_title": {
+          "type": "string",
+          "title": "Post Title",
+          "description": "The final title of the created post as stored in WordPress",
+          "minLength": 1,
+          "maxLength": 200,
+          "examples": [
+            "Complete Guide to API Development",
+            "WordPress Security Best Practices",
+            "Modern Web Development Trends 2024"
+          ]
+        },
+        "post_status": {
+          "type": "string",
+          "title": "Post Status",
+          "description": "The publication status of the created post",
+          "enum": ["draft", "publish", "private", "pending"],
+          "examples": ["draft", "publish", "private"]
+        },
+        "created_at": {
+          "type": "string",
+          "title": "Creation Date",
+          "description": "ISO 8601 timestamp when the post was created",
+          "format": "date-time",
+          "examples": [
+            "2024-01-15T10:30:00Z",
+            "2024-01-15T14:45:30.123Z",
+            "2024-01-15T09:15:45-05:00"
+          ]
+        },
+        "modified_at": {
+          "type": "string",
+          "title": "Last Modified Date",
+          "description": "ISO 8601 timestamp when the post was last modified",
+          "format": "date-time",
+          "examples": [
+            "2024-01-15T10:30:00Z",
+            "2024-01-15T14:45:30.123Z",
+            "2024-01-15T09:15:45-05:00"
+          ]
+        },
+        "author": {
+          "type": "integer",
+          "title": "Author ID",
+          "description": "WordPress user ID of the post author",
+          "minimum": 1,
+          "examples": [1, 2, 5, 10]
+        },
+        "featured_media": {
+          "type": "integer",
+          "title": "Featured Media ID",
+          "description": "WordPress media ID of the featured image (0 if no featured image)",
+          "minimum": 0,
+          "examples": [0, 123, 456, 789]
+        },
+        "categories": {
+          "type": "array",
+          "title": "Category IDs",
+          "description": "Array of WordPress category IDs assigned to the post",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "maxItems": 10,
+          "examples": [
+            [1, 2, 3],
+            [5, 10],
+            [1]
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "title": "Tag IDs",
+          "description": "Array of WordPress tag IDs assigned to the post",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "maxItems": 20,
+          "examples": [
+            [10, 11, 12, 13],
+            [5, 8, 15],
+            []
+          ]
+        },
+        "yoast_applied": {
+          "type": "boolean",
+          "title": "Yoast SEO Applied",
+          "description": "Whether Yoast SEO fields were successfully applied to the post",
+          "examples": [true, false]
+        },
+        "yoast_warning": {
+          "type": "string",
+          "title": "Yoast Warning",
+          "description": "Warning message if there were issues applying Yoast SEO fields",
+          "examples": [
+            "Some Yoast fields could not be applied due to plugin version compatibility",
+            "Yoast plugin not detected, SEO fields ignored",
+            "Focus keywords validation failed"
+          ]
+        },
+        "images_uploaded": {
+          "type": "integer",
+          "title": "Images Uploaded Count",
+          "description": "Number of images successfully uploaded to WordPress media library",
+          "minimum": 0,
+          "examples": [0, 1, 3, 5]
+        },
+        "image_ids": {
+          "type": "array",
+          "title": "Uploaded Image IDs",
+          "description": "WordPress media IDs of successfully uploaded images",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "examples": [
+            [123, 124, 125],
+            [456],
+            []
+          ]
+        },
+        "taxonomy_processing_time_ms": {
+          "type": "integer",
+          "title": "Taxonomy Processing Time",
+          "description": "Time taken to process categories and tags in milliseconds",
+          "minimum": 0,
+          "examples": [150, 250, 500, 1000]
+        },
+        "image_processing_time_ms": {
+          "type": "integer",
+          "title": "Image Processing Time",
+          "description": "Time taken to process and upload images in milliseconds",
+          "minimum": 0,
+          "examples": [500, 1200, 2500, 5000]
+        },
+        "processing_time_ms": {
+          "type": "integer",
+          "title": "Total Processing Time",
+          "description": "Total time taken to process the request in milliseconds",
+          "minimum": 0,
+          "examples": [1250, 2500, 5000, 10000]
+        },
+        "request_id": {
+          "type": "string",
+          "title": "Request ID",
+          "description": "Unique identifier for this request (for debugging and support)",
+          "pattern": "^req_[0-9]+_[a-zA-Z0-9]+$",
+          "examples": [
+            "req_1705312200_abc123",
+            "req_1705312800_def456",
+            "req_1705313400_ghi789"
+          ]
+        },
+        "warnings": {
+          "type": "array",
+          "title": "Warnings",
+          "description": "Non-critical warnings that occurred during processing",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            ["Image optimization failed, using original file"],
+            ["Some categories already existed"],
+            []
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ErrorDetails": {
+      "type": "object",
+      "title": "Error Details",
+      "description": "Detailed error information for failed operations",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "title": "Error Code",
+          "description": "Machine-readable error code for programmatic handling",
+          "enum": [
+            "VALIDATION_ERROR",
+            "AUTHENTICATION_ERROR",
+            "AUTHORIZATION_ERROR",
+            "SECURITY_VIOLATION",
+            "RATE_LIMIT_ERROR",
+            "WORDPRESS_API_ERROR",
+            "WORDPRESS_CONNECTION_ERROR",
+            "WORDPRESS_TIMEOUT_ERROR",
+            "INTERNAL_ERROR",
+            "METHOD_NOT_ALLOWED",
+            "IMAGE_VALIDATION_ERROR",
+            "IMAGE_UPLOAD_ERROR",
+            "CATEGORY_CREATION_ERROR",
+            "TAG_CREATION_ERROR",
+            "YOAST_INTEGRATION_ERROR",
+            "CONTENT_TOO_LARGE",
+            "INVALID_CONTENT_TYPE",
+            "MALICIOUS_CONTENT",
+            "NETWORK_ERROR",
+            "SERVICE_UNAVAILABLE"
+          ],
+          "examples": [
+            "VALIDATION_ERROR",
+            "AUTHENTICATION_ERROR",
+            "WORDPRESS_API_ERROR",
+            "RATE_LIMIT_ERROR"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "title": "Error Message",
+          "description": "Human-readable error message explaining what went wrong",
+          "minLength": 1,
+          "maxLength": 500,
+          "examples": [
+            "Request validation failed",
+            "Authentication required",
+            "WordPress API connection failed",
+            "Rate limit exceeded"
+          ]
+        },
+        "details": {
+          "type": "string",
+          "title": "Error Details",
+          "description": "Additional technical details about the error",
+          "maxLength": 1000,
+          "examples": [
+            "Title is required, Content contains malicious content",
+            "Missing x-api-key header",
+            "Connection timeout to WordPress API after 30 seconds",
+            "Maximum 100 requests per hour exceeded"
+          ]
+        },
+        "field": {
+          "type": "string",
+          "title": "Field Name",
+          "description": "Specific field that caused a validation error",
+          "examples": [
+            "title",
+            "content",
+            "yoast_meta.meta_title",
+            "images[0].url"
+          ]
+        },
+        "timestamp": {
+          "type": "string",
+          "title": "Error Timestamp",
+          "description": "ISO 8601 timestamp when the error occurred",
+          "format": "date-time",
+          "examples": [
+            "2024-01-15T10:30:00Z",
+            "2024-01-15T14:45:30.123Z"
+          ]
+        },
+        "request_id": {
+          "type": "string",
+          "title": "Request ID",
+          "description": "Unique identifier for the failed request",
+          "pattern": "^req_[0-9]+_[a-zA-Z0-9]+$",
+          "examples": [
+            "req_1705312200_abc123",
+            "req_1705312800_def456"
+          ]
+        },
+        "retry_after": {
+          "type": "integer",
+          "title": "Retry After",
+          "description": "Number of seconds to wait before retrying (for rate limit errors)",
+          "minimum": 0,
+          "examples": [60, 300, 3600]
+        },
+        "help_url": {
+          "type": "string",
+          "title": "Help URL",
+          "description": "URL to documentation or help for this error",
+          "format": "uri",
+          "examples": [
+            "https://docs.postcrafter.com/errors/validation",
+            "https://docs.postcrafter.com/errors/authentication",
+            "https://docs.postcrafter.com/errors/wordpress-connection"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "name": "Successful Post Creation",
+      "description": "Complete success response with all fields",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 123,
+          "post_url": "https://example.com/2024/01/15/api-development-guide/",
+          "post_title": "Complete Guide to API Development",
+          "post_status": "publish",
+          "created_at": "2024-01-15T10:30:00Z",
+          "modified_at": "2024-01-15T10:30:00Z",
+          "author": 1,
+          "featured_media": 456,
+          "categories": [1, 2, 3],
+          "tags": [10, 11, 12, 13],
+          "yoast_applied": true,
+          "images_uploaded": 2,
+          "image_ids": [456, 457],
+          "taxonomy_processing_time_ms": 250,
+          "image_processing_time_ms": 1500,
+          "processing_time_ms": 2750,
+          "request_id": "req_1705312200_abc123"
+        }
+      }
+    },
+    {
+      "name": "Draft Post with Warnings",
+      "description": "Success response for draft post with processing warnings",
+      "data": {
+        "success": true,
+        "data": {
+          "post_id": 124,
+          "post_url": "https://example.com/2024/01/15/draft-post/",
+          "post_title": "Draft Post Example",
+          "post_status": "draft",
+          "created_at": "2024-01-15T11:00:00Z",
+          "modified_at": "2024-01-15T11:00:00Z",
+          "author": 1,
+          "featured_media": 0,
+          "categories": [1],
+          "tags": [],
+          "yoast_applied": false,
+          "yoast_warning": "Yoast plugin not detected, SEO fields ignored",
+          "images_uploaded": 0,
+          "image_ids": [],
+          "processing_time_ms": 500,
+          "request_id": "req_1705312800_def456",
+          "warnings": ["Yoast plugin not active"]
+        }
+      }
+    },
+    {
+      "name": "Validation Error",
+      "description": "Error response for validation failure",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "Request validation failed",
+          "details": "Title is required and must be between 1 and 200 characters",
+          "field": "title",
+          "timestamp": "2024-01-15T10:30:00Z",
+          "request_id": "req_1705312200_abc123",
+          "help_url": "https://docs.postcrafter.com/errors/validation"
+        }
+      }
+    },
+    {
+      "name": "Authentication Error",
+      "description": "Error response for authentication failure",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "AUTHENTICATION_ERROR",
+          "message": "Authentication required",
+          "details": "Missing x-api-key header or invalid API key",
+          "timestamp": "2024-01-15T10:35:00Z",
+          "request_id": "req_1705312500_ghi789",
+          "help_url": "https://docs.postcrafter.com/errors/authentication"
+        }
+      }
+    },
+    {
+      "name": "Rate Limit Error",
+      "description": "Error response for rate limit exceeded",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "RATE_LIMIT_ERROR",
+          "message": "Rate limit exceeded",
+          "details": "Maximum 100 requests per hour exceeded",
+          "timestamp": "2024-01-15T10:40:00Z",
+          "request_id": "req_1705312800_jkl012",
+          "retry_after": 3600,
+          "help_url": "https://docs.postcrafter.com/errors/rate-limit"
+        }
+      }
+    },
+    {
+      "name": "WordPress API Error",
+      "description": "Error response for WordPress connection issues",
+      "data": {
+        "success": false,
+        "error": {
+          "code": "WORDPRESS_API_ERROR",
+          "message": "WordPress API connection failed",
+          "details": "Connection timeout to WordPress API after 30 seconds",
+          "timestamp": "2024-01-15T10:45:00Z",
+          "request_id": "req_1705313100_mno345",
+          "help_url": "https://docs.postcrafter.com/errors/wordpress-connection"
+        }
+      }
+    }
+  ]
+}
