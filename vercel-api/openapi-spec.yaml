@@ -1,322 +1,292 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
-  title: PostCrafter API for GPT Actions
-  description: |
-    A comprehensive API for creating and managing WordPress posts through ChatGPT GPT Actions.
-    
-    ## Features
-    - **Draft/Publish Control**: Choose whether to save posts as drafts or publish immediately
-    - **Status Management**: Full post status lifecycle management
-    - **WordPress Integration**: Direct integration with WordPress REST API
-    - **SEO Support**: Yoast SEO fields integration
-    - **Image Handling**: URL and base64 image upload support
-    - **Security**: API key authentication and rate limiting
-    
-    ## Post Status Options
-    - **draft**: Save post as draft for review and editing
-    - **publish**: Publish post immediately to make it live
-    - **private**: Save as private post (visible only to authorized users)
-    
-    ## Usage in ChatGPT
-    When using this GPT Action, you can specify the post status to control publication:
-    - "Create a draft post about..." - Saves as draft
-    - "Publish a post about..." - Publishes immediately
-    - "Create a private post about..." - Saves as private
-    
-  version: 2.0.0
+  title: PostCrafter - AI Content Publisher
+  description: Publish AI-generated, SEO-optimized articles directly from ChatGPT to WordPress with comprehensive media uploads, Yoast SEO integration, and category management.
+  version: 1.0.0
   contact:
     name: PostCrafter Support
-    url: https://github.com/postcrafter/api
-  license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
+    email: support@postcrafter.com
 
 servers:
-  - url: https://your-vercel-deployment.vercel.app
+  - url: https://postcrafter-api.vercel.app
     description: Production server
-  - url: https://your-staging-deployment.vercel.app
-    description: Staging server
-
-security:
-  - ApiKeyAuth: []
 
 paths:
   /api/publish:
     post:
-      summary: Create WordPress Post with Status Control
-      description: |
-        Create a new WordPress post with full control over publication status.
-        
-        ## Status Control
-        - Use `status: "draft"` to save as draft for review
-        - Use `status: "publish"` to publish immediately 
-        - Use `status: "private"` to create private post
-        
-        ## GPT Action UI Prompts
-        The GPT Action will prompt users with:
-        1. **Post Status**: "Would you like to save as draft or publish immediately?"
-        2. **Content Quality**: Auto-analysis of content completeness
-        3. **Review Recommendations**: Suggestions based on content type
-        
-      operationId: createPost
-      tags:
-        - Posts
+      summary: Publish AI-generated content to WordPress
+      description: Create and publish SEO-optimized WordPress posts with media uploads, Yoast SEO fields, and category management. Perfect for AI-generated content with automatic SEO optimization.
+      operationId: publishPost
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PostCreationRequest'
+              type: object
+              required: [title, content]
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                  description: Post title (required)
+                  example: Complete Guide to AI Content Creation
+                content:
+                  type: string
+                  minLength: 1
+                  maxLength: 50000
+                  description: Post content in HTML format (required)
+                  example: "<h2>Introduction</h2><p>AI content creation is revolutionizing how we produce digital content...</p>"
+                excerpt:
+                  type: string
+                  maxLength: 500
+                  description: Post excerpt/summary for SEO
+                  example: Learn how to create AI-generated content with SEO optimization and WordPress publishing.
+                status:
+                  type: string
+                  enum: [draft, publish, private]
+                  default: draft
+                  description: Post status (draft, publish, or private)
+                categories:
+                  type: array
+                  items:
+                    type: string
+                  description: Category names (will be created if they don't exist)
+                  example: [Technology, AI, Content Creation]
+                tags:
+                  type: array
+                  items:
+                    type: string
+                  description: Tag names (will be created if they don't exist)
+                  example: [ai-content, seo, wordpress]
+                images:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      url:
+                        type: string
+                        format: uri
+                        description: Image URL to download and upload
+                      base64:
+                        type: string
+                        description: Base64 encoded image data (alternative to URL)
+                      alt_text:
+                        type: string
+                        maxLength: 500
+                        description: Alt text for accessibility and SEO
+                      title:
+                        type: string
+                        maxLength: 200
+                        description: Image title
+                      caption:
+                        type: string
+                        maxLength: 1000
+                        description: Image caption
+                      featured:
+                        type: boolean
+                        default: false
+                        description: Whether this image should be the featured image
+                    oneOf:
+                      - required: [url]
+                      - required: [base64]
+                  description: Images to upload and attach to the post
+                yoast:
+                  type: object
+                  properties:
+                    meta_title:
+                      type: string
+                      maxLength: 60
+                      description: SEO meta title (recommended: 50-60 characters)
+                    meta_description:
+                      type: string
+                      maxLength: 160
+                      description: SEO meta description (recommended: 150-160 characters)
+                    focus_keyword:
+                      type: string
+                      maxLength: 100
+                      description: Primary focus keyword for SEO
+                    keywords:
+                      type: array
+                      items:
+                        type: string
+                      description: Additional keywords for SEO
+                    og_title:
+                      type: string
+                      maxLength: 60
+                      description: Open Graph title for social media
+                    og_description:
+                      type: string
+                      maxLength: 160
+                      description: Open Graph description for social media
+                    og_image:
+                      type: string
+                      format: uri
+                      description: Open Graph image URL for social media
+                    twitter_title:
+                      type: string
+                      maxLength: 60
+                      description: Twitter Card title
+                    twitter_description:
+                      type: string
+                      maxLength: 160
+                      description: Twitter Card description
+                    twitter_image:
+                      type: string
+                      format: uri
+                      description: Twitter Card image URL
+                  description: Yoast SEO meta fields for comprehensive SEO optimization
             examples:
-              draft_post:
-                summary: Draft Post Example
-                description: Creates a post as draft for review
+              basic_post:
+                summary: Basic post with title and content
                 value:
-                  post:
-                    title: "My Draft Blog Post"
-                    content: "This is draft content that needs review..."
-                    excerpt: "A draft post example"
-                    status: "draft"
-                    categories: ["Technology", "Blogging"]
-                    tags: ["draft", "review", "blog"]
-                  options:
-                    status_metadata:
-                      reason: "Created for review and editing"
-                      author: "content-creator@example.com"
-                    validate_before_publish: true
-              published_post:
-                summary: Published Post Example
-                description: Creates and publishes a post immediately
+                  title: Getting Started with PostCrafter
+                  content: "<h2>Introduction</h2><p>PostCrafter is an AI-powered tool that helps you create and publish SEO-optimized content directly to WordPress...</p>"
+                  status: publish
+                  excerpt: Learn how to use PostCrafter to create and publish AI-generated content with SEO optimization.
+              full_post:
+                summary: Complete post with all features
                 value:
-                  post:
-                    title: "Breaking: Important News Update"
-                    content: "Complete article content ready for publication..."
-                    excerpt: "Important news that's ready to publish"
-                    status: "publish"
-                    categories: ["News", "Updates"]
-                    tags: ["breaking", "news", "urgent"]
-                  options:
-                    status_metadata:
-                      reason: "Time-sensitive content"
-                      author: "news-editor@example.com"
-                    validate_before_publish: true
-              private_post:
-                summary: Private Post Example
-                description: Creates a private post for internal use
-                value:
-                  post:
-                    title: "Internal: Team Guidelines"
-                    content: "Internal content for team members only..."
-                    excerpt: "Internal team documentation"
-                    status: "private"
-                    categories: ["Internal"]
-                    tags: ["team", "private", "guidelines"]
-                  options:
-                    status_metadata:
-                      reason: "Internal team documentation"
-                      author: "team-lead@example.com"
+                  title: Complete Guide to AI Content Creation
+                  content: "<h2>Introduction</h2><p>AI content creation is revolutionizing how we produce digital content...</p>"
+                  status: publish
+                  excerpt: A comprehensive guide to using AI for content creation with SEO best practices.
+                  categories: [Technology, AI]
+                  tags: [content-creation, seo, wordpress]
+                  images:
+                    - url: https://example.com/featured-image.jpg
+                      alt_text: AI Content Creation Process
+                      featured: true
+                  yoast:
+                    meta_title: Complete Guide to AI Content Creation | PostCrafter
+                    meta_description: Learn how to create AI-generated content with SEO optimization. Discover best practices for content creation and WordPress publishing.
+                    focus_keyword: AI content creation
       responses:
         '200':
-          description: Post created successfully
-          headers:
-            X-Request-ID:
-              description: Unique request identifier for tracking
-              schema:
-                type: string
-                example: "req_1640995200_abc123"
-            X-RateLimit-Remaining:
-              description: Number of requests remaining in current window
-              schema:
-                type: integer
-                example: 99
+          description: Post published successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PostCreationResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether the operation was successful
+                  post:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: WordPress post ID
+                      url:
+                        type: string
+                        format: uri
+                        description: Published post URL
+                      title:
+                        type: string
+                        description: Post title
+                      status:
+                        type: string
+                        description: Post status
+                      date:
+                        type: string
+                        format: date-time
+                        description: Publication date
+                      categories:
+                        type: array
+                        items:
+                          type: string
+                        description: Applied categories
+                      tags:
+                        type: array
+                        items:
+                          type: string
+                        description: Applied tags
+                  media:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: WordPress media ID
+                        url:
+                          type: string
+                          format: uri
+                          description: Media URL
+                        alt_text:
+                          type: string
+                          description: Alt text
+                        title:
+                          type: string
+                          description: Media title
+                        caption:
+                          type: string
+                          description: Media caption
+                        featured:
+                          type: boolean
+                          description: Whether this is the featured image
+                    description: Uploaded media information
+                  yoast:
+                    type: object
+                    description: Applied Yoast SEO data
+                  warnings:
+                    type: array
+                    items:
+                      type: string
+                    description: Any warnings during processing
               examples:
-                draft_success:
-                  summary: Draft Created Successfully
+                success:
+                  summary: Successful post publication
                   value:
                     success: true
-                    data:
-                      post_id: 123
-                      post_url: "https://yoursite.com/?p=123&preview=true"
-                      status: "draft"
-                      message: "Post saved as draft successfully"
-                      timestamp: "2023-12-01T10:00:00Z"
-                      status_metadata:
-                        status: "draft"
-                        created_date: "2023-12-01T10:00:00Z"
-                        draft_saved_date: "2023-12-01T10:00:00Z"
-                        reason: "Created for review and editing"
-                        author: "content-creator@example.com"
-                      processing_time_ms: 1250
-                published_success:
-                  summary: Post Published Successfully
-                  value:
-                    success: true
-                    data:
-                      post_id: 124
-                      post_url: "https://yoursite.com/breaking-important-news-update/"
-                      status: "publish"
-                      message: "Post published successfully"
-                      timestamp: "2023-12-01T10:05:00Z"
-                      status_metadata:
-                        status: "publish"
-                        created_date: "2023-12-01T10:05:00Z"
-                        published_date: "2023-12-01T10:05:00Z"
-                        reason: "Time-sensitive content"
-                        author: "news-editor@example.com"
-                      processing_time_ms: 980
+                    post:
+                      id: 123
+                      url: https://example.com/2024/01/getting-started-with-postcrafter/
+                      title: Getting Started with PostCrafter
+                      status: publish
+                      date: '2024-01-15T10:30:00Z'
+                      categories: [Technology, AI]
+                      tags: [content-creation, seo]
+                    media:
+                      - id: 456
+                        url: https://example.com/wp-content/uploads/2024/01/featured-image.jpg
+                        alt_text: AI Content Creation
+                        featured: true
+                    yoast:
+                      meta_title: Getting Started with PostCrafter | PostCrafter
+                      meta_description: Learn how to use PostCrafter to create and publish AI-generated content with SEO optimization.
         '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/RateLimited'
-        '500':
-          $ref: '#/components/responses/ServerError'
-
-  /api/publish-with-status:
-    post:
-      summary: Enhanced Post Creation with Advanced Status Handling
-      description: |
-        Enhanced endpoint with advanced status management features including:
-        - Status transition validation
-        - Metadata tracking
-        - Change auditing
-        - Workflow controls
-        
-      operationId: createPostWithStatus
-      tags:
-        - Posts
-        - Status Management
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EnhancedPostCreationRequest'
-      responses:
-        '200':
-          description: Post created with enhanced status information
+          description: Bad request - validation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EnhancedPostCreationResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        description: Error code
+                      message:
+                        type: string
+                        description: Human-readable error message
+                      details:
+                        type: string
+                        description: Detailed error information
+                  statusCode:
+                    type: integer
+                    description: HTTP status code
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - invalid API key
         '429':
-          $ref: '#/components/responses/RateLimited'
+          description: Too many requests - rate limit exceeded
         '500':
-          $ref: '#/components/responses/ServerError'
-
-  /api/posts/status:
-    put:
-      summary: Update Post Status
-      description: |
-        Update the status of an existing post with validation and audit trail.
-        
-        ## Status Transitions
-        - `draft` → `publish`: Publish a draft post
-        - `publish` → `draft`: Revert published post to draft
-        - `draft` → `private`: Make draft private
-        - `private` → `publish`: Publish private post
-        
-      operationId: updatePostStatus
-      tags:
-        - Posts
-        - Status Management
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PostStatusUpdateRequest'
-      responses:
-        '200':
-          description: Post status updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PostStatusUpdateResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/RateLimited'
-        '500':
-          $ref: '#/components/responses/ServerError'
-
-  /api/posts:
-    get:
-      summary: List Posts with Status Filtering
-      description: |
-        Retrieve posts with filtering by status and other criteria.
-        Includes visual indicators for different post statuses.
-        
-      operationId: listPosts
-      tags:
-        - Posts
-        - Status Management
-      parameters:
-        - name: status
-          in: query
-          description: Filter posts by status
-          schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/PostStatus'
-          style: form
-          explode: false
-          example: ["draft", "publish"]
-        - name: limit
-          in: query
-          description: Number of posts to return
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-        - name: offset
-          in: query
-          description: Number of posts to skip
-          schema:
-            type: integer
-            minimum: 0
-            default: 0
-        - name: search
-          in: query
-          description: Search posts by title or content
-          schema:
-            type: string
-            maxLength: 200
-        - name: author
-          in: query
-          description: Filter by author ID
-          schema:
-            type: integer
-            minimum: 1
-      responses:
-        '200':
-          description: Posts retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PostListResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/RateLimited'
-        '500':
-          $ref: '#/components/responses/ServerError'
+          description: Internal server error
 
 components:
   securitySchemes:
@@ -324,730 +294,7 @@ components:
       type: apiKey
       in: header
       name: X-API-Key
-      description: |
-        API key for authentication. Get your API key from your PostCrafter dashboard.
-        
-        Example: `X-API-Key: pc_1234567890abcdef`
+      description: API key for authentication. Include this header with all requests.
 
-  schemas:
-    PostStatus:
-      type: string
-      enum: [draft, publish, private]
-      description: |
-        Post publication status:
-        - `draft`: Post is saved but not published (visible in admin only)
-        - `publish`: Post is published and publicly visible
-        - `private`: Post is published but only visible to authorized users
-      example: "draft"
-
-    PostStatusMetadata:
-      type: object
-      description: Metadata tracking for post status information
-      properties:
-        status:
-          $ref: '#/components/schemas/PostStatus'
-        created_date:
-          type: string
-          format: date-time
-          description: When the post was created
-        published_date:
-          type: string
-          format: date-time
-          description: When the post was published (if applicable)
-          nullable: true
-        draft_saved_date:
-          type: string
-          format: date-time
-          description: When the post was last saved as draft
-          nullable: true
-        status_history:
-          type: array
-          description: History of status changes
-          items:
-            $ref: '#/components/schemas/StatusTransition'
-        reason:
-          type: string
-          description: Reason for the current status
-          maxLength: 500
-        author:
-          type: string
-          description: User who set the current status
-          maxLength: 255
-
-    StatusTransition:
-      type: object
-      description: Record of a status change
-      properties:
-        from:
-          $ref: '#/components/schemas/PostStatus'
-        to:
-          $ref: '#/components/schemas/PostStatus'
-        timestamp:
-          type: string
-          format: date-time
-        reason:
-          type: string
-          maxLength: 500
-          nullable: true
-        changed_by:
-          type: string
-          maxLength: 255
-          nullable: true
-
-    PostData:
-      type: object
-      description: Core post data structure
-      required: [title, content]
-      properties:
-        title:
-          type: string
-          description: Post title
-          minLength: 1
-          maxLength: 200
-          example: "How to Use PostCrafter for Content Creation"
-        content:
-          type: string
-          description: Post content (HTML or plain text)
-          minLength: 1
-          maxLength: 50000
-          example: "<p>PostCrafter makes it easy to create content...</p>"
-        excerpt:
-          type: string
-          description: Post excerpt/summary
-          maxLength: 500
-          nullable: true
-          example: "Learn how PostCrafter streamlines content creation"
-        status:
-          $ref: '#/components/schemas/PostStatus'
-        slug:
-          type: string
-          description: URL slug for the post
-          pattern: '^[a-z0-9-]+$'
-          maxLength: 200
-          nullable: true
-          example: "how-to-use-postcrafter"
-        author:
-          type: integer
-          description: Author user ID
-          minimum: 1
-          default: 1
-        categories:
-          type: array
-          description: Post categories (names or IDs)
-          items:
-            oneOf:
-              - type: string
-                maxLength: 100
-              - type: integer
-                minimum: 1
-          maxItems: 20
-          example: ["Technology", "Blogging", "AI"]
-        tags:
-          type: array
-          description: Post tags (names or IDs)
-          items:
-            oneOf:
-              - type: string
-                maxLength: 100
-              - type: integer
-                minimum: 1
-          maxItems: 50
-          example: ["gpt", "automation", "wordpress", "ai-tools"]
-        featured_media:
-          type: integer
-          description: Featured image media ID
-          minimum: 1
-          nullable: true
-        comment_status:
-          type: string
-          enum: [open, closed]
-          default: "open"
-          description: Whether comments are allowed
-        ping_status:
-          type: string
-          enum: [open, closed]
-          default: "open"
-          description: Whether pingbacks/trackbacks are allowed
-        format:
-          type: string
-          default: "standard"
-          description: Post format
-        template:
-          type: string
-          description: Post template
-          nullable: true
-        sticky:
-          type: boolean
-          default: false
-          description: Whether post should be sticky
-        password:
-          type: string
-          description: Password for password-protected posts
-          maxLength: 255
-          nullable: true
-
-    YoastFields:
-      type: object
-      description: Yoast SEO metadata fields
-      properties:
-        meta_title:
-          type: string
-          description: SEO meta title
-          maxLength: 60
-          nullable: true
-          example: "Complete Guide to PostCrafter | Best AI Content Tool 2024"
-        meta_description:
-          type: string
-          description: SEO meta description
-          maxLength: 160
-          nullable: true
-          example: "Discover how PostCrafter revolutionizes content creation with AI. Complete setup guide, features, and best practices for 2024."
-        focus_keywords:
-          type: array
-          description: Focus keywords for SEO
-          items:
-            type: string
-            maxLength: 100
-          maxItems: 5
-          example: ["PostCrafter", "AI content creation", "WordPress automation"]
-        meta_robots_noindex:
-          type: boolean
-          default: false
-          description: Whether to set noindex meta tag
-        meta_robots_nofollow:
-          type: boolean
-          default: false
-          description: Whether to set nofollow meta tag
-        canonical:
-          type: string
-          format: uri
-          description: Canonical URL
-          nullable: true
-        primary_category:
-          oneOf:
-            - type: string
-            - type: integer
-          description: Primary category for SEO (name or ID)
-          nullable: true
-
-    ImageData:
-      type: object
-      description: Image data for upload
-      required: [type]
-      discriminator:
-        propertyName: type
-        mapping:
-          url: '#/components/schemas/UrlImageData'
-          base64: '#/components/schemas/Base64ImageData'
-      properties:
-        type:
-          type: string
-          enum: [url, base64]
-          description: Type of image data
-        alt_text:
-          type: string
-          description: Alternative text for accessibility
-          maxLength: 255
-          example: "Screenshot of PostCrafter dashboard showing draft posts"
-        title:
-          type: string
-          description: Image title
-          maxLength: 255
-          nullable: true
-        caption:
-          type: string
-          description: Image caption
-          maxLength: 500
-          nullable: true
-        description:
-          type: string
-          description: Image description
-          maxLength: 1000
-          nullable: true
-        is_featured:
-          type: boolean
-          default: false
-          description: Whether this image should be the featured image
-
-    UrlImageData:
-      allOf:
-        - $ref: '#/components/schemas/ImageData'
-        - type: object
-          required: [url]
-          properties:
-            url:
-              type: string
-              format: uri
-              description: URL of the image to download
-              example: "https://example.com/images/postcrafter-dashboard.png"
-
-    Base64ImageData:
-      allOf:
-        - $ref: '#/components/schemas/ImageData'
-        - type: object
-          required: [data, filename]
-          properties:
-            data:
-              type: string
-              format: byte
-              description: Base64 encoded image data
-              example: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
-            filename:
-              type: string
-              description: Filename for the uploaded image
-              example: "dashboard-screenshot.png"
-            mime_type:
-              type: string
-              pattern: '^image\/(jpeg|jpg|png|gif|webp)$'
-              description: MIME type of the image
-              example: "image/png"
-
-    PostCreationOptions:
-      type: object
-      description: Options for post creation behavior
-      properties:
-        include_images:
-          type: boolean
-          default: true
-          description: Whether to process and upload images
-        optimize_images:
-          type: boolean
-          default: true
-          description: Whether to optimize images for web
-        validate_content:
-          type: boolean
-          default: true
-          description: Whether to validate content for security
-        publish_status:
-          $ref: '#/components/schemas/PostStatus'
-          description: Override status from post data
-        generate_excerpt:
-          type: boolean
-          default: false
-          description: Auto-generate excerpt if not provided
-        status_metadata:
-          type: object
-          description: Additional status metadata
-          properties:
-            reason:
-              type: string
-              maxLength: 500
-            author:
-              type: string
-              maxLength: 255
-        validate_before_publish:
-          type: boolean
-          default: true
-          description: Validate content quality before publishing
-        auto_categorize:
-          type: boolean
-          default: false
-          description: Auto-suggest categories based on content
-
-    PostCreationRequest:
-      type: object
-      description: Request to create a new post with status control
-      required: [post]
-      properties:
-        post:
-          $ref: '#/components/schemas/PostData'
-        yoast:
-          $ref: '#/components/schemas/YoastFields'
-        images:
-          type: array
-          description: Images to upload with the post
-          items:
-            $ref: '#/components/schemas/ImageData'
-          maxItems: 10
-        options:
-          $ref: '#/components/schemas/PostCreationOptions'
-
-    EnhancedPostCreationRequest:
-      allOf:
-        - $ref: '#/components/schemas/PostCreationRequest'
-        - type: object
-          properties:
-            post:
-              allOf:
-                - $ref: '#/components/schemas/PostData'
-                - type: object
-                  properties:
-                    status_change_reason:
-                      type: string
-                      maxLength: 500
-                      description: Reason for the selected status
-                    status_changed_by:
-                      type: string
-                      maxLength: 255
-                      description: User making the status decision
-            options:
-              allOf:
-                - $ref: '#/components/schemas/PostCreationOptions'
-                - type: object
-                  properties:
-                    validate_status_transition:
-                      type: boolean
-                      default: false
-                      description: Validate status transitions
-                    enable_status_history:
-                      type: boolean
-                      default: true
-                      description: Track status change history
-                    enable_metadata_tracking:
-                      type: boolean
-                      default: true
-                      description: Track detailed status metadata
-
-    PostStatusUpdateRequest:
-      type: object
-      description: Request to update post status
-      required: [post_id, new_status]
-      properties:
-        post_id:
-          type: integer
-          minimum: 1
-          description: ID of the post to update
-        new_status:
-          $ref: '#/components/schemas/PostStatus'
-        reason:
-          type: string
-          maxLength: 500
-          description: Reason for status change
-          nullable: true
-        changed_by:
-          type: string
-          maxLength: 255
-          description: User making the change
-          nullable: true
-
-    PostCreationResponse:
-      type: object
-      description: Response after creating a post
-      required: [success]
-      properties:
-        success:
-          type: boolean
-          description: Whether the operation was successful
-        data:
-          type: object
-          description: Response data (present if success is true)
-          properties:
-            post_id:
-              type: integer
-              description: WordPress post ID
-              example: 123
-            post_url:
-              type: string
-              format: uri
-              description: URL of the created post
-              example: "https://yoursite.com/my-new-post/"
-            status:
-              $ref: '#/components/schemas/PostStatus'
-            message:
-              type: string
-              description: Success message
-              example: "Post saved as draft successfully"
-            timestamp:
-              type: string
-              format: date-time
-              description: When the post was created
-            featured_image_id:
-              type: integer
-              description: ID of uploaded featured image
-              nullable: true
-            processing_time_ms:
-              type: integer
-              description: Time taken to process the request
-              minimum: 0
-            status_metadata:
-              $ref: '#/components/schemas/PostStatusMetadata'
-        error:
-          $ref: '#/components/schemas/ErrorDetails'
-        warnings:
-          type: array
-          description: Warning messages (non-fatal issues)
-          items:
-            type: string
-          example: ["Featured image could not be optimized"]
-
-    EnhancedPostCreationResponse:
-      allOf:
-        - $ref: '#/components/schemas/PostCreationResponse'
-        - type: object
-          properties:
-            data:
-              type: object
-              properties:
-                status_transition:
-                  $ref: '#/components/schemas/StatusTransition'
-                  nullable: true
-                status_warnings:
-                  type: array
-                  items:
-                    type: string
-                  description: Status-specific warnings
-
-    PostStatusUpdateResponse:
-      type: object
-      required: [success]
-      properties:
-        success:
-          type: boolean
-        data:
-          type: object
-          properties:
-            post_id:
-              type: integer
-            previous_status:
-              $ref: '#/components/schemas/PostStatus'
-            new_status:
-              $ref: '#/components/schemas/PostStatus'
-            timestamp:
-              type: string
-              format: date-time
-            wordpress_post_id:
-              type: integer
-              nullable: true
-        error:
-          type: string
-          nullable: true
-
-    PostListResponse:
-      type: object
-      required: [success]
-      properties:
-        success:
-          type: boolean
-        data:
-          type: object
-          properties:
-            posts:
-              type: array
-              items:
-                $ref: '#/components/schemas/PostWithStatus'
-            total_count:
-              type: integer
-              description: Total number of posts matching criteria
-            status_distribution:
-              type: object
-              description: Count of posts by status
-              properties:
-                draft:
-                  type: integer
-                publish:
-                  type: integer
-                private:
-                  type: integer
-        error:
-          $ref: '#/components/schemas/ErrorDetails'
-
-    PostWithStatus:
-      type: object
-      description: Post data with status information and visual indicators
-      properties:
-        id:
-          type: integer
-        title:
-          type: string
-        content:
-          type: string
-        excerpt:
-          type: string
-          nullable: true
-        status:
-          $ref: '#/components/schemas/PostStatus'
-        slug:
-          type: string
-          nullable: true
-        author:
-          type: integer
-        featured_media:
-          type: integer
-          nullable: true
-        status_metadata:
-          $ref: '#/components/schemas/PostStatusMetadata'
-        status_display:
-          type: object
-          description: Display information for UI components
-          properties:
-            label:
-              type: string
-              description: Human-readable status label
-              example: "Draft"
-            color:
-              type: string
-              description: Color code for status indicator
-              example: "#fbbf24"
-            icon:
-              type: string
-              description: Icon for status display
-              example: "📝"
-            description:
-              type: string
-              description: Status description
-              example: "Saved but not published"
-
-    ErrorDetails:
-      type: object
-      description: Error information
-      properties:
-        code:
-          type: string
-          description: Error code for programmatic handling
-          example: "VALIDATION_ERROR"
-        message:
-          type: string
-          description: Human-readable error message
-          example: "Post title is required"
-        details:
-          oneOf:
-            - type: string
-            - type: array
-              items:
-                type: string
-          description: Additional error details
-          nullable: true
-        request_id:
-          type: string
-          description: Request ID for tracking
-          nullable: true
-
-  responses:
-    BadRequest:
-      description: Bad request - invalid input data
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-                example: false
-              error:
-                $ref: '#/components/schemas/ErrorDetails'
-          examples:
-            validation_error:
-              summary: Validation Error
-              value:
-                success: false
-                error:
-                  code: "VALIDATION_ERROR"
-                  message: "Invalid post data"
-                  details: ["Title is required", "Content must be at least 10 characters"]
-            invalid_status:
-              summary: Invalid Status
-              value:
-                success: false
-                error:
-                  code: "STATUS_VALIDATION_ERROR"
-                  message: "Invalid post status"
-                  details: "Status must be one of: draft, publish, private"
-
-    Unauthorized:
-      description: Unauthorized - invalid or missing API key
-      headers:
-        WWW-Authenticate:
-          description: Authentication method required
-          schema:
-            type: string
-            example: "ApiKey"
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-                example: false
-              error:
-                $ref: '#/components/schemas/ErrorDetails'
-          example:
-            success: false
-            error:
-              code: "AUTHENTICATION_ERROR"
-              message: "Invalid or missing API key"
-              details: "Please provide a valid API key in the X-API-Key header"
-
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-                example: false
-              error:
-                $ref: '#/components/schemas/ErrorDetails'
-          example:
-            success: false
-            error:
-              code: "NOT_FOUND"
-              message: "Post not found"
-              details: "No post found with the specified ID"
-
-    RateLimited:
-      description: Rate limit exceeded
-      headers:
-        X-RateLimit-Limit:
-          description: Request limit per window
-          schema:
-            type: integer
-            example: 100
-        X-RateLimit-Remaining:
-          description: Requests remaining in current window
-          schema:
-            type: integer
-            example: 0
-        X-RateLimit-Reset:
-          description: Time when rate limit resets
-          schema:
-            type: integer
-            example: 1640995800
-        Retry-After:
-          description: Seconds to wait before retrying
-          schema:
-            type: integer
-            example: 60
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-                example: false
-              error:
-                $ref: '#/components/schemas/ErrorDetails'
-          example:
-            success: false
-            error:
-              code: "RATE_LIMIT_EXCEEDED"
-              message: "Rate limit exceeded"
-              details: "Please wait 60 seconds before making another request"
-
-    ServerError:
-      description: Internal server error
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              success:
-                type: boolean
-                example: false
-              error:
-                $ref: '#/components/schemas/ErrorDetails'
-          example:
-            success: false
-            error:
-              code: "INTERNAL_ERROR"
-              message: "An unexpected error occurred"
-              details: "Please try again later or contact support"
-
-tags:
-  - name: Posts
-    description: WordPress post creation and management
-  - name: Status Management
-    description: Post status control and workflow operations
+security:
+  - ApiKeyAuth: []

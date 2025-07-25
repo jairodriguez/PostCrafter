@@ -10,7 +10,7 @@
   },
   "api": {
     "type": "openapi",
-    "url": "https://your-vercel-deployment.vercel.app/openapi-spec.yaml"
+    "url": "https://postcrafter-api.vercel.app/openapi-spec.yaml"
   },
   "logo_url": "https://your-domain.com/postcrafter-logo.png",
   "contact_email": "support@postcrafter.com",

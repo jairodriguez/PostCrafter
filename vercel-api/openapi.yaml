@@ -1,0 +1,447 @@
+openapi: 3.0.3
+info:
+  title: PostCrafter API
+  description: |
+    AI-generated, SEO-optimized articles published directly from ChatGPT to WordPress.
+    
+    This API allows ChatGPT to publish posts to WordPress with comprehensive SEO optimization,
+    media uploads, and Yoast SEO integration.
+    
+    ## Features
+    - WordPress post creation with SEO optimization
+    - Media upload support (URL and base64)
+    - Yoast SEO meta field management
+    - Category and tag management
+    - Featured image assignment
+    - Comprehensive error handling
+    
+    ## Authentication
+    API key authentication is required for all endpoints.
+    
+    ## Rate Limiting
+    Rate limiting is applied based on API key tier and usage patterns.
+  version: 1.0.0
+  contact:
+    name: PostCrafter Support
+    email: support@postcrafter.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://postcrafter-api.vercel.app
+    description: Production server
+  - url: https://postcrafter-api-dev.vercel.app
+    description: Development server
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /api/publish:
+    post:
+      summary: Publish a new post to WordPress
+      description: |
+        Creates a new WordPress post with optional media uploads, SEO optimization,
+        and category/tag management. This endpoint is designed for ChatGPT integration
+        and supports comprehensive post data including Yoast SEO fields.
+      operationId: publishPost
+      tags:
+        - Posts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostPublishRequest'
+            examples:
+              basic_post:
+                summary: Basic post with title and content
+                value:
+                  title: "Getting Started with PostCrafter"
+                  content: "PostCrafter is an AI-powered tool that helps you create and publish SEO-optimized content directly to WordPress..."
+                  status: "publish"
+                  excerpt: "Learn how to use PostCrafter to create and publish AI-generated content with SEO optimization."
+              full_post:
+                summary: Complete post with all features
+                value:
+                  title: "Complete Guide to AI Content Creation"
+                  content: "<h2>Introduction</h2><p>AI content creation is revolutionizing how we produce digital content...</p>",
+                  status: "publish",
+                  excerpt: "A comprehensive guide to using AI for content creation with SEO best practices.",
+                  categories: ["Technology", "AI"],
+                  tags: ["content-creation", "seo", "wordpress"],
+                  images:
+                    - url: "https://example.com/featured-image.jpg"
+                      alt_text: "AI Content Creation"
+                      featured: true
+                  yoast:
+                    meta_title: "Complete Guide to AI Content Creation | PostCrafter"
+                    meta_description: "Learn how to create AI-generated content with SEO optimization. Discover best practices for content creation and WordPress publishing."
+                    focus_keyword: "AI content creation"
+      responses:
+        '200':
+          description: Post published successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostPublishResponse'
+              examples:
+                success:
+                  summary: Successful post publication
+                  value:
+                    success: true
+                    post:
+                      id: 123
+                      url: "https://example.com/2024/01/getting-started-with-postcrafter/"
+                      title: "Getting Started with PostCrafter"
+                      status: "publish"
+                      date: "2024-01-15T10:30:00Z"
+                    media:
+                      - id: 456
+                        url: "https://example.com/wp-content/uploads/2024/01/featured-image.jpg"
+                        alt_text: "AI Content Creation"
+                        featured: true
+                    yoast:
+                      meta_title: "Getting Started with PostCrafter | PostCrafter"
+                      meta_description: "Learn how to use PostCrafter to create and publish AI-generated content with SEO optimization."
+        '400':
+          description: Bad request - validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation_error:
+                  summary: Validation error
+                  value:
+                    success: false
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Invalid post data"
+                      details: "Title is required and must be between 1 and 200 characters"
+                    statusCode: 400
+        '401':
+          description: Unauthorized - invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many requests - rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/health:
+    get:
+      summary: Health check endpoint
+      description: Returns the health status of the API
+      operationId: healthCheck
+      tags:
+        - System
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: "1.0.0"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        API key for authentication. Include this header with all requests.
+        
+        Example: `X-API-Key: your-api-key-here`
+        
+        Rate limits and features are determined by your API key tier.
+
+  schemas:
+    PostPublishRequest:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Post title (required)
+          example: "Getting Started with PostCrafter"
+        content:
+          type: string
+          minLength: 1
+          maxLength: 50000
+          description: Post content in HTML format (required)
+          example: "<h2>Introduction</h2><p>PostCrafter is an AI-powered tool...</p>"
+        excerpt:
+          type: string
+          maxLength: 500
+          description: Post excerpt/summary
+          example: "Learn how to use PostCrafter to create and publish AI-generated content."
+        status:
+          type: string
+          enum: [draft, publish, private]
+          default: "draft"
+          description: Post status
+        categories:
+          type: array
+          items:
+            type: string
+          description: Category names (will be created if they don't exist)
+          example: ["Technology", "AI"]
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tag names (will be created if they don't exist)
+          example: ["content-creation", "seo"]
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageData'
+          description: Images to upload and attach to the post
+        yoast:
+          $ref: '#/components/schemas/YoastData'
+          description: Yoast SEO meta fields
+
+    ImageData:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Image URL to download and upload
+          example: "https://example.com/image.jpg"
+        base64:
+          type: string
+          description: Base64 encoded image data (alternative to URL)
+          example: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ..."
+        alt_text:
+          type: string
+          maxLength: 500
+          description: Alt text for accessibility
+          example: "AI Content Creation"
+        title:
+          type: string
+          maxLength: 200
+          description: Image title
+          example: "AI Content Creation Process"
+        caption:
+          type: string
+          maxLength: 1000
+          description: Image caption
+          example: "The AI content creation process involves multiple steps..."
+        featured:
+          type: boolean
+          default: false
+          description: Whether this image should be the featured image
+      oneOf:
+        - required: [url]
+        - required: [base64]
+
+    YoastData:
+      type: object
+      properties:
+        meta_title:
+          type: string
+          maxLength: 60
+          description: SEO meta title
+          example: "Getting Started with PostCrafter | PostCrafter"
+        meta_description:
+          type: string
+          maxLength: 160
+          description: SEO meta description
+          example: "Learn how to use PostCrafter to create and publish AI-generated content with SEO optimization."
+        focus_keyword:
+          type: string
+          maxLength: 100
+          description: Primary focus keyword for SEO
+          example: "AI content creation"
+        keywords:
+          type: array
+          items:
+            type: string
+          description: Additional keywords for SEO
+          example: ["content creation", "wordpress", "seo"]
+        og_title:
+          type: string
+          maxLength: 60
+          description: Open Graph title
+          example: "Getting Started with PostCrafter"
+        og_description:
+          type: string
+          maxLength: 160
+          description: Open Graph description
+          example: "Learn how to use PostCrafter for AI content creation"
+        og_image:
+          type: string
+          format: uri
+          description: Open Graph image URL
+          example: "https://example.com/og-image.jpg"
+        twitter_title:
+          type: string
+          maxLength: 60
+          description: Twitter Card title
+          example: "Getting Started with PostCrafter"
+        twitter_description:
+          type: string
+          maxLength: 160
+          description: Twitter Card description
+          example: "Learn how to use PostCrafter for AI content creation"
+        twitter_image:
+          type: string
+          format: uri
+          description: Twitter Card image URL
+          example: "https://example.com/twitter-image.jpg"
+
+    PostPublishResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Whether the operation was successful
+        post:
+          $ref: '#/components/schemas/PostData'
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaData'
+          description: Uploaded media information
+        yoast:
+          $ref: '#/components/schemas/YoastData'
+          description: Applied Yoast SEO data
+        warnings:
+          type: array
+          items:
+            type: string
+          description: Any warnings during processing
+          example: ["Image optimization not available in this version"]
+
+    PostData:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: WordPress post ID
+          example: 123
+        url:
+          type: string
+          format: uri
+          description: Published post URL
+          example: "https://example.com/2024/01/getting-started-with-postcrafter/"
+        title:
+          type: string
+          description: Post title
+          example: "Getting Started with PostCrafter"
+        status:
+          type: string
+          description: Post status
+          example: "publish"
+        date:
+          type: string
+          format: date-time
+          description: Publication date
+          example: "2024-01-15T10:30:00Z"
+        categories:
+          type: array
+          items:
+            type: string
+          description: Applied categories
+          example: ["Technology", "AI"]
+        tags:
+          type: array
+          items:
+            type: string
+          description: Applied tags
+          example: ["content-creation", "seo"]
+
+    MediaData:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: WordPress media ID
+          example: 456
+        url:
+          type: string
+          format: uri
+          description: Media URL
+          example: "https://example.com/wp-content/uploads/2024/01/image.jpg"
+        alt_text:
+          type: string
+          description: Alt text
+          example: "AI Content Creation"
+        title:
+          type: string
+          description: Media title
+          example: "AI Content Creation Process"
+        caption:
+          type: string
+          description: Media caption
+          example: "The AI content creation process involves multiple steps..."
+        featured:
+          type: boolean
+          description: Whether this is the featured image
+          example: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Error code
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              description: Human-readable error message
+              example: "Invalid post data"
+            details:
+              type: string
+              description: Detailed error information
+              example: "Title is required and must be between 1 and 200 characters"
+            retryable:
+              type: boolean
+              description: Whether the request can be retried
+              example: false
+        statusCode:
+          type: integer
+          description: HTTP status code
+          example: 400
+
+tags:
+  - name: Posts
+    description: Post publishing operations
+  - name: System
+    description: System health and status endpoints 
