@@ -1,0 +1,325 @@
+{
+  "basic_posts": {
+    "simple_draft": {
+      "title": "Test Draft Post",
+      "content": "This is a simple test post content for draft testing.",
+      "status": "draft"
+    },
+    "simple_published": {
+      "title": "Test Published Post",
+      "content": "This is a simple test post content for published testing.",
+      "status": "publish"
+    },
+    "with_categories": {
+      "title": "Post with Categories",
+      "content": "This post tests category assignment functionality.",
+      "status": "draft",
+      "categories": ["Technology", "Testing", "API"]
+    },
+    "with_tags": {
+      "title": "Post with Tags",
+      "content": "This post tests tag assignment functionality.",
+      "status": "draft",
+      "tags": ["test", "api", "wordpress", "automation"]
+    },
+    "with_excerpt": {
+      "title": "Post with Custom Excerpt",
+      "content": "This is the full content of the post that tests excerpt functionality. It's longer than the excerpt to show the difference.",
+      "excerpt": "This is a custom excerpt for testing.",
+      "status": "draft"
+    }
+  },
+  "seo_posts": {
+    "with_meta_title": {
+      "title": "SEO Test Post",
+      "content": "This post tests Yoast meta title functionality.",
+      "status": "draft",
+      "yoast_meta": {
+        "meta_title": "Custom SEO Title for Testing"
+      }
+    },
+    "with_meta_description": {
+      "title": "SEO Description Test",
+      "content": "This post tests Yoast meta description functionality.",
+      "status": "draft",
+      "yoast_meta": {
+        "meta_description": "This is a custom meta description for SEO testing purposes."
+      }
+    },
+    "with_focus_keywords": {
+      "title": "SEO Keywords Test",
+      "content": "This post tests Yoast focus keywords functionality with relevant keywords.",
+      "status": "draft",
+      "yoast_meta": {
+        "focus_keywords": ["seo", "testing", "keywords"]
+      }
+    },
+    "with_all_yoast_fields": {
+      "title": "Complete SEO Test Post",
+      "content": "This comprehensive post tests all Yoast SEO fields together to ensure complete integration.",
+      "status": "draft",
+      "yoast_meta": {
+        "meta_title": "Complete SEO Test - All Fields",
+        "meta_description": "This post contains all Yoast SEO fields for comprehensive testing.",
+        "focus_keywords": ["comprehensive", "seo", "test", "yoast"]
+      }
+    }
+  },
+  "status_posts": {
+    "draft_status": {
+      "title": "Draft Status Test",
+      "content": "Testing draft status functionality.",
+      "status": "draft"
+    },
+    "publish_status": {
+      "title": "Publish Status Test",
+      "content": "Testing publish status functionality.",
+      "status": "publish"
+    },
+    "private_status": {
+      "title": "Private Status Test",
+      "content": "Testing private status functionality.",
+      "status": "private"
+    },
+    "invalid_status": {
+      "title": "Invalid Status Test",
+      "content": "Testing invalid status handling.",
+      "status": "invalid_status"
+    }
+  },
+  "image_posts": {
+    "single_url_image": {
+      "title": "Single Image Test",
+      "content": "This post tests single image upload functionality.",
+      "status": "draft",
+      "images": [
+        {
+          "url": "https://picsum.photos/800/600?random=1",
+          "alt": "Test image from Picsum",
+          "is_featured": false
+        }
+      ]
+    },
+    "multiple_url_images": {
+      "title": "Multiple Images Test",
+      "content": "This post tests multiple image upload functionality.",
+      "status": "draft",
+      "images": [
+        {
+          "url": "https://picsum.photos/800/600?random=2",
+          "alt": "First test image",
+          "is_featured": false
+        },
+        {
+          "url": "https://picsum.photos/800/600?random=3",
+          "alt": "Second test image",
+          "is_featured": false
+        },
+        {
+          "url": "https://picsum.photos/800/600?random=4",
+          "alt": "Third test image",
+          "is_featured": false
+        }
+      ]
+    },
+    "base64_image": {
+      "title": "Base64 Image Test",
+      "content": "This post tests base64 image upload functionality.",
+      "status": "draft",
+      "images": [
+        {
+          "data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+          "alt": "Small base64 test image",
+          "is_featured": false
+        }
+      ]
+    },
+    "featured_image": {
+      "title": "Featured Image Test",
+      "content": "This post tests featured image functionality.",
+      "status": "draft",
+      "images": [
+        {
+          "url": "https://picsum.photos/1200/800?random=5",
+          "alt": "Featured test image",
+          "is_featured": true
+        }
+      ]
+    },
+    "large_image": {
+      "title": "Large Image Test",
+      "content": "This post tests large image handling.",
+      "status": "draft",
+      "images": [
+        {
+          "url": "https://picsum.photos/5000/5000?random=6",
+          "alt": "Large test image",
+          "is_featured": false
+        }
+      ]
+    },
+    "invalid_image_url": {
+      "title": "Invalid Image URL Test",
+      "content": "This post tests invalid image URL handling.",
+      "status": "draft",
+      "images": [
+        {
+          "url": "https://invalid-domain-that-does-not-exist.com/image.jpg",
+          "alt": "Invalid image URL",
+          "is_featured": false
+        }
+      ]
+    }
+  },
+  "validation_tests": {
+    "xss_attempt": {
+      "title": "XSS Test <script>alert('xss')</script>",
+      "content": "This content contains <script>alert('malicious');</script> script tags for XSS testing.",
+      "status": "draft"
+    },
+    "sql_injection": {
+      "title": "SQL Injection Test'; DROP TABLE posts;--",
+      "content": "Content with SQL injection attempt: '; DELETE FROM wp_posts WHERE 1=1;--",
+      "status": "draft"
+    },
+    "oversized_content": {
+      "title": "Oversized Content Test",
+      "content": "A".repeat(100000),
+      "status": "draft"
+    },
+    "missing_required_field": {
+      "content": "Content without title field",
+      "status": "draft"
+    },
+    "invalid_data_types": {
+      "title": 12345,
+      "content": ["array", "instead", "of", "string"],
+      "status": "draft",
+      "categories": "string instead of array"
+    }
+  },
+  "edge_cases": {
+    "empty_content": {
+      "title": "Empty Content Test",
+      "content": "",
+      "status": "draft"
+    },
+    "maximum_content_length": {
+      "title": "Maximum Length Test",
+      "content": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(1000),
+      "status": "draft"
+    },
+    "special_characters": {
+      "title": "Special Characters Test: éñüñìçødé & émójí 🚀🎉💻",
+      "content": "Content with special characters: Chinese: 你好世界, Arabic: مرحبا بالعالم, Russian: Привет мир, Emoji: 🎯🔥⭐️💡🚀",
+      "status": "draft"
+    },
+    "html_content": {
+      "title": "HTML Content Test",
+      "content": "<h1>HTML Heading</h1><p>This is a <strong>bold</strong> paragraph with <em>italic</em> text and a <a href='https://example.com'>link</a>.</p><ul><li>List item 1</li><li>List item 2</li></ul>",
+      "status": "draft"
+    },
+    "markdown_content": {
+      "title": "Markdown Content Test",
+      "content": "# Markdown Heading\n\nThis is **bold** text and *italic* text.\n\n- List item 1\n- List item 2\n\n[Link example](https://example.com)\n\n```code block```",
+      "status": "draft"
+    }
+  },
+  "performance_test_data": {
+    "small_post": {
+      "title": "Small Performance Test Post",
+      "content": "Small content for performance testing.",
+      "status": "draft"
+    },
+    "medium_post": {
+      "title": "Medium Performance Test Post",
+      "content": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(100),
+      "status": "draft"
+    },
+    "large_post": {
+      "title": "Large Performance Test Post",
+      "content": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(1000),
+      "status": "draft",
+      "categories": ["Performance", "Testing", "Large Content"],
+      "tags": ["performance", "load", "testing", "large"],
+      "yoast_meta": {
+        "meta_title": "Large Performance Test - SEO Optimized",
+        "meta_description": "This is a large post for performance testing with full SEO optimization."
+      }
+    }
+  },
+  "gpt_integration_tests": {
+    "basic_gpt_request": {
+      "title": "GPT Generated Post About Cats",
+      "content": "Cats are fascinating creatures that have been companions to humans for thousands of years. They are known for their independence, agility, and mysterious nature. From their ancient Egyptian worship to modern internet fame, cats continue to captivate us with their unique personalities and behaviors.",
+      "status": "draft"
+    },
+    "gpt_draft_request": {
+      "title": "Draft Post About Dogs - GPT Generated",
+      "content": "Dogs are loyal companions known as man's best friend. They come in various breeds, each with unique characteristics and temperaments. From tiny Chihuahuas to massive Great Danes, dogs have been bred for different purposes including hunting, herding, protection, and companionship.",
+      "status": "draft"
+    },
+    "gpt_with_images": {
+      "title": "Post About Trees with Images",
+      "content": "Trees are essential for our planet's ecosystem, providing oxygen, absorbing carbon dioxide, and supporting countless wildlife species. From towering redwoods to delicate cherry blossoms, trees add beauty and life to our world.",
+      "status": "draft",
+      "images": [
+        {
+          "url": "https://picsum.photos/800/600?random=7",
+          "alt": "Beautiful tree in nature",
+          "is_featured": true
+        }
+      ]
+    },
+    "gpt_seo_optimized": {
+      "title": "SEO Optimized Post from GPT",
+      "content": "Creating SEO-optimized content is crucial for online visibility. This includes proper keyword usage, meta descriptions, and structured content that both users and search engines can understand and appreciate.",
+      "status": "draft",
+      "yoast_meta": {
+        "meta_title": "Ultimate Guide to SEO Optimization",
+        "meta_description": "Learn how to create SEO-optimized content that ranks well in search engines and provides value to your readers.",
+        "focus_keywords": ["seo", "optimization", "content"]
+      }
+    }
+  },
+  "authentication_tests": {
+    "valid_api_key": "test_valid_api_key_12345",
+    "invalid_api_key": "invalid_key_xyz",
+    "expired_api_key": "expired_key_old_timestamp",
+    "malformed_api_key": "malformed@key#with$special%chars"
+  },
+  "stress_test_config": {
+    "concurrent_users": [1, 5, 10, 25, 50],
+    "request_frequencies": [1, 10, 50, 100],
+    "test_duration_seconds": 300,
+    "image_batch_sizes": [1, 5, 10, 20],
+    "content_sizes": {
+      "small": 100,
+      "medium": 1000,
+      "large": 10000,
+      "extra_large": 50000
+    }
+  },
+  "error_simulation": {
+    "network_timeout": {
+      "wordpress_url": "http://slow-response-simulator.com",
+      "timeout_ms": 30000
+    },
+    "invalid_wordpress_credentials": {
+      "username": "invalid_user",
+      "password": "wrong_password"
+    },
+    "wordpress_api_down": {
+      "wordpress_url": "http://non-existent-wordpress-site.com"
+    },
+    "rate_limit_test": {
+      "requests_per_minute": 200,
+      "expected_status": 429
+    }
+  },
+  "theme_compatibility": {
+    "default_theme": "twentytwentyfour",
+    "custom_themes": ["custom-business-theme", "blog-theme-pro"],
+    "page_builders": ["elementor", "beaver-builder", "divi"]
+  }
+}
