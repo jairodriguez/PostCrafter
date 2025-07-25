@@ -1,6 +1,12 @@
 /**
  * Input validation utility functions
  * Provides reusable validation functions for common data validation tasks
+ * 
+ * subtask 9.1: Enhanced validation functions with security improvements
+ * - Added dangerous protocol blocking for URLs
+ * - Enhanced email validation to prevent consecutive dots
+ * - Added malformed hostname detection
+ * - Improved error logging with structured context
  */
 
 import { logger } from './logger';
@@ -61,13 +67,11 @@ export interface EmailValidationOptions {
 
 /**
  * Common email validation pattern (RFC 5322 compliant)
+ * Prevents consecutive dots and ensures proper format
  */
-const EMAIL_PATTERN = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+const EMAIL_PATTERN = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+(?!.*\.\.)@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
-/**
- * Common URL validation pattern
- */
-const URL_PATTERN = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+
 
 /**
  * IPv4 pattern
@@ -180,6 +184,15 @@ export function validateEmail(value: any, options: EmailValidationOptions = {}):
     };
   }
 
+  // Check for consecutive dots in local part
+  const localPart = email.split('@')[0];
+  if (localPart.includes('..')) {
+    return {
+      isValid: false,
+      error: 'Invalid email format: consecutive dots not allowed'
+    };
+  }
+
   // Extract domain
   const domain = email.split('@')[1];
 
@@ -252,6 +265,16 @@ export function validateUrl(value: any, options: UrlValidationOptions = {}): Val
 
   // Protocol validation
   const protocol = parsedUrl.protocol.slice(0, -1); // Remove trailing ':'
+  
+  // Block dangerous protocols
+  const dangerousProtocols = ['javascript', 'data', 'vbscript', 'file'];
+  if (dangerousProtocols.includes(protocol)) {
+    return {
+      isValid: false,
+      error: `Dangerous protocol '${protocol}' not allowed`
+    };
+  }
+  
   if (!allowedProtocols.includes(protocol)) {
     return {
       isValid: false,
@@ -260,6 +283,14 @@ export function validateUrl(value: any, options: UrlValidationOptions = {}): Val
   }
 
   const hostname = parsedUrl.hostname.toLowerCase();
+
+  // Check for malformed hostnames
+  if (hostname === '' || hostname.startsWith('.') || hostname.endsWith('.')) {
+    return {
+      isValid: false,
+      error: 'Invalid hostname format'
+    };
+  }
 
   // IP address validation
   if (IPV4_PATTERN.test(hostname) || IPV6_PATTERN.test(hostname)) {
@@ -753,12 +784,21 @@ export const validationUtils = {
  * Log validation error for debugging
  */
 export function logValidationError(field: string, error: string, requestId?: string): void {
-  logger.warn('Validation error', {
-    field,
-    error,
-    requestId,
-    component: 'validation'
-  });
+  const context: any = {
+    error: {
+      message: error
+    },
+    component: 'validation',
+    metadata: {
+      field
+    }
+  };
+  
+  if (requestId) {
+    context.requestId = requestId;
+  }
+  
+  logger.warn('Validation error', context);
 }
 
 export default validationUtils; 

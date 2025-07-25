@@ -1,0 +1,38 @@
+{
+  "timestamp": "2025-07-25T01:47:40.358Z",
+  "project": "postcrafter-vercel-api",
+  "overallStatus": "FAILED",
+  "checks": [
+    {
+      "name": "Environment Variables",
+      "status": "error",
+      "message": "Missing required environment variables"
+    },
+    {
+      "name": "File Structure",
+      "status": "success",
+      "message": "All required files are present and properly configured"
+    },
+    {
+      "name": "Code Quality",
+      "status": "warning",
+      "message": "Code quality issues detected (non-blocking)"
+    },
+    {
+      "name": "Security Implementation",
+      "status": "success",
+      "message": "Security implementations are properly configured"
+    },
+    {
+      "name": "Production Readiness",
+      "status": "success",
+      "message": "Production configuration is ready"
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "passed": 3,
+    "failed": 1,
+    "warnings": 1
+  }
+}

@@ -84,7 +84,7 @@ describe('Validation Utils', () => {
 
     it('should use custom validator', () => {
       const customValidator = (value: string) => value.includes('valid');
-      const result = validateString('invalid', { customValidator });
+      const result = validateString('wrong', { customValidator });
       expect(result.isValid).toBe(false);
       expect(result.error).toBe('String failed custom validation');
     });
@@ -131,7 +131,7 @@ describe('Validation Utils', () => {
     });
 
     it('should reject emails exceeding max length', () => {
-      const longEmail = 'a'.repeat(300) + '@example.com';
+      const longEmail = 'a'.repeat(310) + '@example.com';
       const result = validateEmail(longEmail);
       expect(result.isValid).toBe(false);
     });
@@ -647,10 +647,14 @@ describe('Validation Utils', () => {
       logValidationError('testField', 'Test error', 'req123');
 
       expect(logger.warn).toHaveBeenCalledWith('Validation error', {
-        field: 'testField',
-        error: 'Test error',
+        error: {
+          message: 'Test error'
+        },
         requestId: 'req123',
-        component: 'validation'
+        component: 'validation',
+        metadata: {
+          field: 'testField'
+        }
       });
     });
   });

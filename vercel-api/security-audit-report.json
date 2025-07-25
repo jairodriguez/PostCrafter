@@ -1,0 +1,69 @@
+{
+  "summary": {
+    "timestamp": "2025-07-25T01:19:23.353Z",
+    "overallScore": 89,
+    "status": "WARNING",
+    "totalChecks": 9,
+    "passedChecks": 8,
+    "failedChecks": 1
+  },
+  "details": {
+    "authentication": {
+      "score": 100,
+      "checks": 6,
+      "passed": 6
+    },
+    "cors": {
+      "score": 100,
+      "checks": 5,
+      "passed": 5
+    },
+    "monitoring": {
+      "score": 100,
+      "checks": 5,
+      "passed": 5
+    },
+    "environment": {
+      "score": 100,
+      "checks": 4,
+      "passed": 4
+    },
+    "sensitiveData": {
+      "score": 100,
+      "exposedSecrets": 0
+    },
+    "dependencies": {
+      "total": 37,
+      "checked": true
+    },
+    "filePermissions": {
+      "score": 33,
+      "secureFiles": 1,
+      "totalFiles": 3
+    },
+    "securityHeaders": {
+      "score": 100,
+      "implemented": 4,
+      "total": 4
+    },
+    "rateLimiting": {
+      "score": 100,
+      "implemented": true
+    }
+  },
+  "issues": {
+    "errors": [],
+    "warnings": []
+  },
+  "recommendations": [
+    "Security score below 90% - review failed checks before deployment"
+  ],
+  "nextSteps": [
+    "Review all failed checks and errors",
+    "Address security warnings",
+    "Run npm audit to check for dependency vulnerabilities",
+    "Test security implementations in staging environment",
+    "Verify monitoring and alerting systems",
+    "Document security procedures and incident response plan"
+  ]
+}

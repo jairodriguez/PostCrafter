@@ -1,0 +1,17 @@
+{
+  "healthCheck": {
+    "endpoint": "/api/health",
+    "interval": "5m",
+    "timeout": "10s"
+  },
+  "alerts": {
+    "errorRate": {
+      "threshold": 0.05,
+      "window": "5m"
+    },
+    "responseTime": {
+      "threshold": 2000,
+      "percentile": 95
+    }
+  }
+}

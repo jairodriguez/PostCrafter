@@ -1,418 +1,524 @@
-# PostCrafter API Troubleshooting Guide
+# PostCrafter Troubleshooting Guide
 
-This guide provides step-by-step troubleshooting procedures for common issues encountered with the PostCrafter API.
+This guide provides comprehensive troubleshooting procedures for the PostCrafter API, including common issues, debugging tools, and operator guidance.
+
+## Table of Contents
+
+1. [Quick Diagnostics](#quick-diagnostics)
+2. [Common Issues](#common-issues)
+3. [Debugging Tools](#debugging-tools)
+4. [Error Codes and Messages](#error-codes-and-messages)
+5. [Performance Issues](#performance-issues)
+6. [WordPress Integration Issues](#wordpress-integration-issues)
+7. [Authentication Issues](#authentication-issues)
+8. [Monitoring and Alerts](#monitoring-and-alerts)
+9. [Emergency Procedures](#emergency-procedures)
+10. [Contact Information](#contact-information)
 
 ## Quick Diagnostics
 
-### Health Check
-```bash
-# Basic health check
-curl https://your-api-domain.vercel.app/api/health
+### Health Check Endpoint
 
-# Detailed health check with metrics and alerts
-curl "https://your-api-domain.vercel.app/api/health?detailed=true&metrics=true&alerts=true"
+Use the health check endpoint to quickly assess system status:
+
+```bash
+curl -X GET https://your-api.vercel.app/api/health
 ```
 
-### Debug Information
-```bash
-# Full debug information (development only, or with debug token in production)
-curl "https://your-api-domain.vercel.app/api/debug?metrics=true&health=true&errors=true&wordpress=true&alerts=true&system=true"
-
-# Production debug (requires X-Debug-Token header)
-curl -H "X-Debug-Token: your-debug-token" "https://your-api-domain.vercel.app/api/debug"
-```
-
-## Common Issues
-
-### 1. Authentication Failures
-
-#### Symptoms
-- 401 Unauthorized responses
-- "Authentication failed" error messages
-- WordPress API connection failures
-
-#### Diagnosis
-```bash
-# Check WordPress API credentials
-curl "https://your-api-domain.vercel.app/api/debug?wordpress=true&errors=true"
-```
-
-#### Common Causes & Solutions
-
-**Invalid WordPress Application Password**
-```bash
-# Verify WordPress credentials are set correctly
-curl -H "X-Debug-Token: your-debug-token" "https://your-api-domain.vercel.app/api/debug?config=true"
-```
-- Ensure `WORDPRESS_APP_PASSWORD` is generated correctly in WordPress
-- Verify username has proper permissions (Editor or Administrator)
-- Check WordPress Application Passwords are enabled
-
-**Expired or Invalid GPT API Key**
-- Verify `GPT_API_KEY` environment variable is set
-- Check API key hasn't expired or been revoked
-- Ensure proper API key format
-
-**WordPress URL Issues**
-- Verify `WORDPRESS_URL` is accessible from Vercel
-- Check for trailing slashes or HTTP vs HTTPS
-- Ensure WordPress REST API is enabled
-
-### 2. WordPress API Errors
-
-#### Symptoms
-- 502 Bad Gateway responses
-- WordPress connection timeouts
-- Publishing failures
-
-#### Diagnosis
-```bash
-# Check WordPress health and error statistics
-curl "https://your-api-domain.vercel.app/api/debug?wordpress=true&errors=true"
-
-# Check recent WordPress errors
-curl "https://your-api-domain.vercel.app/api/health?detailed=true"
-```
-
-#### Common Error Codes
-
-**rest_forbidden (403)**
-- User lacks sufficient permissions
-- Check WordPress user role (should be Editor or Administrator)
-- Verify Application Password scope
-
-**rest_invalid_param (400)**
-- Invalid request parameters
-- Check post data format and required fields
-- Verify taxonomy IDs exist
-
-**Connection timeout**
-- WordPress site is slow or overloaded
-- Network connectivity issues
-- Increase `WORDPRESS_TIMEOUT_MS` environment variable
-
-#### Solutions
-
-**WordPress Site Issues**
-1. Check WordPress site accessibility:
-   ```bash
-   curl -I https://your-wordpress-site.com/wp-json/wp/v2/
-   ```
-
-2. Verify REST API is enabled:
-   ```bash
-   curl https://your-wordpress-site.com/wp-json/wp/v2/posts
-   ```
-
-3. Test authentication:
-   ```bash
-   curl -u "username:app_password" https://your-wordpress-site.com/wp-json/wp/v2/users/me
-   ```
-
-**Performance Issues**
-- Monitor response times: Check `/api/health?metrics=true`
-- Increase timeouts if needed
-- Consider WordPress optimization plugins
-
-### 3. High Error Rates
-
-#### Symptoms
-- Health status shows "degraded" or "unhealthy"
-- High number of 5xx responses
-- Alert notifications for error rate
-
-#### Diagnosis
-```bash
-# Check current error rates and metrics
-curl "https://your-api-domain.vercel.app/api/health?metrics=true"
-
-# Get detailed error statistics
-curl "https://your-api-domain.vercel.app/api/debug?errors=true&metrics=true"
-```
-
-#### Investigation Steps
-
-1. **Check Error Patterns**
-   - Look at error categories in debug output
-   - Identify if errors are authentication, validation, or server-related
-
-2. **Review Recent Changes**
-   - Check recent deployments
-   - Verify environment variable changes
-   - Review WordPress plugin updates
-
-3. **Monitor Resource Usage**
-   ```bash
-   curl "https://your-api-domain.vercel.app/api/debug?system=true"
-   ```
-
-#### Solutions
-
-**Rate Limiting Issues**
-- Reduce request frequency
-- Implement request queuing
-- Contact WordPress hosting provider about limits
-
-**WordPress Plugin Conflicts**
-- Disable recently installed plugins
-- Check WordPress error logs
-- Test with minimal plugin set
-
-### 4. Performance Issues
-
-#### Symptoms
-- Slow response times (>5 seconds)
-- Timeout errors
-- Performance alerts
-
-#### Diagnosis
-```bash
-# Check performance metrics
-curl "https://your-api-domain.vercel.app/api/debug?metrics=true&system=true"
-
-# Monitor over time
-watch -n 30 'curl -s "https://your-api-domain.vercel.app/api/health?metrics=true" | jq .metrics'
-```
-
-#### Performance Metrics to Monitor
-- Average response time
-- 95th percentile response time
-- Memory usage
-- CPU usage
-- WordPress API call duration
-
-#### Optimization Steps
-
-1. **WordPress Optimization**
-   - Enable caching plugins (WP Rocket, W3 Total Cache)
-   - Optimize database
-   - Use CDN for media files
-   - Minimize plugins
-
-2. **API Configuration**
-   - Tune timeout values
-   - Optimize request payloads
-   - Review error retry logic
-
-3. **Monitoring Thresholds**
-   ```bash
-   # Update alert thresholds if needed
-   # Check current configuration
-   curl "https://your-api-domain.vercel.app/api/debug?config=true"
-   ```
-
-### 5. Memory Issues
-
-#### Symptoms
-- Critical memory usage alerts
-- 503 Service Unavailable errors
-- Function timeouts
-
-#### Diagnosis
-```bash
-# Check memory usage
-curl "https://your-api-domain.vercel.app/api/debug?system=true"
-```
-
-#### Solutions
-
-1. **Optimize Request Payloads**
-   - Reduce image sizes before upload
-   - Limit post content length
-   - Minimize metadata
-
-2. **Review Memory Configuration**
-   - Check Vercel function memory limits
-   - Monitor memory usage patterns
-   - Consider splitting large operations
-
-### 6. Alert Investigation
-
-#### Symptoms
-- Receiving alert notifications
-- Health status degraded
-
-#### Diagnosis
-```bash
-# Check active alerts
-curl "https://your-api-domain.vercel.app/api/debug?alerts=true"
-
-# Get alert details
-curl "https://your-api-domain.vercel.app/api/health?alerts=true"
-```
-
-#### Alert Types
-
-**High Error Rate**
-- Check WordPress connectivity
-- Review recent deployments
-- Monitor error patterns
-
-**Slow Response Time**
-- Check WordPress performance
-- Review system resources
-- Monitor network connectivity
-
-**Critical Memory Usage**
-- Reduce request payloads
-- Check for memory leaks
-- Monitor usage patterns
-
-## Log Analysis
-
-### Structured Logging
-The API uses structured logging with correlation IDs for request tracking.
-
-#### Log Levels
-- **ERROR**: Critical errors requiring immediate attention
-- **WARN**: Issues that may indicate problems
-- **INFO**: Normal operation information
-- **DEBUG**: Detailed debugging information
-
-#### Request Correlation
-All logs include `requestId` for tracking requests across the system:
+**Expected Response:**
 ```json
 {
-  "level": "error",
-  "message": "WordPress API error",
-  "requestId": "req_1234567890_abc123",
-  "error": {
-    "name": "WordPressError",
-    "message": "Connection timeout"
+  "status": "healthy",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "checks": {
+    "wordPress": { "status": "ok", "responseTime": 150 },
+    "memory": { "status": "ok", "usage": 45.2 },
+    "disk": { "status": "ok", "usage": 30.1 }
+  },
+  "metrics": {
+    "uptime": 3600,
+    "totalRequests": 1000,
+    "errorRate": 0.5,
+    "averageResponseTime": 250
   }
 }
 ```
 
-### Log Analysis Tools
+### Debug Status Overview
 
-**Find Related Logs**
+For a comprehensive system overview:
+
 ```bash
-# In centralized logging system (e.g., CloudWatch, Datadog)
-# Search by requestId
-grep "req_1234567890_abc123" logs/application.log
-
-# Search by error type
-grep "WordPress API error" logs/error.log
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=overview" \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-**Performance Analysis**
-```bash
-# Find slow requests
-grep "Slow operation detected" logs/application.log
+## Common Issues
 
-# Find authentication failures
-grep "Authentication failed" logs/application.log
+### 1. Setup and Deployment Issues
+
+**WordPress Plugin Installation Problems:**
+- **Issue**: Plugin installation fails or doesn't work properly
+- **Solution**: Follow the [WordPress Installation Guide](./WORDPRESS_INSTALLATION_GUIDE.md) for step-by-step instructions
+- **Common Fixes**: 
+  - Verify WordPress version compatibility
+  - Check file permissions for mu-plugins directory
+  - Ensure REST API is enabled
+
+**Vercel Deployment Issues:**
+- **Issue**: Deployment fails or environment variables not working
+- **Solution**: Refer to the [Vercel Deployment Guide](./VERCEL_DEPLOYMENT_GUIDE.md) for detailed troubleshooting
+- **Common Fixes**:
+  - Verify environment variables are set correctly
+  - Check Vercel function timeout settings
+  - Ensure proper CORS configuration
+
+**GPT Action Configuration Problems:**
+- **Issue**: GPT Action fails to connect or authenticate
+- **Solution**: Follow the [GPT Action Setup Guide](./gpt-action-setup.md) for configuration steps
+- **Common Fixes**:
+  - Verify API key format and validity
+  - Check OpenAPI schema import
+  - Ensure proper authentication headers
+
+### 2. High Error Rate
+
+**Symptoms:**
+- Error rate > 5% in health check
+- Multiple failed requests
+- Alerts triggered
+
+**Diagnosis:**
+```bash
+# Check error rate
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=metrics" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Check recent errors
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=logs&level=error" \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-## Environment Variables Checklist
+**Common Causes:**
+- WordPress API connectivity issues
+- Invalid API keys
+- Rate limiting
+- Malformed requests
 
-### Required Variables
-- [ ] `WORDPRESS_URL` - WordPress site URL
-- [ ] `WORDPRESS_USERNAME` - WordPress username
-- [ ] `WORDPRESS_APP_PASSWORD` - WordPress application password
-- [ ] `GPT_API_KEY` - OpenAI API key
-- [ ] `JWT_SECRET` - JWT signing secret
+**Solutions:**
+1. Verify WordPress URL and API key configuration
+2. Check WordPress site status
+3. Review recent request logs for patterns
+4. Implement request validation
 
-### Optional Configuration
-- [ ] `WORDPRESS_TIMEOUT_MS` - Request timeout (default: 30000)
-- [ ] `LOG_LEVEL` - Logging level (error, warn, info, debug)
-- [ ] `ENABLE_DEBUG_LOGGING` - Enable detailed debug logs
-- [ ] `SLACK_WEBHOOK_URL` - Slack notifications
-- [ ] `DISCORD_WEBHOOK_URL` - Discord notifications
-- [ ] `DEBUG_TOKEN` - Production debug access token
+### 2. Slow Response Times
 
-### Verification
+**Symptoms:**
+- Average response time > 5 seconds
+- Timeout errors
+- Performance alerts
+
+**Diagnosis:**
 ```bash
-# Check environment configuration
-curl -H "X-Debug-Token: your-debug-token" "https://your-api-domain.vercel.app/api/debug?config=true"
+# Check performance metrics
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=metrics" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Check WordPress response times
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=wordpress" \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-## Monitoring Setup
+**Common Causes:**
+- WordPress site performance issues
+- Network latency
+- Large image processing
+- Database queries
 
-### Health Check Monitoring
-Set up external monitoring to check `/api/health` endpoint:
-- Monitor every 30-60 seconds
-- Alert on non-200 responses
-- Track response time trends
+**Solutions:**
+1. Optimize WordPress site performance
+2. Implement caching
+3. Optimize image processing
+4. Review database queries
 
-### Alert Configuration
-Configure webhook URLs for notifications:
+### 3. WordPress API Failures
+
+**Symptoms:**
+- WordPress status shows "error"
+- Authentication failures
+- 404/500 errors from WordPress
+
+**Diagnosis:**
 ```bash
-# Environment variables
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
-DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+# Check WordPress connectivity
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=wordpress" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Test WordPress API directly
+curl -X GET "https://your-wordpress-site.com/wp-json/wp/v2/posts?per_page=1" \
+  -H "Authorization: Bearer YOUR_WORDPRESS_API_KEY"
 ```
 
-### Metrics Dashboard
-Create dashboards monitoring:
-- Request count and error rate
-- Response time percentiles
-- WordPress API health
-- System resource usage
+**Common Causes:**
+- Incorrect WordPress URL
+- Invalid API key
+- WordPress site down
+- CORS issues
+- Plugin conflicts
 
-## Security Considerations
+**Solutions:**
+1. Verify WordPress URL and API key
+2. Check WordPress site status
+3. Test WordPress REST API directly
+4. Review WordPress error logs
+5. Check for plugin conflicts
 
-### Production Debug Access
-- Never expose debug endpoint without authentication in production
-- Use strong `DEBUG_TOKEN` values
-- Rotate debug tokens regularly
-- Monitor debug endpoint access
+## Debugging Tools
 
-### Log Security
-- Logs automatically mask sensitive data
-- API keys and passwords are redacted
-- Use secure log storage and access controls
+### Debug Endpoints
 
-## Support Information
+The API provides several debugging endpoints for troubleshooting:
 
-### Request Correlation
-When reporting issues, include:
-- Request ID from error responses
-- Timestamp of the issue
-- Error messages received
-- Steps to reproduce
-
-### Performance Baselines
-Normal performance ranges:
-- Response time: < 2 seconds (95th percentile)
-- Error rate: < 5%
-- Memory usage: < 80%
-- WordPress API calls: < 10 seconds
-
-### Contact Information
-For additional support:
-1. Check this troubleshooting guide
-2. Review application logs with request correlation
-3. Use debug endpoints for real-time diagnostics
-4. Provide specific error details and reproduction steps
-
-## Automated Diagnostics
-
-### Health Check Script
+#### 1. System Overview
 ```bash
-#!/bin/bash
-# health-check.sh
-API_URL="https://your-api-domain.vercel.app"
-DEBUG_TOKEN="your-debug-token"
-
-echo "=== API Health Check ==="
-curl -s "$API_URL/api/health?detailed=true&metrics=true" | jq .
-
-echo -e "\n=== Error Statistics ==="
-curl -s -H "X-Debug-Token: $DEBUG_TOKEN" "$API_URL/api/debug?errors=true&wordpress=true" | jq .errors
-
-echo -e "\n=== Active Alerts ==="
-curl -s "$API_URL/api/health?alerts=true" | jq .alerts
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=overview" \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-### Performance Monitoring
+#### 2. Health Check
 ```bash
-#!/bin/bash
-# performance-monitor.sh
-while true; do
-    echo "$(date): $(curl -s "$API_URL/api/health?metrics=true" | jq -r '.metrics.averageResponseTime')"
-    sleep 60
-done
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=health" \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-This troubleshooting guide provides comprehensive coverage of common issues and diagnostic procedures. Regular monitoring and proactive maintenance will help prevent most issues from occurring.
+#### 3. Metrics
+```bash
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=metrics&timeRange=1h" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+#### 4. WordPress Status
+```bash
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=wordpress" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+#### 5. Active Alerts
+```bash
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=alerts" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+#### 6. System Information
+```bash
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=system" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Log Correlation
+
+All debug endpoints return a `requestId` that can be used to correlate logs:
+
+```bash
+# Search logs for specific request
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=logs&correlationId=debug_status_1234567890" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+## Error Codes and Messages
+
+### HTTP Status Codes
+
+| Code | Meaning | Common Causes |
+|------|---------|---------------|
+| 400 | Bad Request | Invalid request format, missing required fields |
+| 401 | Unauthorized | Missing or invalid API key |
+| 403 | Forbidden | Insufficient permissions |
+| 404 | Not Found | Endpoint not found, WordPress post not found |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Application error, WordPress API error |
+| 502 | Bad Gateway | WordPress site unavailable |
+| 503 | Service Unavailable | Maintenance mode, overloaded |
+
+### Common Error Messages
+
+#### Authentication Errors
+```
+"Authentication required for debug access"
+```
+**Solution:** Include valid API key in Authorization header
+
+#### WordPress API Errors
+```
+"WordPress API returned 401: Unauthorized"
+```
+**Solution:** Verify WordPress API key and permissions
+
+#### Validation Errors
+```
+"Validation failed: title is required"
+```
+**Solution:** Check request payload for required fields
+
+#### Rate Limiting
+```
+"Rate limit exceeded: 100 requests per minute"
+```
+**Solution:** Implement request throttling or contact support
+
+## Performance Issues
+
+### High Memory Usage
+
+**Symptoms:**
+- Memory usage > 80%
+- Out of memory errors
+- Slow response times
+
+**Diagnosis:**
+```bash
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=system" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Solutions:**
+1. Optimize image processing
+2. Implement request size limits
+3. Add memory monitoring
+4. Scale up resources if needed
+
+### Slow Image Processing
+
+**Symptoms:**
+- Long response times for image uploads
+- Timeout errors
+- High CPU usage
+
+**Solutions:**
+1. Optimize image formats
+2. Implement image compression
+3. Use CDN for image delivery
+4. Implement async processing
+
+## WordPress Integration Issues
+
+### REST API Not Available
+
+**Symptoms:**
+- 404 errors from WordPress
+- "WordPress API not responding" errors
+
+**Solutions:**
+1. Enable WordPress REST API
+2. Check permalink settings
+3. Disable conflicting plugins
+4. Verify WordPress version
+
+### Authentication Issues
+
+**Symptoms:**
+- 401 errors from WordPress
+- "Invalid API key" errors
+
+**Solutions:**
+1. Generate new WordPress API key
+2. Check API key permissions
+3. Verify WordPress user role
+4. Test API key manually
+
+### CORS Issues
+
+**Symptoms:**
+- CORS errors in browser
+- Preflight request failures
+
+**Solutions:**
+1. Configure WordPress CORS headers
+2. Use server-side requests
+3. Implement CORS middleware
+4. Check domain whitelist
+
+## Authentication Issues
+
+### API Key Problems
+
+**Symptoms:**
+- 401 Unauthorized errors
+- "Invalid API key" messages
+
+**Diagnosis:**
+```bash
+# Test API key
+curl -X GET "https://your-api.vercel.app/api/health" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Solutions:**
+1. Verify API key format
+2. Check API key permissions
+3. Generate new API key
+4. Update client configuration
+
+### WordPress Authentication
+
+**Symptoms:**
+- WordPress API authentication failures
+- 401 errors from WordPress
+
+**Solutions:**
+1. Verify WordPress API key
+2. Check WordPress user permissions
+3. Test WordPress authentication manually
+4. Regenerate WordPress API key
+
+## Monitoring and Alerts
+
+### Alert Types
+
+The system generates alerts for:
+
+- **Critical:** WordPress API unavailable, system errors
+- **Error:** High error rate, authentication failures
+- **Warning:** High response times, memory usage
+- **Info:** System events, configuration changes
+
+### Alert Management
+
+#### View Active Alerts
+```bash
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=alerts" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+#### Acknowledge Alerts
+```bash
+curl -X POST "https://your-api.vercel.app/api/debug/alerts/acknowledge" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"alertId": "alert_123", "acknowledgedBy": "operator"}'
+```
+
+### Monitoring Configuration
+
+Configure monitoring via environment variables:
+
+```bash
+# Enable alerting
+ENABLE_ALERTING=true
+
+# Configure thresholds
+RESPONSE_TIME_THRESHOLD=5000
+ERROR_RATE_THRESHOLD=5
+MEMORY_USAGE_THRESHOLD=80
+
+# External monitoring
+DATADOG_API_KEY=your_datadog_key
+NEW_RELIC_LICENSE_KEY=your_newrelic_key
+```
+
+## Emergency Procedures
+
+### System Overload
+
+**Symptoms:**
+- High error rates
+- Slow response times
+- Memory exhaustion
+
+**Emergency Actions:**
+1. Enable rate limiting
+2. Implement request queuing
+3. Scale up resources
+4. Contact support
+
+### WordPress Site Down
+
+**Symptoms:**
+- WordPress API errors
+- 502 Bad Gateway errors
+- Critical alerts
+
+**Emergency Actions:**
+1. Check WordPress site status
+2. Verify WordPress configuration
+3. Contact WordPress hosting provider
+4. Implement fallback procedures
+
+### Security Breach
+
+**Symptoms:**
+- Unusual authentication patterns
+- Suspicious requests
+- Security alerts
+
+**Emergency Actions:**
+1. Rotate API keys
+2. Review access logs
+3. Implement additional security measures
+4. Contact security team
+
+## Contact Information
+
+### Support Channels
+
+- **Technical Support:** support@postcrafter.com
+- **Security Issues:** security@postcrafter.com
+- **Emergency:** +1-555-0123 (24/7)
+
+### Escalation Procedures
+
+1. **Level 1:** Check documentation and common solutions
+2. **Level 2:** Contact technical support
+3. **Level 3:** Escalate to development team
+4. **Level 4:** Emergency contact for critical issues
+
+### Useful Resources
+
+- [API Documentation](./API_DOCUMENTATION.md)
+- [WordPress Installation Guide](./WORDPRESS_INSTALLATION_GUIDE.md)
+- [Vercel Deployment Guide](./VERCEL_DEPLOYMENT_GUIDE.md)
+- [GPT Action Setup Guide](./gpt-action-setup.md)
+- [Authentication Guide](./authentication.md)
+- [Performance Optimization Guide](./LOAD_TESTING_GUIDE.md)
+- [Security Best Practices](./SECURITY_CHECKLIST.md)
+
+## Maintenance Procedures
+
+### Regular Maintenance
+
+#### Daily
+- Review health check status
+- Monitor error rates
+- Check alert status
+
+#### Weekly
+- Review performance metrics
+- Analyze error patterns
+- Update monitoring thresholds
+
+#### Monthly
+- Review security logs
+- Update documentation
+- Performance optimization
+
+### Backup Procedures
+
+#### Configuration Backup
+```bash
+# Export configuration
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=system" \
+  -H "Authorization: Bearer YOUR_API_KEY" > config_backup.json
+```
+
+#### Metrics Backup
+```bash
+# Export metrics
+curl -X GET "https://your-api.vercel.app/api/debug/status?type=metrics&format=csv" \
+  -H "Authorization: Bearer YOUR_API_KEY" > metrics_backup.csv
+```
+
+---
+
+**Last Updated:** January 2024  
+**Version:** 1.0  
+**Maintainer:** PostCrafter Development Team

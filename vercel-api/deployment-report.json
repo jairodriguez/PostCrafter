@@ -1,0 +1,85 @@
+{
+  "deployment": {
+    "timestamp": "2025-07-25T01:27:07.153Z",
+    "steps": [
+      {
+        "timestamp": "2025-07-25T01:27:07.160Z",
+        "type": "info",
+        "message": "🚀 Starting PostCrafter Production Deployment"
+      },
+      {
+        "timestamp": "2025-07-25T01:27:07.163Z",
+        "type": "info",
+        "message": "Project: postcrafter-vercel-api"
+      },
+      {
+        "timestamp": "2025-07-25T01:27:07.163Z",
+        "type": "info",
+        "message": "Environment: production"
+      },
+      {
+        "timestamp": "2025-07-25T01:27:07.163Z",
+        "type": "info",
+        "message": "Timestamp: 2025-07-25T01:27:07.153Z"
+      },
+      {
+        "timestamp": "2025-07-25T01:27:07.163Z",
+        "type": "info",
+        "message": "Starting pre-deployment checks..."
+      },
+      {
+        "timestamp": "2025-07-25T01:27:07.163Z",
+        "type": "info",
+        "message": "Node.js version: v24.2.0"
+      },
+      {
+        "timestamp": "2025-07-25T01:27:07.184Z",
+        "type": "error",
+        "message": "Vercel CLI installation - FAILED: Command failed: vercel --version\n/bin/sh: vercel: command not found\n"
+      },
+      {
+        "timestamp": "2025-07-25T01:27:07.184Z",
+        "type": "error",
+        "message": "❌ Deployment failed: Vercel CLI not installed or not accessible"
+      }
+    ],
+    "errors": [
+      "Vercel CLI installation: Command failed: vercel --version\n/bin/sh: vercel: command not found\n"
+    ],
+    "warnings": [],
+    "success": false
+  },
+  "configuration": {
+    "projectName": "postcrafter-vercel-api",
+    "environment": "production",
+    "region": "us-east-1",
+    "domain": "api.postcrafter.com",
+    "requiredEnvVars": [
+      "WORDPRESS_URL",
+      "WORDPRESS_USERNAME",
+      "WORDPRESS_APP_PASSWORD",
+      "GPT_API_KEY",
+      "JWT_SECRET"
+    ],
+    "optionalEnvVars": {
+      "NODE_ENV": "production",
+      "API_RATE_LIMIT_WINDOW_MS": "60000",
+      "API_RATE_LIMIT_MAX_REQUESTS": "100",
+      "WORDPRESS_TIMEOUT_MS": "30000",
+      "LOG_LEVEL": "info",
+      "CORS_ORIGINS": "https://chat.openai.com,https://chatgpt.com",
+      "MAX_IMAGE_SIZE_MB": "10",
+      "ENABLE_DEBUG_LOGGING": "false"
+    }
+  },
+  "summary": {
+    "success": false,
+    "totalSteps": 8,
+    "errors": 1,
+    "warnings": 0
+  },
+  "recommendations": [
+    "Fix errors before going live",
+    "Verify deployment URL"
+  ]
+}
