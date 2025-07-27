@@ -599,7 +599,7 @@
               "9.1"
             ],
             "details": "Implement sanitizeHtml(content) and sanitizeMarkdown(content) functions using libraries like DOMPurify or markdown-it with appropriate configuration to strip dangerous HTML tags, attributes, and JavaScript. Configure allowlists for safe HTML elements and attributes. Handle special characters and ensure proper encoding.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test with malicious input patterns including script tags, event handlers, and encoded JavaScript"
           },
           {
@@ -610,7 +610,7 @@
               "9.1"
             ],
             "details": "Create validateImageUrl(url) function that checks if URLs are properly formatted, use allowlists for accepted domains if applicable, verify file extensions match image types (.jpg, .png, .gif, etc.), and implement size validation if needed. Consider implementing async validation to check if images actually exist.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": "Test with various URL formats, invalid image URLs, and potentially malicious redirect URLs"
           },
           {
@@ -1074,7 +1074,7 @@
       "version": "1.0.0",
       "created": "2024-12-19T00:00:00.000Z",
       "lastModified": "2024-12-19T00:00:00.000Z",
-      "updated": "2025-07-25T02:59:54.574Z"
+      "updated": "2025-07-27T01:56:01.927Z"
     }
   }
 }

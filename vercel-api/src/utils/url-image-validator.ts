@@ -4,7 +4,7 @@
  */
 
 import { logger } from './logger';
-import { validationUtils, ValidationResult } from './validation';
+import { ValidationResult } from './validation';
 
 /**
  * URL validation configuration options
@@ -347,8 +347,10 @@ export function validateUrl(
     if (!isValid) {
       logger.warn('URL validation failed', {
         requestId,
-        url: url.substring(0, 100), // Truncate for logging
-        errors,
+        metadata: {
+          url: url.substring(0, 100), // Truncate for logging
+          errors
+        },
         component: 'url-image-validator'
       });
     }
@@ -364,7 +366,9 @@ export function validateUrl(
   } catch (error) {
     logger.error('URL validation error', {
       requestId,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: {
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
       component: 'url-image-validator'
     });
 
@@ -415,7 +419,9 @@ export function validateImageUrl(
     // Allow URLs without extensions, but warn
     logger.debug('Image URL has no file extension', {
       requestId,
-      url: url.substring(0, 100),
+      metadata: {
+        url: url.substring(0, 100)
+      },
       component: 'url-image-validator'
     });
   }
@@ -430,9 +436,11 @@ export function validateImageUrl(
   if (!isValid) {
     logger.warn('Image URL validation failed', {
       requestId,
-      url: url.substring(0, 100),
-      fileExtension,
-      errors,
+      metadata: {
+        url: url.substring(0, 100),
+        fileExtension,
+        errors
+      },
       component: 'url-image-validator'
     });
   }
@@ -443,7 +451,7 @@ export function validateImageUrl(
     error: errors.length > 0 ? 
       (urlResult.error ? `${urlResult.error}; ${errors.join('; ')}` : errors.join('; ')) : 
       urlResult.error,
-    fileExtension,
+    fileExtension: fileExtension || undefined,
     estimatedSize: undefined // Will be populated by async validation
   };
 }
@@ -498,8 +506,12 @@ export async function checkUrlReachability(
   } catch (error) {
     logger.debug('URL reachability check failed', {
       requestId,
-      url: url.substring(0, 100),
-      error: error instanceof Error ? error.message : 'Unknown error',
+      metadata: {
+        url: url.substring(0, 100)
+      },
+      error: {
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
       component: 'url-image-validator'
     });
 
@@ -593,7 +605,7 @@ export async function validateImageMetadata(
     return {
       width,
       height,
-      format: contentType,
+      format: contentType || undefined,
       size: contentLength ? parseInt(contentLength) : undefined,
       mimeType: contentType || undefined,
       isValid,
@@ -603,8 +615,12 @@ export async function validateImageMetadata(
   } catch (error) {
     logger.error('Image metadata validation failed', {
       requestId,
-      url: url.substring(0, 100),
-      error: error instanceof Error ? error.message : 'Unknown error',
+      metadata: {
+        url: url.substring(0, 100)
+      },
+      error: {
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
       component: 'url-image-validator'
     });
 
