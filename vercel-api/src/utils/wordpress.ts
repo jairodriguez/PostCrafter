@@ -2,6 +2,8 @@ import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import { getEnvVars, secureLog } from './env';
 import { WordPressError, ValidationError, WordPressErrorContext } from '../types';
 import { wordPressErrorHandler } from './wordpress-error-handler';
+import { wordPressCache, connectionPool } from './cache';
+import { wordPressCircuitBreaker } from './circuit-breaker';
 
 /**
  * WordPress API client configuration
@@ -120,8 +122,39 @@ export class WordPressClient {
     options?: WordPressRequestOptions
   ): Promise<WordPressResponse<T>> {
     try {
+      // Check cache first for GET requests
+      const cachedResponse = wordPressCache.getResponse(endpoint, params);
+      if (cachedResponse) {
+        secureLog('info', `WordPress API cache hit: ${endpoint}`, {
+          requestId: this.requestId,
+          endpoint,
+          params
+        });
+        return {
+          success: true,
+          data: cachedResponse,
+          statusCode: 200,
+          headers: { 'X-Cache': 'HIT' }
+        };
+      }
+
+      // Get connection from pool
+      const connection = connectionPool.getConnection(this.config.baseUrl);
+      
       const response = await this.makeRequest<T>('GET', endpoint, undefined, params, options);
-      return this.formatResponse<T>(response);
+      const formattedResponse = this.formatResponse<T>(response);
+      
+      // Cache successful GET responses
+      if (formattedResponse.success && formattedResponse.data) {
+        wordPressCache.setResponse(endpoint, params, formattedResponse.data);
+        secureLog('info', `WordPress API cache set: ${endpoint}`, {
+          requestId: this.requestId,
+          endpoint,
+          params
+        });
+      }
+      
+      return formattedResponse;
     } catch (error) {
       return this.handleError<T>(error);
     }
@@ -137,7 +170,18 @@ export class WordPressClient {
   ): Promise<WordPressResponse<T>> {
     try {
       const response = await this.makeRequest<T>('POST', endpoint, data, undefined, options);
-      return this.formatResponse<T>(response);
+      const formattedResponse = this.formatResponse<T>(response);
+      
+      // Invalidate cache for POST operations
+      if (formattedResponse.success) {
+        wordPressCache.invalidateEndpoint(endpoint);
+        secureLog('info', `WordPress API cache invalidated: ${endpoint}`, {
+          requestId: this.requestId,
+          endpoint
+        });
+      }
+      
+      return formattedResponse;
     } catch (error) {
       return this.handleError<T>(error);
     }
@@ -184,55 +228,43 @@ export class WordPressClient {
     params?: Record<string, any>,
     options?: WordPressRequestOptions
   ): Promise<AxiosResponse<T>> {
-    const retryConfig = wordPressErrorHandler.getRetryConfig();
-    const maxRetries = options?.retryAttempts || retryConfig.maxRetries;
-    let lastError: any;
+    return wordPressCircuitBreaker.executeWordPressCall(async () => {
+      const retryConfig = wordPressErrorHandler.getRetryConfig();
+      const maxRetries = options?.retryAttempts || retryConfig.maxRetries;
+      let lastError: any;
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        // Check circuit breaker
-        if (wordPressErrorHandler.isCircuitBreakerOpen()) {
-          throw new WordPressError(
-            'WORDPRESS_CIRCUIT_BREAKER_OPEN',
-            'WordPress API circuit breaker is open',
-            503,
-            'Service temporarily unavailable due to repeated failures'
-          );
-        }
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const config = {
+            method,
+            url: endpoint,
+            data,
+            params,
+            timeout: options?.timeout || this.config.timeout,
+            headers: {
+              ...this.axiosInstance.defaults.headers,
+              ...options?.headers,
+            },
+          };
 
-        const config = {
-          method,
-          url: endpoint,
-          data,
-          params,
-          timeout: options?.timeout || this.config.timeout,
-          headers: {
-            ...this.axiosInstance.defaults.headers,
-            ...options?.headers,
-          },
-        };
+          const response = await this.axiosInstance.request<T>(config);
+          
+          // Validate response if requested
+          if (options?.validateResponse !== false) {
+            this.validateResponse(response);
+          }
 
-        const response = await this.axiosInstance.request<T>(config);
-        
-        // Record success to close circuit breaker
-        wordPressErrorHandler.recordSuccess();
-        
-        // Validate response if requested
-        if (options?.validateResponse !== false) {
-          this.validateResponse(response);
-        }
-
-        return response;
-      } catch (error) {
-        lastError = error;
-        
-        // Handle error through the error handler
-        const wordPressError = wordPressErrorHandler.handleError(error, {
-          requestId: this.requestId,
-          endpoint,
-          method,
-          retryCount: attempt - 1
-        });
+          return response;
+        } catch (error) {
+          lastError = error;
+          
+          // Handle error through the error handler
+          const wordPressError = wordPressErrorHandler.handleError(error, {
+            requestId: this.requestId,
+            endpoint,
+            method,
+            retryCount: attempt - 1
+          });
 
         // Don't retry if error is not retryable or circuit breaker is open
         if (!wordPressErrorHandler.shouldRetry(wordPressError) || attempt === maxRetries) {
