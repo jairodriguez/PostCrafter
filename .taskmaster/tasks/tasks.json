@@ -659,7 +659,7 @@
         "id": 10,
         "title": "Add support for categories and tags",
         "description": "Implement category and tag creation/assignment functionality for better content organization",
-        "status": "pending",
+        "status": "done",
         "priority": "low",
         "dependencies": [
           3
@@ -673,7 +673,7 @@
             "description": "Define the data structures for categories and tags, including their properties and relationships. Implement validation rules for these models.",
             "dependencies": [],
             "details": "Create TypeScript interfaces for Category and Tag models with properties like id, name, slug, description, and parent (for hierarchical categories). Implement validation functions to ensure data integrity. Categories should support hierarchical relationships while tags are flat. Both should have proper slug generation from names.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit test the validation functions with valid and invalid data. Test slug generation with special characters and international characters."
           },
           {
@@ -684,7 +684,7 @@
               "10.1"
             ],
             "details": "Implement functions to create new categories via WordPress REST API. Include logic to check if a category exists before creating it. Handle parent-child relationships by allowing categories to be nested under parent categories. Implement proper slug generation and validation. Add support for category descriptions.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test creating categories with and without parents. Verify proper hierarchy is maintained. Test creating categories with duplicate names and ensure proper slug uniqueness."
           },
           {
@@ -695,7 +695,7 @@
               "10.1"
             ],
             "details": "Implement functions to create new tags via WordPress REST API. Include logic to check if a tag exists before creating it. Handle tag slug generation and validation. Add support for tag descriptions. Ensure proper error handling when tag creation fails.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test creating new tags, test creating tags with duplicate names, and verify proper slug generation. Test error handling when API calls fail."
           },
           {
@@ -707,7 +707,7 @@
               "10.3"
             ],
             "details": "Extend the post creation/update functionality to include category and tag assignment. Implement functions to search for existing categories and tags by name or ID. Allow multiple categories and tags to be assigned to a post. Handle the case where a category or tag doesn't exist by creating it first.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test assigning multiple categories and tags to posts. Test assigning non-existent categories/tags and verify they're created. Test assigning hierarchical categories."
           },
           {
@@ -718,7 +718,7 @@
               "10.4"
             ],
             "details": "Finalize integration with WordPress taxonomy system by ensuring proper term relationships are established. Implement functions to retrieve categories and tags with their full hierarchy. Add support for category and tag metadata if needed. Ensure proper error handling and validation throughout the taxonomy integration.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "End-to-end testing of the complete category and tag functionality. Test retrieving hierarchical categories. Test edge cases like assigning the same category multiple times or creating categories with the same name but different parents."
           }
         ]
@@ -1066,6 +1066,37 @@
             "testStrategy": "Execute full end-to-end test scenarios in production. Verify all integrations are working correctly. Test rollback procedures to ensure they work as expected."
           }
         ]
+      },
+      {
+        "id": 16,
+        "title": "Set up WordPress Docker environment for PostCrafter testing",
+        "description": "Create a Docker-based WordPress testing environment with MySQL, Yoast SEO plugin, custom mu-plugin for REST API extensions, and configuration for Vercel API integration testing.",
+        "details": "1. Create a `docker-compose.yml` file with services for:\n   - WordPress (latest version)\n   - MySQL (5.7 or 8.0)\n   - phpMyAdmin (optional for database management)\n\n2. Configure environment variables for WordPress and MySQL:\n   - Database credentials\n   - WordPress admin credentials\n   - Site URL and configuration\n\n3. Set up volume mounts for:\n   - WordPress content persistence\n   - Custom mu-plugin directory\n   - Database data\n\n4. Create a setup script that:\n   - Installs and activates Yoast SEO plugin\n   - Copies the existing mu-plugin for REST API extensions into the appropriate directory\n   - Configures WordPress settings for testing\n\n5. Configure WordPress to allow external API access:\n   - Set up proper CORS headers\n   - Configure Application Passwords for authentication\n   - Enable REST API endpoints needed for testing\n\n6. Document the environment setup:\n   - Instructions for starting/stopping the environment\n   - Default credentials\n   - API endpoints and authentication methods\n   - Common testing scenarios\n\n7. Create a sample test configuration file that connects the Vercel API to this Docker environment for integration testing.",
+        "testStrategy": "1. Verify Docker environment starts correctly:\n   - Run `docker-compose up -d`\n   - Confirm WordPress is accessible at the configured URL\n   - Verify admin login works with provided credentials\n\n2. Validate Yoast SEO plugin installation:\n   - Log into WordPress admin\n   - Confirm Yoast SEO is active and properly configured\n   - Check SEO settings are accessible\n\n3. Test mu-plugin functionality:\n   - Make REST API calls to verify Yoast fields are exposed\n   - Attempt to write to these fields via the API\n   - Confirm changes are saved correctly\n\n4. Test Vercel API integration:\n   - Configure a test Vercel API instance to point to the Docker environment\n   - Execute test API calls from Vercel to WordPress\n   - Verify authentication works correctly\n   - Confirm posts can be created with proper SEO metadata\n\n5. Perform end-to-end testing:\n   - Create a test post through the entire workflow\n   - Verify all components interact correctly\n   - Document any issues or optimizations needed",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Deploy PostCrafter Vercel API to Production",
+        "description": "Deploy the PostCrafter Vercel API to production environment, configure environment variables, and establish integration with the WordPress Docker instance running on localhost:12345.",
+        "details": "1. Prepare the Vercel API for production deployment:\n   - Review and finalize API endpoints\n   - Ensure proper error handling and logging\n   - Implement rate limiting for production use\n   - Add appropriate CORS configuration\n\n2. Set up environment variables in Vercel:\n   - WordPress credentials (username, application password)\n   - WordPress site URL (pointing to localhost:12345 for Docker instance)\n   - API keys and secrets\n   - Environment-specific configuration flags\n\n3. Configure production-specific settings:\n   - Enable caching where appropriate\n   - Set up proper timeout values\n   - Configure memory allocation for serverless functions\n   - Implement retry logic for failed requests\n\n4. Deploy to Vercel production environment:\n   - Use Vercel CLI or GitHub integration for deployment\n   - Set up proper branch-to-environment mapping\n   - Configure deployment protection rules if needed\n   - Set up deployment notifications\n\n5. Establish secure connection between Vercel API and WordPress Docker:\n   - Configure network settings to allow communication\n   - Set up proper authentication between services\n   - Implement secure token exchange if necessary\n   - Ensure HTTPS is used for all communications\n\n6. Implement monitoring and alerting:\n   - Set up error tracking\n   - Configure performance monitoring\n   - Establish alerting thresholds\n   - Create dashboard for API health metrics",
+        "testStrategy": "1. Verify deployment success:\n   - Confirm API is accessible at the production URL\n   - Check that all environment variables are correctly set\n   - Verify API version and build information\n\n2. Test authentication and security:\n   - Attempt to access endpoints without proper authentication\n   - Verify API key validation works correctly\n   - Test rate limiting functionality\n   - Check CORS configuration with various origins\n\n3. Perform end-to-end integration testing:\n   - Create a new post via the API and verify it appears in WordPress\n   - Update an existing post and confirm changes are reflected\n   - Test with various content types (text, images, custom fields)\n   - Verify Yoast SEO metadata is correctly processed\n\n4. Load and performance testing:\n   - Measure API response times under various loads\n   - Test concurrent request handling\n   - Verify memory usage stays within acceptable limits\n   - Check for any performance degradation under sustained load\n\n5. Error handling and recovery testing:\n   - Simulate network interruptions\n   - Test with malformed requests\n   - Verify error responses are informative and secure\n   - Confirm retry logic works as expected\n\n6. WordPress Docker integration validation:\n   - Verify API can successfully connect to WordPress on localhost:12345\n   - Test publishing workflow from end to end\n   - Confirm all post attributes are correctly transferred\n   - Validate SEO metadata handling",
+        "status": "pending",
+        "dependencies": [
+          2,
+          3,
+          15,
+          16
+        ],
+        "priority": "high",
+        "subtasks": []
       }
     ],
     "metadata": {
@@ -1074,7 +1105,7 @@
       "version": "1.0.0",
       "created": "2024-12-19T00:00:00.000Z",
       "lastModified": "2024-12-19T00:00:00.000Z",
-      "updated": "2025-07-27T03:09:25.227Z"
+      "updated": "2025-07-27T22:58:05.792Z"
     }
   }
 }
