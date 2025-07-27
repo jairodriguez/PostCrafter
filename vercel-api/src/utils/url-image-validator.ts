@@ -64,11 +64,11 @@ export interface ImageValidationOptions extends UrlValidationOptions {
  * Image metadata interface
  */
 export interface ImageMetadata {
-  width?: number;
-  height?: number;
-  format?: string;
-  size?: number;
-  mimeType?: string;
+  width?: number | undefined;
+  height?: number | undefined;
+  format?: string | undefined;
+  size?: number | undefined;
+  mimeType?: string | undefined;
   isValid: boolean;
   errors: string[];
 }
@@ -77,22 +77,22 @@ export interface ImageMetadata {
  * URL validation result with additional metadata
  */
 export interface UrlValidationResult extends ValidationResult {
-  url?: URL;
-  domain?: string;
-  protocol?: string;
-  isReachable?: boolean;
-  responseCode?: number;
-  redirectUrl?: string;
-  metadata?: Record<string, any>;
+  url?: URL | undefined;
+  domain?: string | undefined;
+  protocol?: string | undefined;
+  isReachable?: boolean | undefined;
+  responseCode?: number | undefined;
+  redirectUrl?: string | undefined;
+  metadata?: Record<string, any> | undefined;
 }
 
 /**
  * Image validation result with image-specific metadata
  */
 export interface ImageValidationResult extends UrlValidationResult {
-  imageMetadata?: ImageMetadata;
-  fileExtension?: string;
-  estimatedSize?: number;
+  imageMetadata?: ImageMetadata | undefined;
+  fileExtension?: string | undefined;
+  estimatedSize?: number | undefined;
 }
 
 /**
@@ -105,9 +105,6 @@ const DEFAULT_URL_CONFIG: UrlValidationOptions = {
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
-    'example.com',
-    'example.org',
-    'test.com',
     'invalid',
     'local'
   ],
@@ -150,8 +147,8 @@ const DEFAULT_IMAGE_CONFIG: ImageValidationOptions = {
  * Suspicious URL patterns that might indicate malicious intent
  */
 const SUSPICIOUS_PATTERNS = [
-  // IP address patterns
-  /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/,
+  // IP address patterns (more specific to avoid false positives)
+  /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/,
   // Data URLs
   /^data:/i,
   // JavaScript protocols
@@ -168,8 +165,8 @@ const SUSPICIOUS_PATTERNS = [
   /[?&](redirect|return|url|link|ref)=/i,
   // Multiple redirects
   /redirect.*redirect/i,
-  // Suspicious file extensions in URLs
-  /\.(exe|bat|cmd|scr|vbs|js|jar|com)(\?|$)/i,
+  // Suspicious file extensions in URLs (but not domain TLDs)
+  /\/[^\/]*\.(exe|bat|cmd|scr|vbs|js|jar)(\?|$)/i,
   // Very long query strings (potential overflow)
   /\?.{500,}/,
   // Suspicious Unicode characters
@@ -282,6 +279,34 @@ export function validateUrl(
         // Domain validation
         const hostname = urlObj.hostname.toLowerCase();
         
+        // Check for consecutive dots in domain name
+        if (hostname.includes('..')) {
+          errors.push('Invalid domain format: consecutive dots not allowed');
+          isValid = false;
+        }
+
+        // Check for domain starting or ending with dot
+        if (hostname.startsWith('.') || hostname.endsWith('.')) {
+          errors.push('Invalid domain format: cannot start or end with dot');
+          isValid = false;
+        }
+
+        // Check for domain ending with dash
+        if (hostname.endsWith('-')) {
+          errors.push('Invalid domain format: cannot end with dash');
+          isValid = false;
+        }
+        
+        // Check for domain part ending with dash (before TLD)
+        const domainParts = hostname.split('.');
+        if (domainParts.length > 1) {
+          const domainPart = domainParts[0]; // The part before the first dot
+          if (domainPart && domainPart.endsWith('-')) {
+            errors.push('Invalid domain format: domain cannot end with dash');
+            isValid = false;
+          }
+        }
+
         // Check blocked domains
         if (config.blockedDomains!.some(blocked => 
           hostname === blocked || hostname.endsWith('.' + blocked)
@@ -302,7 +327,9 @@ export function validateUrl(
         }
 
         // IP address checks
-        const isIpAddress = /^[0-9.]+$/.test(hostname) || /^[0-9a-f:]+$/i.test(hostname);
+        const isIpAddress = /^[0-9.]+$/.test(hostname) || 
+                           /^[0-9a-f:]+$/i.test(hostname) ||
+                           /^\[[0-9a-f:]+\]$/i.test(hostname);
         if (isIpAddress) {
           if (!config.allowIpAddresses) {
             errors.push('IP addresses are not allowed');
@@ -317,7 +344,8 @@ export function validateUrl(
         if (!config.allowLocalhost && (
           hostname === 'localhost' ||
           hostname === '127.0.0.1' ||
-          hostname === '::1'
+          hostname === '::1' ||
+          hostname === '[::1]'
         )) {
           errors.push('Localhost is not allowed');
           isValid = false;
@@ -345,32 +373,36 @@ export function validateUrl(
 
     // Log validation if failed
     if (!isValid) {
-      logger.warn('URL validation failed', {
-        requestId,
+      const logContext: any = {
         metadata: {
           url: url.substring(0, 100), // Truncate for logging
           errors
         },
         component: 'url-image-validator'
-      });
+      };
+      if (requestId) logContext.requestId = requestId;
+      
+      logger.warn('URL validation failed', logContext);
     }
 
     return {
       isValid,
-      error: errors.length > 0 ? errors.join('; ') : undefined,
+      ...(errors.length > 0 ? { error: errors.join('; ') } : {}),
       url: urlObj,
       domain: urlObj?.hostname,
       protocol: urlObj?.protocol.slice(0, -1)
     };
 
   } catch (error) {
-    logger.error('URL validation error', {
-      requestId,
+    const logContext: any = {
       error: {
         message: error instanceof Error ? error.message : 'Unknown error'
       },
       component: 'url-image-validator'
-    });
+    };
+    if (requestId) logContext.requestId = requestId;
+    
+    logger.error('URL validation error', logContext);
 
     return {
       isValid: false,
@@ -398,7 +430,7 @@ export function validateImageUrl(
   }
 
   const errors: string[] = [];
-  let isValid = urlResult.isValid;
+  let isValid: boolean = urlResult.isValid;
 
   // Extract file extension
   const fileExtension = getFileExtension(url);
@@ -417,13 +449,15 @@ export function validateImageUrl(
     }
   } else {
     // Allow URLs without extensions, but warn
-    logger.debug('Image URL has no file extension', {
-      requestId,
+    const logContext: any = {
       metadata: {
         url: url.substring(0, 100)
       },
       component: 'url-image-validator'
-    });
+    };
+    if (requestId) logContext.requestId = requestId;
+    
+    logger.debug('Image URL has no file extension', logContext);
   }
 
   // WebP handling
@@ -434,24 +468,26 @@ export function validateImageUrl(
 
   // Log validation result
   if (!isValid) {
-    logger.warn('Image URL validation failed', {
-      requestId,
+    const logContext: any = {
       metadata: {
         url: url.substring(0, 100),
         fileExtension,
         errors
       },
       component: 'url-image-validator'
-    });
+    };
+    if (requestId) logContext.requestId = requestId;
+    
+    logger.warn('Image URL validation failed', logContext);
   }
 
   return {
     ...urlResult,
     isValid,
-    error: errors.length > 0 ? 
-      (urlResult.error ? `${urlResult.error}; ${errors.join('; ')}` : errors.join('; ')) : 
-      urlResult.error,
-    fileExtension: fileExtension || undefined,
+    ...(errors.length > 0 ? { 
+      error: urlResult.error ? `${urlResult.error}; ${errors.join('; ')}` : errors.join('; ')
+    } : {}),
+    fileExtension: fileExtension || '',
     estimatedSize: undefined // Will be populated by async validation
   };
 }
@@ -481,7 +517,12 @@ export async function checkUrlReachability(
       const location = response.headers.get('Location');
       if (location) {
         // Validate redirect URL
-        const redirectResult = validateUrl(location, DEFAULT_URL_CONFIG, requestId);
+        const redirectConfig = { 
+          ...DEFAULT_URL_CONFIG, 
+          allowedDomains: [], // Allow all domains for redirects
+          blockSuspiciousPatterns: false // Disable suspicious pattern detection for redirects
+        };
+        const redirectResult = validateUrl(location, redirectConfig, requestId);
         if (!redirectResult.isValid) {
           return {
             reachable: false,
@@ -504,8 +545,7 @@ export async function checkUrlReachability(
     };
 
   } catch (error) {
-    logger.debug('URL reachability check failed', {
-      requestId,
+    const logContext: any = {
       metadata: {
         url: url.substring(0, 100)
       },
@@ -513,7 +553,10 @@ export async function checkUrlReachability(
         message: error instanceof Error ? error.message : 'Unknown error'
       },
       component: 'url-image-validator'
-    });
+    };
+    if (requestId) logContext.requestId = requestId;
+    
+    logger.debug('URL reachability check failed', logContext);
 
     return {
       reachable: false,
@@ -613,8 +656,7 @@ export async function validateImageMetadata(
     };
 
   } catch (error) {
-    logger.error('Image metadata validation failed', {
-      requestId,
+    const logContext: any = {
       metadata: {
         url: url.substring(0, 100)
       },
@@ -622,7 +664,10 @@ export async function validateImageMetadata(
         message: error instanceof Error ? error.message : 'Unknown error'
       },
       component: 'url-image-validator'
-    });
+    };
+    if (requestId) logContext.requestId = requestId;
+    
+    logger.error('Image metadata validation failed', logContext);
 
     return {
       isValid: false,
