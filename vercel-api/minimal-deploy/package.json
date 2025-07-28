@@ -1,0 +1,21 @@
+{
+  "name": "postcrafter-vercel-api",
+  "version": "1.0.0",
+  "description": "PostCrafter Vercel API for WordPress publishing",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "mkdir -p public && echo 'API ready' > public/index.html",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "@vercel/node": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 

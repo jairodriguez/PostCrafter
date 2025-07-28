@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "functions": {
+    "api/publish-simple.ts": {
+      "maxDuration": 30
+    },
+    "api/health-simple.ts": {
+      "maxDuration": 10
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
+} 
