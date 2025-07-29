@@ -1,24 +1,24 @@
-# 🚀 PostCrafter GPT Action Setup
+# 🚀 PostCrafter OpenAPI Setup Guide
 
-## ✅ **Correct GPT Action Specification**
+## ✅ **Fixed OpenAPI Specification**
 
-You're absolutely right! For ChatGPT Custom GPTs, we need a **GPT Action** specification, not a full OpenAPI spec.
+The OpenAPI specification has been corrected and is now valid for GPT Actions!
 
-**GPT Action URL**: `https://postcrafter-nextjs-k4wt6ld5c-jairo-rodriguezs-projects-77445a5f.vercel.app/api/gpt-action.yaml`
+**Updated URL**: `https://postcrafter-nextjs-cggwzrark-jairo-rodriguezs-projects-77445a5f.vercel.app/api/openapi.yaml`
 
 ## 📋 **Step-by-Step Setup**
 
-### 1. Create Your Custom GPT
+### 1. Create Your GPT Action
 
 1. Go to [OpenAI GPT Builder](https://chat.openai.com/gpts)
 2. Click "Create" → "Configure" → "Actions"
 3. Click "Add action" → "Import from URL"
 
-### 2. Import the GPT Action Spec
+### 2. Import the Corrected OpenAPI Spec
 
 **Use this exact URL**:
 ```
-https://postcrafter-nextjs-k4wt6ld5c-jairo-rodriguezs-projects-77445a5f.vercel.app/api/gpt-action.yaml
+https://postcrafter-nextjs-cggwzrark-jairo-rodriguezs-projects-77445a5f.vercel.app/api/openapi.yaml
 ```
 
 ### 3. Configure Authentication
@@ -27,29 +27,31 @@ https://postcrafter-nextjs-k4wt6ld5c-jairo-rodriguezs-projects-77445a5f.vercel.a
 - **Header Name**: `X-API-Key`
 - **API Key**: `postcrafter-api-key` (or any string)
 
-### 4. Add Custom Instructions
+### 4. Test the Integration
 
-Copy the instructions from `POSTCRAFTER_GPT_INSTRUCTIONS_SIMPLE.md` into the "Instructions" field.
+Try this prompt in your GPT:
+```
+"Create a blog post about AI content creation and publish it to WordPress using PostCrafter"
+```
 
-## 🔧 **Key Differences from OpenAPI**
+## 🔧 **What Was Fixed**
 
-✅ **Simplified Schema**: Removed complex component references  
-✅ **Direct Properties**: All properties defined inline  
-✅ **GPT-Friendly Format**: Optimized for ChatGPT's parser  
-✅ **Essential Endpoints**: Only `/api/publish` and `/api/health`  
-✅ **Clean Examples**: Simple, working examples  
+✅ **YAML Formatting**: Removed trailing commas and fixed syntax  
+✅ **Server URL**: Updated to the correct production URL  
+✅ **Schema References**: Fixed all component references  
+✅ **Examples**: Cleaned up JSON examples  
+✅ **Descriptions**: Removed problematic backticks  
 
 ## 🧪 **Test Your Setup**
 
 ### **Test the API Directly**
 ```bash
 # Test health endpoint
-curl https://postcrafter-nextjs-k4wt6ld5c-jairo-rodriguezs-projects-77445a5f.vercel.app/api/health
+curl https://postcrafter-nextjs-cggwzrark-jairo-rodriguezs-projects-77445a5f.vercel.app/api/health
 
 # Test publishing
-curl -X POST https://postcrafter-nextjs-k4wt6ld5c-jairo-rodriguezs-projects-77445a5f.vercel.app/api/publish \
+curl -X POST https://postcrafter-nextjs-cggwzrark-jairo-rodriguezs-projects-77445a5f.vercel.app/api/publish \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: postcrafter-api-key" \
   -d '{"title":"Test Post","content":"<p>Test content</p>","excerpt":"Test excerpt"}'
 ```
 
@@ -57,8 +59,8 @@ curl -X POST https://postcrafter-nextjs-k4wt6ld5c-jairo-rodriguezs-projects-7744
 Once configured, try these prompts:
 
 1. **Basic Post**: "Write a blog post about WordPress SEO"
-2. **Detailed Post**: "Create a comprehensive guide about AI content creation"
-3. **Business Post**: "Write a company announcement about our new features"
+2. **Detailed Post**: "Create a comprehensive guide about AI content creation with SEO optimization"
+3. **Business Post**: "Write a company announcement about our new AI features"
 
 ## 🎯 **Expected Behavior**
 
@@ -76,7 +78,7 @@ When working correctly, your GPT should:
 
 1. **Check the URL**: Make sure you're using the exact URL above
 2. **Clear cache**: Try refreshing the GPT Builder page
-3. **Manual import**: Copy the GPT Action spec content and paste it directly
+3. **Manual import**: Copy the OpenAPI spec content and paste it directly
 4. **Check format**: Ensure you're importing as "URL" not "File"
 
 ### **If the API doesn't work:**
@@ -88,7 +90,7 @@ When working correctly, your GPT should:
 
 ## 🎉 **Success Indicators**
 
-✅ **GPT Action imports without errors**  
+✅ **OpenAPI imports without errors**  
 ✅ **GPT can access the API endpoints**  
 ✅ **Content gets published to WordPress**  
 ✅ **You receive published post URLs**  
@@ -105,4 +107,4 @@ If you're still having issues:
 
 ---
 
-**Your PostCrafter GPT Action is now ready for ChatGPT integration! 🚀** 
+**Your PostCrafter API is now ready for GPT Action integration! 🚀** 

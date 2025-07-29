@@ -36,7 +36,7 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: https://postcrafter-nextjs-8rd3ehcy4-jairo-rodriguezs-projects-77445a5f.vercel.app
+  - url: https://postcrafter-nextjs-63gu79jrk-jairo-rodriguezs-projects-77445a5f.vercel.app
     description: Production server (Working PostCrafter API)
 
 security:
@@ -70,10 +70,10 @@ paths:
                 summary: Complete post with all features
                 value:
                   title: "Complete Guide to AI Content Creation"
-                  content: "<h2>Introduction</h2><p>AI content creation is revolutionizing how we produce digital content...</p>",
-                  excerpt: "A comprehensive guide to using AI for content creation with SEO best practices.",
-                  categories: ["Technology", "AI"],
-                  tags: ["content-creation", "seo", "wordpress"],
+                  content: "<h2>Introduction</h2><p>AI content creation is revolutionizing how we produce digital content...</p>"
+                  excerpt: "A comprehensive guide to using AI for content creation with SEO best practices."
+                  categories: ["Technology", "AI"]
+                  tags: ["content-creation", "seo", "wordpress"]
                   images:
                     - url: "https://example.com/featured-image.jpg"
                       alt_text: "AI Content Creation"
@@ -156,7 +156,7 @@ components:
       description: |
         API key for authentication. Include this header with all requests.
         
-        Example: \`X-API-Key: your-api-key-here\`
+        Example: X-API-Key: your-api-key-here
         
         Rate limits and features are determined by your API key tier.
 
