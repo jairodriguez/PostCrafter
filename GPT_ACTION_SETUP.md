@@ -4,7 +4,7 @@
 
 You're absolutely right! For ChatGPT Custom GPTs, we need a **GPT Action** specification, not a full OpenAPI spec.
 
-**GPT Action URL**: `https://postcrafter-nextjs-k4wt6ld5c-jairo-rodriguezs-projects-77445a5f.vercel.app/api/gpt-action.yaml`
+**GPT Action URL**: `https://postcrafter-nextjs-gewp95u6q-jairo-rodriguezs-projects-77445a5f.vercel.app/api/gpt-action.yaml`
 
 ## 📋 **Step-by-Step Setup**
 
@@ -18,7 +18,7 @@ You're absolutely right! For ChatGPT Custom GPTs, we need a **GPT Action** speci
 
 **Use this exact URL**:
 ```
-https://postcrafter-nextjs-k4wt6ld5c-jairo-rodriguezs-projects-77445a5f.vercel.app/api/gpt-action.yaml
+https://postcrafter-nextjs-gewp95u6q-jairo-rodriguezs-projects-77445a5f.vercel.app/api/gpt-action.yaml
 ```
 
 ### 3. Configure Authentication
@@ -33,21 +33,23 @@ Copy the instructions from `POSTCRAFTER_GPT_INSTRUCTIONS_SIMPLE.md` into the "In
 
 ## 🔧 **Key Differences from OpenAPI**
 
-✅ **Simplified Schema**: Removed complex component references  
-✅ **Direct Properties**: All properties defined inline  
-✅ **GPT-Friendly Format**: Optimized for ChatGPT's parser  
-✅ **Essential Endpoints**: Only `/api/publish` and `/api/health`  
-✅ **Clean Examples**: Simple, working examples  
+✅ **OpenAPI 3.1.0**: Updated to latest version for compatibility  
+✅ **Proper Components Structure**: Uses `$ref` to reference schemas  
+✅ **Comprehensive Schemas**: Detailed request/response schemas  
+✅ **Security Configuration**: Proper API key authentication  
+✅ **Error Handling**: Complete error response schemas  
+✅ **Media Support**: Image upload with URL and base64 support  
+✅ **SEO Integration**: Full Yoast SEO meta field support  
 
 ## 🧪 **Test Your Setup**
 
 ### **Test the API Directly**
 ```bash
 # Test health endpoint
-curl https://postcrafter-nextjs-k4wt6ld5c-jairo-rodriguezs-projects-77445a5f.vercel.app/api/health
+curl https://postcrafter-nextjs-gewp95u6q-jairo-rodriguezs-projects-77445a5f.vercel.app/api/health
 
 # Test publishing
-curl -X POST https://postcrafter-nextjs-k4wt6ld5c-jairo-rodriguezs-projects-77445a5f.vercel.app/api/publish \
+curl -X POST https://postcrafter-nextjs-gewp95u6q-jairo-rodriguezs-projects-77445a5f.vercel.app/api/publish \
   -H "Content-Type: application/json" \
   -H "X-API-Key: postcrafter-api-key" \
   -d '{"title":"Test Post","content":"<p>Test content</p>","excerpt":"Test excerpt"}'
