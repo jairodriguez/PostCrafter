@@ -29,10 +29,8 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: https://postcrafter-api.vercel.app
-    description: Production server
-  - url: https://postcrafter-api-dev.vercel.app
-    description: Development server
+  - url: https://postcrafter-nextjs-8rd3ehcy4-jairo-rodriguezs-projects-77445a5f.vercel.app
+    description: Production server (Working PostCrafter API)
 
 security:
   - ApiKeyAuth: []
@@ -60,14 +58,12 @@ paths:
                 value:
                   title: "Getting Started with PostCrafter"
                   content: "PostCrafter is an AI-powered tool that helps you create and publish SEO-optimized content directly to WordPress..."
-                  status: "publish"
                   excerpt: "Learn how to use PostCrafter to create and publish AI-generated content with SEO optimization."
               full_post:
                 summary: Complete post with all features
                 value:
                   title: "Complete Guide to AI Content Creation"
                   content: "<h2>Introduction</h2><p>AI content creation is revolutionizing how we produce digital content...</p>",
-                  status: "publish",
                   excerpt: "A comprehensive guide to using AI for content creation with SEO best practices.",
                   categories: ["Technology", "AI"],
                   tags: ["content-creation", "seo", "wordpress"],
@@ -91,20 +87,9 @@ paths:
                   summary: Successful post publication
                   value:
                     success: true
-                    post:
-                      id: 123
-                      url: "https://example.com/2024/01/getting-started-with-postcrafter/"
-                      title: "Getting Started with PostCrafter"
-                      status: "publish"
-                      date: "2024-01-15T10:30:00Z"
-                    media:
-                      - id: 456
-                        url: "https://example.com/wp-content/uploads/2024/01/featured-image.jpg"
-                        alt_text: "AI Content Creation"
-                        featured: true
-                    yoast:
-                      meta_title: "Getting Started with PostCrafter | PostCrafter"
-                      meta_description: "Learn how to use PostCrafter to create and publish AI-generated content with SEO optimization."
+                    post_id: 123
+                    post_url: "https://braindump.guru/getting-started-with-postcrafter/"
+                    message: "Post published successfully!"
         '400':
           description: Bad request - validation error
           content:
@@ -116,19 +101,9 @@ paths:
                   summary: Validation error
                   value:
                     success: false
-                    error:
-                      code: "VALIDATION_ERROR"
-                      message: "Invalid post data"
-                      details: "Title is required and must be between 1 and 200 characters"
-                    statusCode: 400
+                    error: "Invalid post data: Title is required and must be between 1 and 200 characters"
         '401':
           description: Unauthorized - invalid API key
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '429':
-          description: Too many requests - rate limit exceeded
           content:
             application/json:
               schema:
@@ -161,9 +136,9 @@ paths:
                   timestamp:
                     type: string
                     format: date-time
-                  version:
+                  environment:
                     type: string
-                    example: "1.0.0"
+                    example: "production"
 
 components:
   securitySchemes:
@@ -205,7 +180,7 @@ components:
         status:
           type: string
           enum: [draft, publish, private]
-          default: "draft"
+          default: "publish"
           description: Post status
         categories:
           type: array
@@ -326,89 +301,20 @@ components:
         success:
           type: boolean
           description: Whether the operation was successful
-        post:
-          $ref: '#/components/schemas/PostData'
-        media:
-          type: array
-          items:
-            $ref: '#/components/schemas/MediaData'
-          description: Uploaded media information
-        yoast:
-          $ref: '#/components/schemas/YoastData'
-          description: Applied Yoast SEO data
-        warnings:
-          type: array
-          items:
-            type: string
-          description: Any warnings during processing
-          example: ["Image optimization not available in this version"]
-
-    PostData:
-      type: object
-      properties:
-        id:
+          example: true
+        post_id:
           type: integer
           description: WordPress post ID
           example: 123
-        url:
+        post_url:
           type: string
           format: uri
           description: Published post URL
-          example: "https://example.com/2024/01/getting-started-with-postcrafter/"
-        title:
+          example: "https://braindump.guru/getting-started-with-postcrafter/"
+        message:
           type: string
-          description: Post title
-          example: "Getting Started with PostCrafter"
-        status:
-          type: string
-          description: Post status
-          example: "publish"
-        date:
-          type: string
-          format: date-time
-          description: Publication date
-          example: "2024-01-15T10:30:00Z"
-        categories:
-          type: array
-          items:
-            type: string
-          description: Applied categories
-          example: ["Technology", "AI"]
-        tags:
-          type: array
-          items:
-            type: string
-          description: Applied tags
-          example: ["content-creation", "seo"]
-
-    MediaData:
-      type: object
-      properties:
-        id:
-          type: integer
-          description: WordPress media ID
-          example: 456
-        url:
-          type: string
-          format: uri
-          description: Media URL
-          example: "https://example.com/wp-content/uploads/2024/01/image.jpg"
-        alt_text:
-          type: string
-          description: Alt text
-          example: "AI Content Creation"
-        title:
-          type: string
-          description: Media title
-          example: "AI Content Creation Process"
-        caption:
-          type: string
-          description: Media caption
-          example: "The AI content creation process involves multiple steps..."
-        featured:
-          type: boolean
-          description: Whether this is the featured image
-          example: true
+          description: Success message
+          example: "Post published successfully!"
 
     ErrorResponse:
       type: object
@@ -417,28 +323,9 @@ components:
           type: boolean
           example: false
         error:
-          type: object
-          properties:
-            code:
-              type: string
-              description: Error code
-              example: "VALIDATION_ERROR"
-            message:
-              type: string
-              description: Human-readable error message
-              example: "Invalid post data"
-            details:
-              type: string
-              description: Detailed error information
-              example: "Title is required and must be between 1 and 200 characters"
-            retryable:
-              type: boolean
-              description: Whether the request can be retried
-              example: false
-        statusCode:
-          type: integer
-          description: HTTP status code
-          example: 400
+          type: string
+          description: Human-readable error message
+          example: "Invalid post data: Title is required and must be between 1 and 200 characters"
 
 tags:
   - name: Posts
