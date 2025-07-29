@@ -91,6 +91,26 @@ export interface PostData extends WordPressPost {
   images?: ImageData[];
 }
 
+// Flat publish request interface for backward compatibility with tests
+export interface FlatPublishRequest {
+  title: string;
+  content: string;
+  excerpt?: string;
+  status?: PostStatus;
+  categories?: string[];
+  tags?: string[];
+  featured_media?: number;
+  yoast_meta?: YoastMeta;
+  images?: ImageData[];
+  options?: {
+    publish_status?: PostStatus;
+    include_images?: boolean;
+    optimize_images?: boolean;
+    validate_content?: boolean;
+    status_metadata?: PostStatusMetadata;
+  };
+}
+
 // Image data interface
 export interface ImageData {
   url?: string;
@@ -98,13 +118,12 @@ export interface ImageData {
   alt_text?: string;
   caption?: string;
   featured?: boolean;
-  filename?: string;
   mime_type?: string;
 }
 
-// API request interface
+// Publish request interface (supports both nested and flat structures)
 export interface PublishRequest {
-  post: PostData;
+  post?: PostData;
   yoast?: YoastMeta;
   options?: {
     publish_status?: PostStatus;
@@ -113,6 +132,16 @@ export interface PublishRequest {
     validate_content?: boolean;
     status_metadata?: PostStatusMetadata;
   };
+  // Flat structure properties for backward compatibility
+  title?: string;
+  content?: string;
+  excerpt?: string;
+  status?: PostStatus;
+  categories?: string[];
+  tags?: string[];
+  featured_media?: number;
+  images?: ImageData[];
+  yoast_meta?: YoastMeta;
 }
 
 // API response interface
@@ -402,7 +431,7 @@ export interface WordPressResponse<T = any> {
   error?: {
     code: string;
     message: string;
-    details?: string[];
+    details?: string | string[];
     statusCode?: number;
   };
   statusCode?: number;
@@ -572,7 +601,7 @@ export interface TaxonomyResponse {
   error?: {
     code: string;
     message: string;
-    details?: string[];
+    details?: string | string[];
   };
 }
 
@@ -587,7 +616,7 @@ export interface PostCreationResult {
   error?: {
     code: string;
     message: string;
-    details?: string[];
+    details?: string | string[];
   };
 }
 

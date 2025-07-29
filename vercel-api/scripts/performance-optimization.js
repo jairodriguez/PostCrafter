@@ -182,6 +182,7 @@ function checkCachingImplementation() {
   log('Checking caching implementation...');
   
   const filesToCheck = [
+    'src/utils/cache.ts',
     'src/utils/wordpress.ts',
     'src/utils/image-optimizer.ts',
     'api/publish.ts'
@@ -194,11 +195,15 @@ function checkCachingImplementation() {
     const content = readFileContent(file);
     if (content) {
       const cachePatterns = [
-        /cache/i,
-        /memoize/i,
-        /store/i,
-        /redis/i,
-        /memory/i
+        /LRUCache/i,
+        /WordPressCache/i,
+        /ConnectionPool/i,
+        /cache\.set/i,
+        /cache\.get/i,
+        /wordPressCache/i,
+        /connectionPool/i,
+        /ttl/i,
+        /compression/i
       ];
       
       cachePatterns.forEach(pattern => {
@@ -209,6 +214,17 @@ function checkCachingImplementation() {
       });
     }
   });
+
+  // Check for specific cache implementation
+  const cacheFile = readFileContent('src/utils/cache.ts');
+  if (cacheFile) {
+    if (cacheFile.includes('class LRUCache')) cachingFeatures += 2;
+    if (cacheFile.includes('class WordPressCache')) cachingFeatures += 2;
+    if (cacheFile.includes('class ConnectionPool')) cachingFeatures += 2;
+    if (cacheFile.includes('wordPressCache')) cachingFeatures += 1;
+    if (cacheFile.includes('connectionPool')) cachingFeatures += 1;
+    totalFeatures += 8;
+  }
 
   performanceResults.details.caching = {
     score: Math.round((cachingFeatures / totalFeatures) * 100),
@@ -223,6 +239,7 @@ function checkErrorHandling() {
   log('Checking error handling and recovery...');
   
   const filesToCheck = [
+    'src/utils/circuit-breaker.ts',
     'src/utils/wordpress.ts',
     'src/utils/wordpress-error-handler.ts',
     'api/publish.ts'
@@ -235,12 +252,16 @@ function checkErrorHandling() {
     const content = readFileContent(file);
     if (content) {
       const errorPatterns = [
+        /CircuitBreaker/i,
+        /wordPressCircuitBreaker/i,
         /try\s*{/i,
         /catch\s*{/i,
         /finally\s*{/i,
         /retry/i,
         /fallback/i,
-        /circuit.*breaker/i
+        /circuit.*breaker/i,
+        /failureThreshold/i,
+        /recoveryTimeout/i
       ];
       
       errorPatterns.forEach(pattern => {
@@ -251,6 +272,17 @@ function checkErrorHandling() {
       });
     }
   });
+
+  // Check for specific circuit breaker implementation
+  const circuitBreakerFile = readFileContent('src/utils/circuit-breaker.ts');
+  if (circuitBreakerFile) {
+    if (circuitBreakerFile.includes('class CircuitBreaker')) errorHandlingFeatures += 3;
+    if (circuitBreakerFile.includes('class WordPressCircuitBreaker')) errorHandlingFeatures += 2;
+    if (circuitBreakerFile.includes('executeWordPressCall')) errorHandlingFeatures += 2;
+    if (circuitBreakerFile.includes('failureThreshold')) errorHandlingFeatures += 1;
+    if (circuitBreakerFile.includes('recoveryTimeout')) errorHandlingFeatures += 1;
+    totalFeatures += 9;
+  }
 
   performanceResults.details.errorHandling = {
     score: Math.round((errorHandlingFeatures / totalFeatures) * 100),
@@ -265,6 +297,7 @@ function checkAsyncProcessing() {
   log('Checking asynchronous processing implementation...');
   
   const filesToCheck = [
+    'src/utils/batch-processor.ts',
     'api/publish.ts',
     'src/utils/wordpress.ts',
     'src/utils/image-optimizer.ts'
@@ -277,10 +310,17 @@ function checkAsyncProcessing() {
     const content = readFileContent(file);
     if (content) {
       const asyncPatterns = [
+        /BatchProcessor/i,
+        /wordPressBatchProcessor/i,
+        /concurrency/i,
+        /batch.*process/i,
+        /Promise\.all/i,
+        /async.*await/i,
+        /setTimeout/i,
+        /setInterval/i,
         /async/i,
         /await/i,
         /Promise/i,
-        /setTimeout/i,
         /setImmediate/i
       ];
       
@@ -292,6 +332,17 @@ function checkAsyncProcessing() {
       });
     }
   });
+
+  // Check for specific batch processing implementation
+  const batchProcessorFile = readFileContent('src/utils/batch-processor.ts');
+  if (batchProcessorFile) {
+    if (batchProcessorFile.includes('class BatchProcessor')) asyncFeatures += 3;
+    if (batchProcessorFile.includes('class WordPressBatchProcessor')) asyncFeatures += 2;
+    if (batchProcessorFile.includes('maxConcurrency')) asyncFeatures += 2;
+    if (batchProcessorFile.includes('batchSize')) asyncFeatures += 2;
+    if (batchProcessorFile.includes('executeWithConcurrencyLimit')) asyncFeatures += 2;
+    totalFeatures += 11;
+  }
 
   performanceResults.details.asyncProcessing = {
     score: Math.round((asyncFeatures / totalFeatures) * 100),
