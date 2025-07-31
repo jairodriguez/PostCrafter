@@ -8,7 +8,7 @@ type PublishRequest = {
   yoast?: {
     meta_title?: string;
     meta_description?: string;
-    focus_keywords?: string;
+    focus_keyword?: string;
   };
 };
 
@@ -59,11 +59,11 @@ export default async function handler(
     };
 
     // Add Yoast meta fields to the post data if provided
-    if (yoast && (yoast.meta_title || yoast.meta_description || yoast.focus_keywords)) {
+    if (yoast && (yoast.meta_title || yoast.meta_description || yoast.focus_keyword)) {
       postData.yoast = {
         meta_title: yoast.meta_title,
         meta_description: yoast.meta_description,
-        focus_keywords: yoast.focus_keywords
+        focus_keyword: yoast.focus_keyword
       };
     }
 
@@ -83,6 +83,41 @@ export default async function handler(
     }
 
     const post = await response.json();
+
+    // If Yoast data was provided, set the meta fields directly as a fallback
+    if (yoast && (yoast.meta_title || yoast.meta_description || yoast.focus_keyword)) {
+      try {
+        const metaUpdateData: any = {};
+        
+        if (yoast.meta_title) {
+          metaUpdateData['_yoast_wpseo_title'] = yoast.meta_title;
+        }
+        if (yoast.meta_description) {
+          metaUpdateData['_yoast_wpseo_metadesc'] = yoast.meta_description;
+        }
+        if (yoast.focus_keyword) {
+          metaUpdateData['_yoast_wpseo_focuskw'] = yoast.focus_keyword;
+        }
+
+        // Update the post meta directly
+        const metaResponse = await fetch(`${wordpressUrl}/wp-json/wp/v2/posts/${post.id}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Basic ${Buffer.from(`${username}:${appPassword}`).toString("base64")}`
+          },
+          body: JSON.stringify({
+            meta: metaUpdateData
+          })
+        });
+
+        if (!metaResponse.ok) {
+          console.error("Failed to update meta fields:", await metaResponse.text());
+        }
+      } catch (metaError) {
+        console.error("Error updating meta fields:", metaError);
+      }
+    }
 
     return res.status(200).json({
       success: true,

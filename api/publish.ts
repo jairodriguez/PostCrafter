@@ -1,5 +1,27 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+type PublishRequest = {
+  title: string;
+  content: string;
+  excerpt?: string;
+  status?: "publish" | "draft";
+  categories?: string[];
+  tags?: string[];
+  yoast?: {
+    meta_title?: string;
+    meta_description?: string;
+    focus_keyword?: string;
+  };
+};
+
+type PublishResponse = {
+  success: boolean;
+  post_id?: number;
+  post_url?: string;
+  error?: string;
+  message?: string;
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Handle CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { title, content, excerpt, status = 'draft', categories = [], tags = [] } = req.body;
+    const { title, content, excerpt, status = 'publish', categories = [], tags = [], yoast } = req.body as PublishRequest;
 
     // Validate required fields
     if (!title || !content) {
@@ -37,14 +59,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const auth = Buffer.from(`${username}:${appPassword}`).toString('base64');
 
     // Prepare post data for WordPress
-    const postData = {
+    const postData: any = {
       title,
       content,
       excerpt,
       status,
-      categories: categories.length > 0 ? categories : undefined,
-      tags: tags.length > 0 ? tags : undefined
+      ...(categories.length > 0 && { categories }),
+      ...(tags.length > 0 && { tags })
     };
+
+    // Add Yoast meta fields to the post data if provided
+    if (yoast && (yoast.meta_title || yoast.meta_description || yoast.focus_keyword)) {
+      postData.yoast = {
+        meta_title: yoast.meta_title,
+        meta_description: yoast.meta_description,
+        focus_keyword: yoast.focus_keyword
+      };
+    }
 
     // Make request to WordPress REST API
     const response = await fetch(`${wordpressUrl}/wp-json/wp/v2/posts`, {
@@ -66,6 +97,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const wpResponse = await response.json() as any;
+
+    // If Yoast data was provided, set the meta fields directly as a fallback
+    if (yoast && (yoast.meta_title || yoast.meta_description || yoast.focus_keyword)) {
+      try {
+        const metaUpdateData: any = {};
+        
+        if (yoast.meta_title) {
+          metaUpdateData['_yoast_wpseo_title'] = yoast.meta_title;
+        }
+        if (yoast.meta_description) {
+          metaUpdateData['_yoast_wpseo_metadesc'] = yoast.meta_description;
+        }
+        if (yoast.focus_keyword) {
+          metaUpdateData['_yoast_wpseo_focuskw'] = yoast.focus_keyword;
+        }
+
+        // Update the post meta directly
+        const metaResponse = await fetch(`${wordpressUrl}/wp-json/wp/v2/posts/${wpResponse.id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${auth}`
+          },
+          body: JSON.stringify({
+            meta: metaUpdateData
+          })
+        });
+
+        if (!metaResponse.ok) {
+          console.error("Failed to update meta fields:", await metaResponse.text());
+        }
+      } catch (metaError) {
+        console.error("Error updating meta fields:", metaError);
+      }
+    }
     
     return res.status(200).json({
       success: true,
