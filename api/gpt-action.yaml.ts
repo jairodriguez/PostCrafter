@@ -33,7 +33,7 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://postcrafter-41z3si2e9-jairo-rodriguezs-projects-77445a5f.vercel.app
+  - url: https://postcrafter-one.vercel.app
     description: Production server
 
 paths:

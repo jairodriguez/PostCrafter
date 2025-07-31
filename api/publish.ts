@@ -58,14 +58,104 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Create basic auth header
     const auth = Buffer.from(`${username}:${appPassword}`).toString('base64');
 
+    // Helper function to create or find category by name
+    const getOrCreateCategory = async (categoryName: string): Promise<number> => {
+      // First, try to find existing category
+      const searchResponse = await fetch(`${wordpressUrl}/wp-json/wp/v2/categories?search=${encodeURIComponent(categoryName)}`, {
+        headers: {
+          'Authorization': `Basic ${auth}`
+        }
+      });
+      
+      if (searchResponse.ok) {
+        const categories = await searchResponse.json() as any[];
+        const existingCategory = categories.find((cat: any) => cat.name.toLowerCase() === categoryName.toLowerCase());
+        if (existingCategory) {
+          return existingCategory.id;
+        }
+      }
+      
+      // Create new category if not found
+      const createResponse = await fetch(`${wordpressUrl}/wp-json/wp/v2/categories`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${auth}`
+        },
+        body: JSON.stringify({
+          name: categoryName,
+          slug: categoryName.toLowerCase().replace(/\s+/g, '-')
+        })
+      });
+      
+      if (createResponse.ok) {
+        const newCategory = await createResponse.json() as any;
+        return newCategory.id;
+      }
+      
+      // Fallback to default category (usually ID 1)
+      return 1;
+    };
+
+    // Helper function to create or find tag by name
+    const getOrCreateTag = async (tagName: string): Promise<number> => {
+      // First, try to find existing tag
+      const searchResponse = await fetch(`${wordpressUrl}/wp-json/wp/v2/tags?search=${encodeURIComponent(tagName)}`, {
+        headers: {
+          'Authorization': `Basic ${auth}`
+        }
+      });
+      
+      if (searchResponse.ok) {
+        const tags = await searchResponse.json() as any[];
+        const existingTag = tags.find((tag: any) => tag.name.toLowerCase() === tagName.toLowerCase());
+        if (existingTag) {
+          return existingTag.id;
+        }
+      }
+      
+      // Create new tag if not found
+      const createResponse = await fetch(`${wordpressUrl}/wp-json/wp/v2/tags`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${auth}`
+        },
+        body: JSON.stringify({
+          name: tagName,
+          slug: tagName.toLowerCase().replace(/\s+/g, '-')
+        })
+      });
+      
+      if (createResponse.ok) {
+        const newTag = await createResponse.json() as any;
+        return newTag.id;
+      }
+      
+      return 0; // Return 0 if tag creation fails
+    };
+
+    // Get category and tag IDs
+    let categoryIds: number[] = [];
+    let tagIds: number[] = [];
+    
+    if (categories.length > 0) {
+      categoryIds = await Promise.all(categories.map(getOrCreateCategory));
+    }
+    
+    if (tags.length > 0) {
+      tagIds = await Promise.all(tags.map(getOrCreateTag));
+      tagIds = tagIds.filter(id => id !== 0); // Remove failed tags
+    }
+
     // Prepare post data for WordPress
     const postData: any = {
       title,
       content,
       excerpt,
       status,
-      ...(categories.length > 0 && { categories }),
-      ...(tags.length > 0 && { tags })
+      ...(categoryIds.length > 0 && { categories: categoryIds }),
+      ...(tagIds.length > 0 && { tags: tagIds })
     };
 
     // Add Yoast meta fields to the post data if provided
