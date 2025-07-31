@@ -27,7 +27,7 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://postcrafter-nextjs-127610bc8-jairo-rodriguezs-projects-77445a5f.vercel.app
+  - url: https://postcrafter-nextjs-2jufbv2wn-jairo-rodriguezs-projects-77445a5f.vercel.app
     description: Production server
 
 paths:

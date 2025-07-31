@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: PostCrafter SEO Integration
+ * Plugin Name: PostCrafter Yoast Integration
  * Plugin URI: https://github.com/your-username/postcrafter
  * Description: Exposes SEO meta fields via WordPress REST API for PostCrafter integration. Supports both Yoast SEO and RankMath SEO plugins.
- * Version: 1.1.0
+ * Version: 1.2.4
  * Author: PostCrafter Team
  * License: GPL v2 or later
  * Text Domain: postcrafter-seo
@@ -31,9 +31,14 @@
  * - REST API enabled
  * 
  * @package PostCrafter
- * @version 1.1.0
+ * @version 1.2.4
  * @since 1.0.0 Initial Yoast SEO integration
  * @since 1.1.0 Added RankMath SEO support and universal API
+ * @since 1.2.0 Fixed Yoast meta field handling and added comprehensive debugging
+ * @since 1.2.1 Fixed admin menu visibility and made it always available
+ * @since 1.2.2 Added REST API post creation hook for Yoast meta handling
+ * @since 1.2.3 Enhanced REST field update callbacks with Yoast meta forcing
+ * @since 1.2.4 Added direct REST API after_insert hook with debugging
  * @link https://github.com/postcrafter/seo-integration
  */
 
@@ -43,7 +48,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('POSTCRAFTER_SEO_VERSION', '1.1.0');
+define('POSTCRAFTER_SEO_VERSION', '1.2.4');
 define('POSTCRAFTER_SEO_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('POSTCRAFTER_SEO_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -68,6 +73,16 @@ class PostCrafter_SEO_Integration {
     public function __construct() {
         add_action('init', array($this, 'init'));
         add_action('rest_api_init', array($this, 'register_rest_fields'));
+        
+        // Admin menu - always add this
+        add_action('admin_menu', array($this, 'add_admin_menu'));
+        add_action('admin_init', array($this, 'admin_init'));
+        
+        // Hook into REST API post creation to handle Yoast meta
+        add_action('rest_insert_post', array($this, 'handle_rest_post_creation'), 10, 3);
+        
+        // Direct REST API hook for immediate Yoast meta handling
+        add_action('rest_after_insert_post', array($this, 'handle_rest_after_insert_post'), 10, 3);
         
         // Load the SEO plugin detector
         $this->load_detector();
@@ -99,9 +114,6 @@ class PostCrafter_SEO_Integration {
         
         // Initialize components
         $this->init_components();
-        
-        // Add admin hooks
-        add_action('admin_init', array($this, 'admin_init'));
         
         // Add REST API info endpoint
         add_action('rest_api_init', array($this, 'register_info_endpoint'));
@@ -153,9 +165,6 @@ class PostCrafter_SEO_Integration {
      * Admin initialization
      */
     public function admin_init() {
-        // Add settings page
-        add_action('admin_menu', array($this, 'add_admin_menu'));
-        
         // Register settings
         $this->register_settings();
     }
@@ -164,12 +173,14 @@ class PostCrafter_SEO_Integration {
      * Add admin menu
      */
     public function add_admin_menu() {
-        add_options_page(
-            __('PostCrafter SEO Settings', 'postcrafter-seo'),
-            __('PostCrafter SEO', 'postcrafter-seo'),
+        add_menu_page(
+            __('PostCrafter', 'postcrafter-seo'),
+            __('PostCrafter', 'postcrafter-seo'),
             'manage_options',
-            'postcrafter-seo',
-            array($this, 'admin_page')
+            'postcrafter',
+            array($this, 'admin_page'),
+            'dashicons-admin-generic',
+            30
         );
     }
     
@@ -464,7 +475,17 @@ class PostCrafter_SEO_Integration {
         $primary_plugin = $this->detector->get_primary_plugin();
         
         if ($primary_plugin === 'yoast') {
-            return update_post_meta($post->ID, '_yoast_wpseo_title', sanitize_text_field($value));
+            $result = update_post_meta($post->ID, '_yoast_wpseo_title', sanitize_text_field($value));
+            
+            // Force Yoast to update
+            if ($result && class_exists('WPSEO_Meta')) {
+                do_action('wpseo_save_compare_data', $post->ID);
+                if (method_exists('WPSEO_Meta', 'set_value')) {
+                    WPSEO_Meta::set_value('title', $value, $post->ID);
+                }
+            }
+            
+            return $result;
         } elseif ($primary_plugin === 'rankmath') {
             return update_post_meta($post->ID, 'rank_math_title', sanitize_text_field($value));
         }
@@ -494,7 +515,17 @@ class PostCrafter_SEO_Integration {
         $primary_plugin = $this->detector->get_primary_plugin();
         
         if ($primary_plugin === 'yoast') {
-            return update_post_meta($post->ID, '_yoast_wpseo_metadesc', sanitize_textarea_field($value));
+            $result = update_post_meta($post->ID, '_yoast_wpseo_metadesc', sanitize_textarea_field($value));
+            
+            // Force Yoast to update
+            if ($result && class_exists('WPSEO_Meta')) {
+                do_action('wpseo_save_compare_data', $post->ID);
+                if (method_exists('WPSEO_Meta', 'set_value')) {
+                    WPSEO_Meta::set_value('metadesc', $value, $post->ID);
+                }
+            }
+            
+            return $result;
         } elseif ($primary_plugin === 'rankmath') {
             return update_post_meta($post->ID, 'rank_math_description', sanitize_textarea_field($value));
         }
@@ -524,7 +555,17 @@ class PostCrafter_SEO_Integration {
         $primary_plugin = $this->detector->get_primary_plugin();
         
         if ($primary_plugin === 'yoast') {
-            return update_post_meta($post->ID, '_yoast_wpseo_focuskw', sanitize_text_field($value));
+            $result = update_post_meta($post->ID, '_yoast_wpseo_focuskw', sanitize_text_field($value));
+            
+            // Force Yoast to update
+            if ($result && class_exists('WPSEO_Meta')) {
+                do_action('wpseo_save_compare_data', $post->ID);
+                if (method_exists('WPSEO_Meta', 'set_value')) {
+                    WPSEO_Meta::set_value('focuskw', $value, $post->ID);
+                }
+            }
+            
+            return $result;
         } elseif ($primary_plugin === 'rankmath') {
             return update_post_meta($post->ID, 'rank_math_focus_keyword', sanitize_text_field($value));
         }
@@ -551,6 +592,128 @@ class PostCrafter_SEO_Integration {
      */
     public function get_detector() {
         return $this->detector;
+    }
+    
+    /**
+     * Handle Yoast SEO meta
+     */
+    private function handle_yoast_meta($post_id, $yoast_meta) {
+        error_log("PostCrafter: Handling Yoast meta for post $post_id: " . print_r($yoast_meta, true));
+        
+        if (class_exists('WPSEO_Meta')) {
+            // Set meta title
+            if (!empty($yoast_meta['meta_title'])) {
+                $meta_title = sanitize_text_field($yoast_meta['meta_title']);
+                update_post_meta($post_id, '_yoast_wpseo_title', $meta_title);
+                error_log("PostCrafter: Set Yoast meta title: $meta_title");
+            }
+            
+            // Set meta description
+            if (!empty($yoast_meta['meta_description'])) {
+                $meta_description = sanitize_textarea_field($yoast_meta['meta_description']);
+                update_post_meta($post_id, '_yoast_wpseo_metadesc', $meta_description);
+                error_log("PostCrafter: Set Yoast meta description: $meta_description");
+            }
+            
+            // Set focus keyword
+            if (!empty($yoast_meta['focus_keyword'])) {
+                $focus_keyword = sanitize_text_field($yoast_meta['focus_keyword']);
+                update_post_meta($post_id, '_yoast_wpseo_focuskw', $focus_keyword);
+                error_log("PostCrafter: Set Yoast focus keyword: $focus_keyword");
+            }
+            
+            // Force Yoast to recalculate SEO score
+            if (class_exists('WPSEO_Meta')) {
+                // Clear Yoast cache for this post
+                wp_cache_delete($post_id, 'post_meta');
+                
+                // Trigger Yoast's meta update hooks
+                do_action('wpseo_save_compare_data', $post_id);
+                
+                // Update Yoast's internal meta
+                if (method_exists('WPSEO_Meta', 'set_value')) {
+                    if (!empty($yoast_meta['meta_title'])) {
+                        WPSEO_Meta::set_value('title', $yoast_meta['meta_title'], $post_id);
+                    }
+                    if (!empty($yoast_meta['meta_description'])) {
+                        WPSEO_Meta::set_value('metadesc', $yoast_meta['meta_description'], $post_id);
+                    }
+                    if (!empty($yoast_meta['focus_keyword'])) {
+                        WPSEO_Meta::set_value('focuskw', $yoast_meta['focus_keyword'], $post_id);
+                    }
+                }
+            }
+            
+            error_log("PostCrafter: Yoast meta handling completed for post $post_id");
+        } else {
+            error_log("PostCrafter: Yoast SEO plugin not detected");
+        }
+    }
+    
+    /**
+     * Handle post creation with Yoast meta
+     */
+    public function handle_post_creation($post_id, $params) {
+        error_log("PostCrafter: Handling post creation for post $post_id");
+        
+        // Handle Yoast meta if present
+        if (!empty($params['yoast_meta'])) {
+            $this->handle_yoast_meta($post_id, $params['yoast_meta']);
+        } elseif (!empty($params['yoast'])) {
+            $this->handle_yoast_meta($post_id, $params['yoast']);
+        }
+        
+        error_log("PostCrafter: Post creation handling completed for post $post_id");
+    }
+
+    /**
+     * Hook into wp_insert_post to handle Yoast meta
+     */
+    public function handle_rest_post_creation($post, $request, $creating) {
+        // Only handle if it's a new post creation
+        if (!$creating) {
+            return $post; // Not a new post, return as is
+        }
+
+        // Get the post data from the request
+        $post_data = $request->get_params();
+
+        // Check if Yoast meta is present in the request
+        if (!empty($post_data['yoast_meta'])) {
+            $this->handle_yoast_meta($post->ID, $post_data['yoast_meta']);
+        } elseif (!empty($post_data['yoast'])) {
+            $this->handle_yoast_meta($post->ID, $post_data['yoast']);
+        }
+
+        return $post; // Return the modified post object
+    }
+
+    /**
+     * Direct REST API hook for immediate Yoast meta handling
+     */
+    public function handle_rest_after_insert_post($post, $request, $creating) {
+        error_log("PostCrafter: After insert hook triggered for post " . $post->ID);
+        
+        // Only handle if it's a new post creation
+        if (!$creating) {
+            error_log("PostCrafter: Not a new post creation, skipping");
+            return; // Not a new post, return as is
+        }
+
+        // Get the post data from the request
+        $post_data = $request->get_params();
+        error_log("PostCrafter: Request data: " . print_r($post_data, true));
+
+        // Check if Yoast meta is present in the request
+        if (!empty($post_data['yoast_meta'])) {
+            error_log("PostCrafter: Found yoast_meta in request");
+            $this->handle_yoast_meta($post->ID, $post_data['yoast_meta']);
+        } elseif (!empty($post_data['yoast'])) {
+            error_log("PostCrafter: Found yoast in request");
+            $this->handle_yoast_meta($post->ID, $post_data['yoast']);
+        } else {
+            error_log("PostCrafter: No Yoast meta found in request");
+        }
     }
 }
 

@@ -175,61 +175,81 @@ export class YoastService {
         };
       }
 
-      // Apply fields using the custom REST API endpoint
-      const endpoint = `/wp/v2/posts/${postId}`;
-      const updateData: any = {};
+      // Apply fields directly using WordPress meta API
+      const metaUpdates: { [key: string]: string } = {};
 
-      // Map Yoast fields to WordPress custom fields
+      // Map Yoast fields to WordPress meta keys
       if (validation.sanitizedFields.meta_title) {
-        updateData.yoast_meta_title = validation.sanitizedFields.meta_title;
+        metaUpdates['_yoast_wpseo_title'] = validation.sanitizedFields.meta_title;
       }
       if (validation.sanitizedFields.meta_description) {
-        updateData.yoast_meta_description = validation.sanitizedFields.meta_description;
+        metaUpdates['_yoast_wpseo_metadesc'] = validation.sanitizedFields.meta_description;
       }
       if (validation.sanitizedFields.focus_keywords) {
-        updateData.yoast_focus_keywords = validation.sanitizedFields.focus_keywords;
+        metaUpdates['_yoast_wpseo_focuskw'] = validation.sanitizedFields.focus_keywords;
       }
       if (validation.sanitizedFields.meta_robots_noindex !== undefined) {
-        updateData.yoast_meta_robots_noindex = validation.sanitizedFields.meta_robots_noindex;
+        metaUpdates['_yoast_wpseo_meta-robots-noindex'] = validation.sanitizedFields.meta_robots_noindex ? '1' : '0';
       }
       if (validation.sanitizedFields.meta_robots_nofollow !== undefined) {
-        updateData.yoast_meta_robots_nofollow = validation.sanitizedFields.meta_robots_nofollow;
+        metaUpdates['_yoast_wpseo_meta-robots-nofollow'] = validation.sanitizedFields.meta_robots_nofollow ? '1' : '0';
       }
       if (validation.sanitizedFields.canonical) {
-        updateData.yoast_canonical = validation.sanitizedFields.canonical;
+        metaUpdates['_yoast_wpseo_canonical'] = validation.sanitizedFields.canonical;
       }
       if (validation.sanitizedFields.primary_category) {
-        updateData.yoast_primary_category = validation.sanitizedFields.primary_category;
+        metaUpdates['_yoast_wpseo_primary_category'] = validation.sanitizedFields.primary_category;
       }
 
-      // Update the post with Yoast fields
-      const response = await this.client.put(endpoint, updateData);
+      // Update each meta field individually
+      const updatePromises = Object.entries(metaUpdates).map(async ([metaKey, metaValue]) => {
+        const endpoint = `/wp/v2/posts/${postId}`;
+        const updateData = {
+          meta: {
+            [metaKey]: metaValue
+          }
+        };
 
-      if (response.success && response.data) {
-        secureLog('info', `Yoast fields applied successfully to post ${postId}`, {
+        const response = await this.client.put(endpoint, updateData);
+        return { metaKey, success: response.success, error: response.error };
+      });
+
+      const results = await Promise.all(updatePromises);
+      const failedUpdates = results.filter(result => !result.success);
+
+      if (failedUpdates.length > 0) {
+        secureLog('warn', 'Some Yoast meta fields failed to update', {
           postId,
-          fieldsApplied: Object.keys(validation.sanitizedFields),
-          warnings: validation.warnings
+          failedUpdates: failedUpdates.map(f => f.metaKey),
+          totalFields: Object.keys(metaUpdates).length,
+          successfulFields: Object.keys(metaUpdates).length - failedUpdates.length
         });
 
         return {
-          success: true,
-          data: {
-            success: true,
-            fields: validation.sanitizedFields
-          },
-          statusCode: 200
-        };
-      } else {
-        return {
           success: false,
-          error: response.error || {
-            code: 'YOAST_UPDATE_FAILED',
-            message: 'Failed to update Yoast fields'
+          error: {
+            code: 'YOAST_META_UPDATE_FAILED',
+            message: 'Some Yoast meta fields failed to update',
+            details: failedUpdates.map(f => `${f.metaKey}: ${f.error?.message || 'Unknown error'}`).join(', ')
           },
-          statusCode: response.statusCode || 500
+          statusCode: 500
         };
       }
+
+      secureLog('info', `Yoast fields applied successfully to post ${postId}`, {
+        postId,
+        fieldsApplied: Object.keys(metaUpdates),
+        warnings: validation.warnings
+      });
+
+      return {
+        success: true,
+        data: {
+          success: true,
+          fields: validation.sanitizedFields
+        },
+        statusCode: 200
+      };
     } catch (error) {
       secureLog('error', 'Error applying Yoast fields', {
         postId,
